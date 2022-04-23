@@ -7,3 +7,6 @@ license = "MIT OR Apache-2.0"
 description = "Safe low-level Vulkan bindings"
 
 [dependencies]
+
+[workspace]
+members = ["demo"]
