@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 ember = {path = ".."}
+byte-strings = "0.2"
+anyhow = "1.0"
