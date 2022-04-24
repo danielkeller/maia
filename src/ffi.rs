@@ -3,8 +3,8 @@ use std::marker::PhantomData;
 use std::os::raw::c_char;
 use std::ptr::NonNull;
 
-/// A non-null, immutably borrowed, null-terminated utf-8 string, represented as
-/// a c 'const char*'.
+/// An immutably borrowed, null-terminated utf-8 string, represented as
+/// a non-null c 'const char*'.
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
 pub struct Str<'a> {
@@ -24,6 +24,13 @@ impl<'a> Str<'a> {
                 CStr::from_bytes_with_nul_unchecked(b).as_ptr() as *mut c_char,
             ),
             _lt: PhantomData,
+        }
+    }
+    pub fn as_str(self) -> &'a str {
+        unsafe {
+            std::str::from_utf8_unchecked(
+                CStr::from_ptr(self.ptr.as_ptr()).to_bytes(),
+            )
         }
     }
 }
@@ -71,6 +78,18 @@ impl<const N: usize> std::fmt::Debug for CharArray<N> {
         f.write_str(">(")?;
         self.as_str().fmt(f)?;
         f.write_str(")")
+    }
+}
+
+impl<const N: usize, const M: usize> PartialEq<CharArray<M>> for CharArray<N> {
+    fn eq(&self, other: &CharArray<M>) -> bool {
+        self.as_str() == other.as_str()
+    }
+}
+
+impl<'a, const N: usize> PartialEq<Str<'a>> for CharArray<N> {
+    fn eq(&self, other: &Str<'a>) -> bool {
+        self.as_str() == other.as_str()
     }
 }
 

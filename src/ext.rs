@@ -14,3 +14,8 @@ pub const ANDROID_SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_android_surface\0") };
 pub const METAL_SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_EXT_metal_surface\0") };
+pub const GET_PHYSICAL_DEVICE_PROPERTIES2: Str<'static> =
+    unsafe { Str::new_unchecked(b"VK_KHR_get_physical_device_properties2\0") };
+
+pub const PORTABILITY_SUBSET: Str<'static> =
+    unsafe { Str::new_unchecked(b"VK_KHR_portability_subset\0") };

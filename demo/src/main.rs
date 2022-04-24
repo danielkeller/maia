@@ -1,5 +1,18 @@
 use ember::vk;
 
+fn required_instance_extensions() -> anyhow::Result<&'static [vk::Str<'static>]>
+{
+    let exts = vk::instance_extension_properties()?;
+    if exts
+        .iter()
+        .any(|e| e.extension_name == vk::ext::GET_PHYSICAL_DEVICE_PROPERTIES2)
+    {
+        Ok(std::slice::from_ref(&vk::ext::GET_PHYSICAL_DEVICE_PROPERTIES2))
+    } else {
+        Ok(&[])
+    }
+}
+
 fn pick_physical_device(
     mut phys: Vec<vk::PhysicalDevice>,
 ) -> vk::PhysicalDevice {
@@ -30,23 +43,38 @@ fn pick_queue_family(phy: &vk::PhysicalDevice) -> anyhow::Result<u32> {
     anyhow::bail!("No graphics queue")
 }
 
+fn required_device_extensions(
+    phy: &vk::PhysicalDevice,
+) -> anyhow::Result<&'static [vk::Str<'static>]> {
+    let exts = phy.device_extension_properties()?;
+    if exts.iter().any(|e| e.extension_name == vk::ext::PORTABILITY_SUBSET) {
+        Ok(std::slice::from_ref(&vk::ext::PORTABILITY_SUBSET))
+    } else {
+        Ok(&[])
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     use winit::event_loop::EventLoop;
     let event_loop = EventLoop::new();
     let window = winit::window::Window::new(&event_loop)?;
 
-    let instance_exts = ember::window::required_instance_extensions(&window)?;
+    let mut instance_exts = vec![];
+    instance_exts
+        .extend(ember::window::required_instance_extensions(&window)?.iter());
+    instance_exts.extend(required_instance_extensions()?.iter());
     let inst = vk::create_instance(&vk::InstanceCreateInfo::S {
         next: None,
         flags: Default::default(),
         application_info: None,
         enabled_layer_names: Default::default(),
-        enabled_extension_names: instance_exts.into(),
+        enabled_extension_names: instance_exts.as_slice().into(),
     })?;
     println!("{:?}", inst);
     let phy = pick_physical_device(inst.enumerate_physical_devices()?);
     let queue_family = pick_queue_family(&phy)?;
 
+    let device_extensions = required_device_extensions(&phy)?;
     let device = phy.create_device(&vk::DeviceCreateInfo::S {
         next: None,
         flags: Default::default(),
@@ -58,7 +86,7 @@ fn main() -> anyhow::Result<()> {
         }])
             .into(),
         enabled_layer_names: Default::default(),
-        enabled_extension_names: Default::default(),
+        enabled_extension_names: device_extensions.into(),
         enabled_features: None,
     })?;
 

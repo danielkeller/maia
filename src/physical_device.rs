@@ -34,6 +34,30 @@ impl PhysicalDevice {
         result
     }
 
+    pub fn device_extension_properties(
+        &self,
+    ) -> Result<Vec<ExtensionProperties>> {
+        let mut len = 0;
+        let mut result = Vec::new();
+        unsafe {
+            (self.instance.fun.enumerate_device_extension_properties)(
+                self.as_ref(),
+                None,
+                &mut len,
+                None,
+            )?;
+            result.reserve(len.try_into().unwrap());
+            (self.instance.fun.enumerate_device_extension_properties)(
+                self.as_ref(),
+                None,
+                &mut len,
+                result.spare_capacity_mut().first_mut(),
+            )?;
+            result.set_len(len.try_into().unwrap());
+        }
+        Ok(result)
+    }
+
     pub fn create_device(&self, info: &DeviceCreateInfo<'_>) -> Result<Device> {
         let props = self.queue_family_properties();
         let DeviceCreateInfo::S { queue_create_infos, .. } = info;

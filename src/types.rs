@@ -271,6 +271,15 @@ pub enum ApplicationInfoExtension {}
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct ExtensionProperties {
+    pub extension_name: CharArray<MAX_EXTENSION_NAME_SIZE>,
+    pub spec_version: u32,
+}
+
+pub const MAX_EXTENSION_NAME_SIZE: usize = 256;
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct PhysicalDeviceProperties {
     pub api_version: u32,
     pub driver_version: u32,

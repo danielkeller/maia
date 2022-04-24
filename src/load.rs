@@ -21,6 +21,15 @@ pub unsafe fn vk_create_instance() -> unsafe extern "system" fn(
     transmute(load(None, "vkCreateInstance\0"))
 }
 
+pub unsafe fn vk_enumerate_instance_extension_properties(
+) -> unsafe extern "system" fn(
+    Option<Str<'_>>,
+    &mut u32,
+    Option<&mut MaybeUninit<ExtensionProperties>>,
+) -> Result<()> {
+    transmute(load(None, "vkEnumerateInstanceExtensionProperties\0"))
+}
+
 pub struct InstanceFn {
     pub destroy_instance: unsafe extern "system" fn(
         NonNull<c_void>,
@@ -42,6 +51,13 @@ pub struct InstanceFn {
             &mut u32,
             Option<&mut MaybeUninit<QueueFamilyProperties>>,
         ),
+    pub enumerate_device_extension_properties:
+        unsafe extern "system" fn(
+            PhysicalDeviceRef<'_>,
+            Option<Str<'_>>,
+            &mut u32,
+            Option<&mut MaybeUninit<ExtensionProperties>>,
+        ) -> Result<()>,
     pub create_device: unsafe extern "system" fn(
         PhysicalDeviceRef<'_>,
         &'_ DeviceCreateInfo,
@@ -57,26 +73,31 @@ pub struct InstanceFn {
 impl InstanceFn {
     pub fn new(inst: InstanceRef<'_>) -> Self {
         let inst = Some(inst);
-        Self {
-            destroy_instance: unsafe {
-                transmute(load(inst, "vkDestroyInstance\0"))
-            },
-            create_device: unsafe { transmute(load(inst, "vkCreateDevice\0")) },
-            get_physical_device_properties: unsafe {
-                transmute(load(inst, "vkGetPhysicalDeviceProperties\0"))
-            },
-            get_physical_device_queue_family_properties: unsafe {
-                transmute(load(
+        unsafe {
+            Self {
+                destroy_instance: transmute(load(inst, "vkDestroyInstance\0")),
+                create_device: transmute(load(inst, "vkCreateDevice\0")),
+                get_physical_device_properties: transmute(load(
+                    inst,
+                    "vkGetPhysicalDeviceProperties\0",
+                )),
+                get_physical_device_queue_family_properties: transmute(load(
                     inst,
                     "vkGetPhysicalDeviceQueueFamilyProperties\0",
-                ))
-            },
-            get_device_proc_addr: unsafe {
-                transmute(load(inst, "vkGetDeviceProcAddr\0"))
-            },
-            enumerate_physical_devices: unsafe {
-                transmute(load(inst, "vkEnumeratePhysicalDevices\0"))
-            },
+                )),
+                enumerate_device_extension_properties: transmute(load(
+                    inst,
+                    "vkEnumerateDeviceExtensionProperties\0",
+                )),
+                get_device_proc_addr: transmute(load(
+                    inst,
+                    "vkGetDeviceProcAddr\0",
+                )),
+                enumerate_physical_devices: transmute(load(
+                    inst,
+                    "vkEnumeratePhysicalDevices\0",
+                )),
+            }
         }
     }
 }
