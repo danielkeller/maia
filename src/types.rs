@@ -1,6 +1,6 @@
 use crate::ffi::*;
 use crate::lifetime::*;
-use crate::load::InstanceFn;
+use crate::load::{DeviceFn, InstanceFn};
 
 use std::{
     ffi::c_void, marker::PhantomData, num::NonZeroI32, ptr::NonNull, sync::Arc,
@@ -9,9 +9,16 @@ use std::{
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct Error(pub NonZeroI32);
+const fn err(code: i32) -> Error {
+    match NonZeroI32::new(code) {
+        Some(i) => Error(i),
+        None => panic!("Error code cannot be 0"),
+    }
+}
 impl Error {
-    pub const ERROR_OUT_OF_HOST_MEMORY: Error =
-        Error(unsafe { NonZeroI32::new_unchecked(-1) });
+    pub const ERROR_OUT_OF_HOST_MEMORY: Error = err(-1);
+    pub const INITIALIZATION_FAILED: Error = err(-3);
+    pub const EXTENSION_NOT_PRESENT: Error = err(-7);
 }
 
 impl std::fmt::Display for Error {
@@ -106,29 +113,31 @@ impl PhysicalDevice {
 }
 
 #[repr(transparent)]
-pub struct Device {
-    handle: NonNull<c_void>,
-}
-
-impl std::fmt::Debug for Device {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("Device").field(&self.handle).finish()
-    }
-}
+#[derive(Debug)]
+pub struct Device(pub(crate) Arc<DeviceResource>);
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
 pub struct DeviceRef<'a> {
+    #[allow(dead_code)]
     value: NonNull<c_void>,
     _lt: PhantomData<&'a ()>,
 }
 
 impl Device {
-    pub(crate) fn new(handle: DeviceRef<'_>) -> Self {
-        Self { handle: handle.value }
+    pub(crate) fn new(
+        handle: DeviceRef<'_>,
+        instance: Arc<InstanceResource>,
+    ) -> Self {
+        let res = Arc::new(DeviceResource {
+            handle: handle.value,
+            fun: DeviceFn::new(&instance, handle),
+            instance,
+        });
+        Self(res)
     }
     pub fn as_ref(&self) -> DeviceRef<'_> {
-        DeviceRef { value: self.handle, _lt: PhantomData }
+        DeviceRef { value: self.0.handle, _lt: PhantomData }
     }
 }
 
@@ -219,6 +228,14 @@ macro_rules! flags {
     };
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct Extent3D {
+    width: u32,
+    height: u32,
+    depth: u32,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct InstanceCreateFlags(u32);
 flags!(InstanceCreateFlags, []);
@@ -230,7 +247,7 @@ pub enum InstanceCreateInfo<'a> {
     S {
         next: Option<&'a InstanceCreateInfoExtension>,
         flags: InstanceCreateFlags,
-        application_info: Option<&'a ApplicationInfo>,
+        application_info: Option<&'a ApplicationInfo<'a>>,
         enabled_layer_names: Slice<'a, Str<'a>>,
         enabled_extension_names: Slice<'a, Str<'a>>,
     } = 1,
@@ -238,24 +255,36 @@ pub enum InstanceCreateInfo<'a> {
 
 pub enum InstanceCreateInfoExtension {}
 
-pub enum ApplicationInfo {/* todo */}
+#[repr(C, u32)]
+pub enum ApplicationInfo<'a> {
+    S {
+        next: Option<&'a ApplicationInfoExtension>,
+        application_name: Str<'a>,
+        application_version: u32,
+        engine_name: Str<'a>,
+        engine_version: u32,
+        api_version: u32,
+    } = 0,
+}
+
+pub enum ApplicationInfoExtension {}
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct PhysicalDeviceProperties {
-    api_version: u32,
-    driver_version: u32,
-    vendor_id: u32,
-    device_id: u32,
-    device_type: PhysicalDeviceType,
-    device_name: CharArray<MAX_PHYSICAL_DEVICE_NAME_SIZE>,
-    pipeline_cache_uuid: UUID,
-    limits: PhysicalDeviceLimits,
-    sparse_properties: PhysicalDeviceSparseProperties,
+    pub api_version: u32,
+    pub driver_version: u32,
+    pub vendor_id: u32,
+    pub device_id: u32,
+    pub device_type: PhysicalDeviceType,
+    pub device_name: CharArray<MAX_PHYSICAL_DEVICE_NAME_SIZE>,
+    pub pipeline_cache_uuid: UUID,
+    pub limits: PhysicalDeviceLimits,
+    pub sparse_properties: PhysicalDeviceSparseProperties,
 }
 
 #[repr(u32)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum PhysicalDeviceType {
     Other = 0,
     IntegratedGPU = 1,
@@ -389,6 +418,15 @@ pub struct PhysicalDeviceSparseProperties {
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SampleCountFlags(u32);
+impl SampleCountFlags {
+    pub const SAMPLE_COUNT_1: SampleCountFlags = SampleCountFlags(0x01);
+    pub const SAMPLE_COUNT_2: SampleCountFlags = SampleCountFlags(0x02);
+    pub const SAMPLE_COUNT_4: SampleCountFlags = SampleCountFlags(0x04);
+    pub const SAMPLE_COUNT_8: SampleCountFlags = SampleCountFlags(0x08);
+    pub const SAMPLE_COUNT_16: SampleCountFlags = SampleCountFlags(0x10);
+    pub const SAMPLE_COUNT_32: SampleCountFlags = SampleCountFlags(0x20);
+    pub const SAMPLE_COUNT_64: SampleCountFlags = SampleCountFlags(0x40);
+}
 flags!(
     SampleCountFlags,
     [
@@ -401,14 +439,120 @@ flags!(
         SAMPLE_COUNT_64
     ]
 );
-impl SampleCountFlags {
-    pub const SAMPLE_COUNT_1: SampleCountFlags = SampleCountFlags(0x00000001);
-    pub const SAMPLE_COUNT_2: SampleCountFlags = SampleCountFlags(0x00000002);
-    pub const SAMPLE_COUNT_4: SampleCountFlags = SampleCountFlags(0x00000004);
-    pub const SAMPLE_COUNT_8: SampleCountFlags = SampleCountFlags(0x00000008);
-    pub const SAMPLE_COUNT_16: SampleCountFlags = SampleCountFlags(0x00000010);
-    pub const SAMPLE_COUNT_32: SampleCountFlags = SampleCountFlags(0x00000020);
-    pub const SAMPLE_COUNT_64: SampleCountFlags = SampleCountFlags(0x00000040);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct QueueFamilyProperties {
+    pub queue_flags: QueueFlags,
+    pub queue_count: u32,
+    pub timestamp_valid_bits: u32,
+    pub min_image_transfer_granularity: Extent3D,
 }
 
-pub enum DeviceCreateInfo {/* todo */}
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct QueueFlags(u32);
+impl QueueFlags {
+    pub const GRAPHICS: QueueFlags = QueueFlags(0x01);
+    pub const COMPUTE: QueueFlags = QueueFlags(0x02);
+    pub const TRANSFER: QueueFlags = QueueFlags(0x04);
+    pub const SPARSE_BINDING: QueueFlags = QueueFlags(0x08);
+    pub const PROTECTED: QueueFlags = QueueFlags(0x10);
+}
+flags!(QueueFlags, [GRAPHICS, COMPUTE, TRANSFER, SPARSE_BINDING, PROTECTED]);
+
+#[repr(C, u32)]
+pub enum DeviceCreateInfo<'a> {
+    S {
+        next: Option<&'a DeviceCreateInfoExtension>,
+        flags: DeviceCreateFlags,
+        queue_create_infos: Slice_<'a, DeviceQueueCreateInfo<'a>>,
+        enabled_layer_names: Slice<'a, Str<'a>>,
+        enabled_extension_names: Slice<'a, Str<'a>>,
+        enabled_features: Option<&'a PhysicalDeviceFeatures>,
+    } = 3,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DeviceCreateFlags(u32);
+flags!(DeviceCreateFlags, []);
+
+pub enum DeviceCreateInfoExtension {}
+
+#[repr(C, u32)]
+pub enum DeviceQueueCreateInfo<'a> {
+    S {
+        next: Option<&'a DeviceQueueCreateInfoExtension>,
+        flags: DeviceQueueCreateFlags,
+        queue_family_index: u32,
+        queue_priorities: Slice<'a, f32>,
+    } = 2,
+}
+
+pub enum DeviceQueueCreateInfoExtension {}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DeviceQueueCreateFlags(u32);
+impl DeviceQueueCreateFlags {
+    pub const PROTECTED: DeviceQueueCreateFlags = DeviceQueueCreateFlags(0x1);
+}
+flags!(DeviceQueueCreateFlags, [PROTECTED]);
+
+#[repr(C)]
+#[derive(Default)]
+pub struct PhysicalDeviceFeatures {
+    robust_buffer_access: Bool,
+    full_draw_index_uint32: Bool,
+    image_cube_array: Bool,
+    independent_blend: Bool,
+    geometry_shader: Bool,
+    tessellation_shader: Bool,
+    sample_rate_shading: Bool,
+    dual_src_blend: Bool,
+    logic_op: Bool,
+    multi_draw_indirect: Bool,
+    draw_indirect_first_instance: Bool,
+    depth_clamp: Bool,
+    depth_bias_clamp: Bool,
+    fill_mode_non_solid: Bool,
+    depth_bounds: Bool,
+    wide_lines: Bool,
+    large_points: Bool,
+    alpha_to_one: Bool,
+    multi_viewport: Bool,
+    sampler_anisotropy: Bool,
+    texture_compression_etc2: Bool,
+    texture_compression_astc_ldr: Bool,
+    texture_compression_bc: Bool,
+    occlusion_query_precise: Bool,
+    pipeline_statistics_query: Bool,
+    vertex_pipeline_stores_and_atomics: Bool,
+    fragment_stores_and_atomics: Bool,
+    shader_tessellation_and_geometry_point_size: Bool,
+    shader_image_gather_extended: Bool,
+    shader_storage_image_extended_formats: Bool,
+    shader_storage_image_multisample: Bool,
+    shader_storage_image_read_without_format: Bool,
+    shader_storage_image_write_without_format: Bool,
+    shader_uniform_buffer_array_dynamic_indexing: Bool,
+    shader_sampled_image_array_dynamic_indexing: Bool,
+    shader_storage_buffer_array_dynamic_indexing: Bool,
+    shader_storage_image_array_dynamic_indexing: Bool,
+    shader_clip_distance: Bool,
+    shader_cull_distance: Bool,
+    shader_float64: Bool,
+    shader_int64: Bool,
+    shader_int16: Bool,
+    shader_resource_residency: Bool,
+    shader_resource_min_lod: Bool,
+    sparse_binding: Bool,
+    sparse_residency_buffer: Bool,
+    sparse_residency_image_2d: Bool,
+    sparse_residency_image_3d: Bool,
+    sparse_residency2_samples: Bool,
+    sparse_residency4_samples: Bool,
+    sparse_residency8_samples: Bool,
+    sparse_residency16_samples: Bool,
+    sparse_residency_aliased: Bool,
+    variable_multisample_rate: Bool,
+    inherited_queries: Bool,
+}

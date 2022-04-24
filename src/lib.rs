@@ -1,10 +1,12 @@
 #![feature(arbitrary_enum_discriminant)]
+pub mod ext;
 mod ffi;
 mod instance;
 mod lifetime;
 mod load;
 mod physical_device;
 mod types;
+pub mod window;
 
 use crate::types::*;
 

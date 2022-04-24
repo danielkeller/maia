@@ -7,6 +7,8 @@ license = "MIT OR Apache-2.0"
 description = "Safe low-level Vulkan bindings"
 
 [dependencies]
+# TODO: Feature
+raw-window-handle = "0.4"
 
 [workspace]
 members = ["demo"]
