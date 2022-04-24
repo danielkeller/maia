@@ -122,14 +122,25 @@ pub struct DeviceFn {
         NonNull<c_void>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub get_device_queue: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        u32,
+        u32,
+        &mut Option<QueueRef<'_>>,
+    ),
 }
 
 impl DeviceFn {
     pub fn new(inst: &InstanceResource, device: DeviceRef<'_>) -> Self {
-        Self {
-            destroy_device: unsafe {
-                transmute(inst.load(device, "vkDestroyDevice\0"))
-            },
+        unsafe {
+            Self {
+                destroy_device: {
+                    transmute(inst.load(device, "vkDestroyDevice\0"))
+                },
+                get_device_queue: transmute(
+                    inst.load(device, "vkGetDeviceQueue\0"),
+                ),
+            }
         }
     }
 }

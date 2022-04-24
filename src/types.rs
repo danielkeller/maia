@@ -1,6 +1,6 @@
 use crate::ffi::*;
 use crate::lifetime::*;
-use crate::load::{DeviceFn, InstanceFn};
+use crate::load::InstanceFn;
 
 use std::{
     ffi::c_void, marker::PhantomData, num::NonZeroI32, ptr::NonNull, sync::Arc,
@@ -112,32 +112,45 @@ impl PhysicalDevice {
     }
 }
 
-#[repr(transparent)]
 #[derive(Debug)]
 pub struct Device(pub(crate) Arc<DeviceResource>);
 
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
 pub struct DeviceRef<'a> {
-    #[allow(dead_code)]
-    value: NonNull<c_void>,
+    // TODO: Not pub(crate)
+    pub(crate) value: NonNull<c_void>,
     _lt: PhantomData<&'a ()>,
 }
 
 impl Device {
-    pub(crate) fn new(
-        handle: DeviceRef<'_>,
-        instance: Arc<InstanceResource>,
-    ) -> Self {
-        let res = Arc::new(DeviceResource {
-            handle: handle.value,
-            fun: DeviceFn::new(&instance, handle),
-            instance,
-        });
-        Self(res)
-    }
     pub fn as_ref(&self) -> DeviceRef<'_> {
         DeviceRef { value: self.0.handle, _lt: PhantomData }
+    }
+}
+
+#[derive(Debug)]
+pub struct Queue {
+    handle: NonNull<c_void>,
+    device: Arc<DeviceResource>,
+}
+
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+pub struct QueueRef<'a> {
+    value: NonNull<c_void>,
+    _lt: PhantomData<&'a ()>,
+}
+
+impl Queue {
+    pub(crate) fn new(
+        handle: QueueRef<'_>,
+        device: Arc<DeviceResource>,
+    ) -> Self {
+        Self { handle: handle.value, device }
+    }
+    pub fn as_ref(&self) -> QueueRef<'_> {
+        QueueRef { value: self.handle, _lt: PhantomData }
     }
 }
 

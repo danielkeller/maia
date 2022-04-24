@@ -91,6 +91,7 @@ fn main() -> anyhow::Result<()> {
     })?;
 
     println!("{:?}", device);
+    println!("{:?}", device.queue(0, 0)?);
 
     Ok(())
     // event_loop.run(move |event, _, control_flow| {

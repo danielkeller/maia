@@ -1,5 +1,7 @@
-use std::mem::MaybeUninit;
+use std::{mem::MaybeUninit, sync::Arc};
 
+use crate::lifetime::DeviceResource;
+use crate::load::DeviceFn;
 use crate::types::*;
 
 impl PhysicalDevice {
@@ -60,6 +62,7 @@ impl PhysicalDevice {
 
     pub fn create_device(&self, info: &DeviceCreateInfo<'_>) -> Result<Device> {
         let props = self.queue_family_properties();
+        let mut queues = vec![0; props.len()];
         let DeviceCreateInfo::S { queue_create_infos, .. } = info;
         for queue in queue_create_infos.as_slice() {
             let DeviceQueueCreateInfo::S {
@@ -72,6 +75,7 @@ impl PhysicalDevice {
             {
                 return Err(Error::INITIALIZATION_FAILED);
             }
+            queues[i] = queue_priorities.len();
         }
 
         let mut handle = None;
@@ -83,6 +87,13 @@ impl PhysicalDevice {
                 &mut handle,
             )?;
         }
-        Ok(Device::new(handle.unwrap(), self.instance.clone()))
+        let handle = handle.unwrap();
+        let res = Arc::new(DeviceResource {
+            handle: handle.value,
+            fun: DeviceFn::new(&self.instance, handle),
+            instance: self.instance.clone(),
+            queues,
+        });
+        Ok(Device(res))
     }
 }

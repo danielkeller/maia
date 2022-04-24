@@ -1,4 +1,5 @@
 #![feature(arbitrary_enum_discriminant)]
+mod device;
 pub mod ext;
 mod ffi;
 mod instance;

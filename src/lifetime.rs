@@ -24,6 +24,7 @@ pub struct DeviceResource {
     pub handle: NonNull<c_void>,
     pub fun: DeviceFn,
     pub instance: Arc<InstanceResource>,
+    pub queues: Vec<u32>,
 }
 
 impl Drop for DeviceResource {
