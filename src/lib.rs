@@ -3,17 +3,21 @@ mod device;
 pub mod ext;
 mod ffi;
 mod instance;
-mod lifetime;
 mod load;
 mod physical_device;
+mod queue;
 mod types;
 pub mod window;
+
+use std::sync::Arc;
+
+use instance::Instance;
 
 use crate::types::*;
 
 pub fn create_instance<'a>(
     info: &'a InstanceCreateInfo<'a>,
-) -> Result<Instance> {
+) -> Result<Arc<Instance>> {
     let mut handle = None;
     unsafe { (load::vk_create_instance())(info, None, &mut handle)? };
     Ok(Instance::new(handle.unwrap()))
@@ -34,8 +38,12 @@ pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
 
 pub mod vk {
     pub use crate::create_instance;
+    pub use crate::device::Device;
     pub use crate::ext;
     pub use crate::ffi::*;
+    pub use crate::instance::Instance;
     pub use crate::instance_extension_properties;
+    pub use crate::physical_device::PhysicalDevice;
+    pub use crate::queue::Queue;
     pub use crate::types::*;
 }

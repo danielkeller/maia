@@ -1,7 +1,8 @@
+pub use std::ffi::c_void;
 use std::ffi::CStr;
-use std::marker::PhantomData;
+pub use std::marker::PhantomData;
 use std::os::raw::c_char;
-use std::ptr::NonNull;
+pub use std::ptr::NonNull;
 
 /// An immutably borrowed, null-terminated utf-8 string, represented as
 /// a non-null c 'const char*'.

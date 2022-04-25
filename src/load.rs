@@ -1,10 +1,9 @@
 use crate::ffi::*;
-use crate::lifetime::InstanceResource;
+use crate::instance::Instance;
 use crate::types::*;
 use std::ffi::c_void;
 use std::mem::transmute;
 use std::mem::MaybeUninit;
-use std::ptr::NonNull;
 
 extern "system" {
     fn vkGetInstanceProcAddr(
@@ -16,7 +15,7 @@ extern "system" {
 pub unsafe fn vk_create_instance() -> unsafe extern "system" fn(
     &'_ InstanceCreateInfo<'_>,
     Option<&'_ AllocationCallbacks>,
-    &mut Option<InstanceRef<'_>>,
+    &mut Option<InstanceRef<'static>>,
 ) -> Result<()> {
     transmute(load(None, "vkCreateInstance\0"))
 }
@@ -32,7 +31,7 @@ pub unsafe fn vk_enumerate_instance_extension_properties(
 
 pub struct InstanceFn {
     pub destroy_instance: unsafe extern "system" fn(
-        NonNull<c_void>,
+        InstanceRef<'static>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub enumerate_physical_devices: unsafe extern "system" fn(
@@ -62,7 +61,7 @@ pub struct InstanceFn {
         PhysicalDeviceRef<'_>,
         &'_ DeviceCreateInfo,
         Option<&'_ AllocationCallbacks>,
-        &mut Option<DeviceRef<'_>>,
+        &mut Option<DeviceRef<'static>>,
     ) -> Result<()>,
     pub get_device_proc_addr: unsafe extern "system" fn(
         DeviceRef<'_>,
@@ -119,7 +118,7 @@ pub unsafe fn load(
 
 pub struct DeviceFn {
     pub destroy_device: unsafe extern "system" fn(
-        NonNull<c_void>,
+        DeviceRef<'static>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub get_device_queue: unsafe extern "system" fn(
@@ -131,7 +130,7 @@ pub struct DeviceFn {
 }
 
 impl DeviceFn {
-    pub fn new(inst: &InstanceResource, device: DeviceRef<'_>) -> Self {
+    pub fn new(inst: &Instance, device: DeviceRef<'_>) -> Self {
         unsafe {
             Self {
                 destroy_device: {
@@ -145,7 +144,7 @@ impl DeviceFn {
     }
 }
 
-impl InstanceResource {
+impl Instance {
     /// Load device function. Panics if the string is not null-terminated or the
     /// function was not found.
     unsafe fn load(&self, device: DeviceRef<'_>, name: &str) -> *const c_void {

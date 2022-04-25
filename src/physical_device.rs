@@ -1,8 +1,27 @@
-use std::{mem::MaybeUninit, sync::Arc};
+use std::mem::MaybeUninit;
+use std::sync::Arc;
 
-use crate::lifetime::DeviceResource;
-use crate::load::DeviceFn;
+use crate::device::Device;
+use crate::instance::Instance;
 use crate::types::*;
+
+#[derive(Debug)]
+pub struct PhysicalDevice {
+    handle: PhysicalDeviceRef<'static>,
+    pub(crate) instance: Arc<Instance>,
+}
+
+impl PhysicalDevice {
+    pub(crate) fn new(
+        handle: PhysicalDeviceRef<'static>,
+        instance: Arc<Instance>,
+    ) -> Self {
+        Self { handle, instance }
+    }
+    pub fn as_ref(&self) -> PhysicalDeviceRef<'_> {
+        self.handle
+    }
+}
 
 impl PhysicalDevice {
     pub fn properties(&self) -> PhysicalDeviceProperties {
@@ -60,7 +79,10 @@ impl PhysicalDevice {
         Ok(result)
     }
 
-    pub fn create_device(&self, info: &DeviceCreateInfo<'_>) -> Result<Device> {
+    pub fn create_device(
+        &self,
+        info: &DeviceCreateInfo<'_>,
+    ) -> Result<Arc<Device>> {
         let props = self.queue_family_properties();
         let mut queues = vec![0; props.len()];
         let DeviceCreateInfo::S { queue_create_infos, .. } = info;
@@ -87,13 +109,6 @@ impl PhysicalDevice {
                 &mut handle,
             )?;
         }
-        let handle = handle.unwrap();
-        let res = Arc::new(DeviceResource {
-            handle: handle.value,
-            fun: DeviceFn::new(&self.instance, handle),
-            instance: self.instance.clone(),
-            queues,
-        });
-        Ok(Device(res))
+        Ok(Device::new(handle.unwrap(), self.instance.clone(), queues))
     }
 }
