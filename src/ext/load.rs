@@ -9,6 +9,13 @@ pub struct SurfaceKHRFn {
         SurfaceKHRRef<'static>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub get_physical_device_surface_support_khr:
+        unsafe extern "system" fn(
+            PhysicalDeviceRef<'_>,
+            u32,
+            SurfaceKHRRef<'_>,
+            &mut Bool,
+        ) -> Result<()>,
 }
 
 impl SurfaceKHRFn {
@@ -19,6 +26,10 @@ impl SurfaceKHRFn {
                 destroy_surface_khr: transmute(load(
                     inst,
                     "vkDestroySurfaceKHR\0",
+                )),
+                get_physical_device_surface_support_khr: transmute(load(
+                    inst,
+                    "vkGetPhysicalDeviceSurfaceSupportKHR\0",
                 )),
             }
         }

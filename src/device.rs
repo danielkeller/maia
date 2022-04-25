@@ -6,6 +6,7 @@ use crate::types::*;
 pub struct Device {
     handle: DeviceRef<'static>,
     pub(crate) fun: DeviceFn,
+    #[allow(dead_code)]
     instance: Arc<Instance>,
     queues: Vec<u32>,
 }

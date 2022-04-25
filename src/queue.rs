@@ -4,6 +4,7 @@ use crate::types::*;
 #[derive(Debug)]
 pub struct Queue {
     handle: QueueRef<'static>,
+    #[allow(dead_code)]
     device: Arc<Device>,
 }
 

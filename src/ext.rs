@@ -2,7 +2,12 @@ use crate::ffi::Str;
 
 pub mod ext_metal_surface;
 pub mod khr_surface;
-pub mod load;
+mod load;
+
+pub use ext_metal_surface::EXTMetalSurface;
+pub use khr_surface::SurfaceKHR;
+
+// Instance level extensions
 
 pub const SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_surface\0") };
@@ -21,5 +26,9 @@ pub const METAL_SURFACE: Str<'static> =
 pub const GET_PHYSICAL_DEVICE_PROPERTIES2: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_get_physical_device_properties2\0") };
 
+// Device level extensions
+
 pub const PORTABILITY_SUBSET: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_portability_subset\0") };
+pub const SWAPCHAIN: Str<'static> =
+    unsafe { Str::new_unchecked(b"VK_KHR_swapchain\0") };

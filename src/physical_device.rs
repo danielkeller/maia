@@ -92,10 +92,11 @@ impl PhysicalDevice {
                 ..
             } = queue;
             let i = *queue_family_index as usize;
-            if i > props.len() || queue_priorities.len() > props[i].queue_count
-            {
-                return Err(Error::INITIALIZATION_FAILED);
-            }
+            assert!(i < props.len(), "Queue family index out of bounds");
+            assert!(
+                queue_priorities.len() <= props[i].queue_count,
+                "Too many queues requested"
+            );
             queues[i] = queue_priorities.len();
         }
 

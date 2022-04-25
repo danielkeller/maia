@@ -33,10 +33,15 @@ fn pick_physical_device(
     phys.swap_remove(0)
 }
 
-fn pick_queue_family(phy: &vk::PhysicalDevice) -> anyhow::Result<u32> {
+fn pick_queue_family(
+    phy: &vk::PhysicalDevice,
+    surf: &vk::ext::SurfaceKHR,
+) -> anyhow::Result<u32> {
     let props = phy.queue_family_properties();
     for i in 0..props.len() {
-        if !(props[i].queue_flags | vk::QueueFlags::GRAPHICS).is_empty() {
+        if !(props[i].queue_flags | vk::QueueFlags::GRAPHICS).is_empty()
+            && surf.physical_device_support(phy, i.try_into().unwrap())?
+        {
             return Ok(i.try_into().unwrap());
         }
     }
@@ -48,9 +53,9 @@ fn required_device_extensions(
 ) -> anyhow::Result<&'static [vk::Str<'static>]> {
     let exts = phy.device_extension_properties()?;
     if exts.iter().any(|e| e.extension_name == vk::ext::PORTABILITY_SUBSET) {
-        Ok(std::slice::from_ref(&vk::ext::PORTABILITY_SUBSET))
+        Ok(&[vk::ext::PORTABILITY_SUBSET, vk::ext::SWAPCHAIN])
     } else {
-        Ok(&[])
+        Ok(&[vk::ext::SWAPCHAIN])
     }
 }
 
@@ -72,12 +77,12 @@ fn main() -> anyhow::Result<()> {
     })?;
     println!("{:?}", inst);
 
-    let surface = ember::window::create_surface(&inst, &window)?;
-    println!("{:?}", surface);
+    let surf = ember::window::create_surface(&inst, &window)?;
+    println!("{:?}", surf);
 
     let phy = pick_physical_device(inst.enumerate_physical_devices()?);
     println!("{:?}", phy);
-    let queue_family = pick_queue_family(&phy)?;
+    let queue_family = pick_queue_family(&phy, &surf)?;
 
     let device_extensions = required_device_extensions(&phy)?;
     let device = phy.create_device(&vk::DeviceCreateInfo::S {
