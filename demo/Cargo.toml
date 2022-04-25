@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ember = {path = ".."}
+ember = {path = "..", features = ["window"]}
 winit = "0.26"
 byte-strings = "0.2"
 anyhow = "1.0"

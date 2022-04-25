@@ -7,6 +7,7 @@ mod load;
 mod physical_device;
 mod queue;
 mod types;
+#[cfg(feature = "window")]
 pub mod window;
 
 use std::sync::Arc;
