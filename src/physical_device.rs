@@ -1,5 +1,4 @@
 use std::mem::MaybeUninit;
-use std::sync::Arc;
 
 use crate::device::Device;
 use crate::instance::Instance;

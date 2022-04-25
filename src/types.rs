@@ -1,4 +1,5 @@
 use crate::ffi::*;
+pub use std::sync::Arc;
 
 use std::num::NonZeroI32;
 
@@ -101,6 +102,20 @@ pub struct QueueRef<'a> {
     _lt: PhantomData<&'a ()>,
 }
 handle_debug!(QueueRef);
+
+#[repr(transparent)]
+#[derive(Copy, Clone)]
+pub struct SurfaceKHRRef<'a> {
+    _value: NonNullNonDispatchableHandle,
+    _lt: PhantomData<&'a ()>,
+}
+handle_debug!(SurfaceKHRRef);
+
+// Unlike in the spec, these are required to be non-null.
+#[cfg(target_pointer_width = "32")]
+pub(crate) type NonNullNonDispatchableHandle = NonZeroU64;
+#[cfg(target_pointer_width = "64")]
+pub(crate) type NonNullNonDispatchableHandle = NonNull<c_void>;
 
 macro_rules! flags {
     ($name: ident, [$($member:ident),*]) => {
@@ -526,3 +541,18 @@ pub struct PhysicalDeviceFeatures {
     variable_multisample_rate: Bool,
     inherited_queries: Bool,
 }
+
+#[repr(C, u32)]
+pub enum MetalSurfaceCreateInfoEXT<'a> {
+    S {
+        next: Option<&'a MetalSurfaceCreateInfoEXTExtension>,
+        flags: MetalSurfaceCreateFlagsEXT,
+        layer: NonNull<c_void>,
+    } = 1000217000,
+}
+
+pub enum MetalSurfaceCreateInfoEXTExtension {}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MetalSurfaceCreateFlagsEXT(u32);
+flags!(MetalSurfaceCreateFlagsEXT, []);

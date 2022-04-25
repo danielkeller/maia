@@ -1,6 +1,11 @@
+use std::ptr::NonNull;
+use std::sync::Arc;
+
 use crate::ext;
-use crate::ffi::Str;
-use crate::types::{Error, Result};
+use crate::ext::khr_surface::SurfaceKHR;
+use crate::ffi::*;
+use crate::instance::Instance;
+use crate::types::*;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 pub fn required_instance_extensions(
@@ -78,4 +83,33 @@ pub fn required_instance_extensions(
     };
 
     Ok(extensions)
+}
+
+pub fn create_surface(
+    instance: &Arc<Instance>,
+    window: &impl HasRawWindowHandle,
+) -> Result<Arc<SurfaceKHR>> {
+    match window.raw_window_handle() {
+        #[cfg(any(target_os = "macos"))]
+        RawWindowHandle::AppKit(handle) => {
+            use raw_window_metal::{appkit, Layer};
+
+            unsafe {
+                match appkit::metal_layer_from_handle(handle) {
+                    Layer::Existing(layer) | Layer::Allocated(layer) => {
+                        instance.ext_metal_surface().create_metal_surface_ext(
+                            &MetalSurfaceCreateInfoEXT::S {
+                                next: None,
+                                flags: Default::default(),
+                                layer: NonNull::new(layer as *mut c_void)
+                                    .unwrap(),
+                            },
+                        )
+                    }
+                    Layer::None => Err(Error::INITIALIZATION_FAILED),
+                }
+            }
+        }
+        _ => Err(Error::EXTENSION_NOT_PRESENT),
+    }
 }

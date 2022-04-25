@@ -71,6 +71,10 @@ fn main() -> anyhow::Result<()> {
         enabled_extension_names: instance_exts.as_slice().into(),
     })?;
     println!("{:?}", inst);
+
+    let surface = ember::window::create_surface(&inst, &window)?;
+    println!("{:?}", surface);
+
     let phy = pick_physical_device(inst.enumerate_physical_devices()?);
     println!("{:?}", phy);
     let queue_family = pick_queue_family(&phy)?;

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::instance::Instance;
 use crate::load::DeviceFn;
 use crate::queue::Queue;

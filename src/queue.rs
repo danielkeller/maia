@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::device::Device;
 use crate::types::*;
 

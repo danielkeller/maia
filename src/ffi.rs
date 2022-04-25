@@ -143,19 +143,19 @@ impl<'a, T, const N: usize> From<&'a [T; N]> for Slice<'a, T> {
     }
 }
 
-#[cfg(target_pointer_width = "32")]
-type Slice_<'a, T> = Slice<'a, T>;
-
 /// A borrowed contiguous sequence of T. Represented as a u32 followed by a
 /// pointer. This type differs from Slice only in that it is aligned to a 4-byte
 /// boundary, for cases where the structure alignment of Slice puts the count
-/// member in the wrong place on 64 bit systems.
-#[cfg(target_pointer_width = "64")]
+/// member in the wrong place on 64 bit systems. This type does not use
+/// unaligned loads or stores and has no special alignment requirement.
 #[repr(C)]
 #[derive(Debug)]
 pub struct Slice_<'a, T> {
     count: u32,
+    #[cfg(target_pointer_width = "32")]
+    ptr: u32,
     // Avoid unaligned stores
+    #[cfg(target_pointer_width = "64")]
     ptr: [u32; 2],
     _lt: PhantomData<&'a T>,
 }
@@ -173,7 +173,6 @@ impl<'a, T> Default for Slice_<'a, T> {
     }
 }
 
-#[cfg(target_pointer_width = "64")]
 impl<'a, T> Slice_<'a, T> {
     pub fn from(arr: &'a [T]) -> Self {
         arr.into()
@@ -191,7 +190,6 @@ impl<'a, T> Slice_<'a, T> {
     }
 }
 
-#[cfg(target_pointer_width = "64")]
 /// Panics if the slice has 2^32 or more elements
 impl<'a, T> From<&'a [T]> for Slice_<'a, T> {
     fn from(ts: &'a [T]) -> Self {
@@ -203,7 +201,6 @@ impl<'a, T> From<&'a [T]> for Slice_<'a, T> {
     }
 }
 
-#[cfg(target_pointer_width = "64")]
 /// Panics if the slice has 2^32 or more elements
 impl<'a, T, const N: usize> From<&'a [T; N]> for Slice_<'a, T> {
     fn from(ts: &'a [T; N]) -> Self {

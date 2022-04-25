@@ -1,5 +1,9 @@
 use crate::ffi::Str;
 
+pub mod ext_metal_surface;
+pub mod khr_surface;
+pub mod load;
+
 pub const SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_surface\0") };
 pub const WIN32_SURFACE: Str<'static> =

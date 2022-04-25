@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::load::InstanceFn;
 use crate::physical_device::PhysicalDevice;
 use crate::types::*;
