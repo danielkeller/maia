@@ -60,33 +60,47 @@ impl From<bool> for Bool {
     }
 }
 
+macro_rules! handle_debug {
+    ($name: ident) => {
+        impl std::fmt::Debug for $name<'_> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_tuple(stringify!($name)).field(&self._value).finish()
+            }
+        }
+    };
+}
+
 #[repr(transparent)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct InstanceRef<'a> {
     _value: NonNull<c_void>,
     _lt: PhantomData<&'a ()>,
 }
+handle_debug!(InstanceRef);
 
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct PhysicalDeviceRef<'a> {
     _value: NonNull<c_void>,
     _lt: PhantomData<&'a ()>,
 }
+handle_debug!(PhysicalDeviceRef);
 
 #[repr(transparent)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct DeviceRef<'a> {
     _value: NonNull<c_void>,
     _lt: PhantomData<&'a ()>,
 }
+handle_debug!(DeviceRef);
 
 #[repr(transparent)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 pub struct QueueRef<'a> {
     _value: NonNull<c_void>,
     _lt: PhantomData<&'a ()>,
 }
+handle_debug!(QueueRef);
 
 macro_rules! flags {
     ($name: ident, [$($member:ident),*]) => {

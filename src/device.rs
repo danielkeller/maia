@@ -12,15 +12,15 @@ pub struct Device {
     queues: Vec<u32>,
 }
 
-impl Drop for Device {
-    fn drop(&mut self) {
-        unsafe { (self.fun.destroy_device)(self.handle, None) }
-    }
-}
-
 impl std::fmt::Debug for Device {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.handle.fmt(f)
+    }
+}
+
+impl Drop for Device {
+    fn drop(&mut self) {
+        unsafe { (self.fun.destroy_device)(self.handle, None) }
     }
 }
 

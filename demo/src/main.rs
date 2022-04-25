@@ -72,6 +72,7 @@ fn main() -> anyhow::Result<()> {
     })?;
     println!("{:?}", inst);
     let phy = pick_physical_device(inst.enumerate_physical_devices()?);
+    println!("{:?}", phy);
     let queue_family = pick_queue_family(&phy)?;
 
     let device_extensions = required_device_extensions(&phy)?;

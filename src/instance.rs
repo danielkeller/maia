@@ -9,15 +9,15 @@ pub struct Instance {
     pub(crate) fun: InstanceFn,
 }
 
-impl Drop for Instance {
-    fn drop(&mut self) {
-        unsafe { (self.fun.destroy_instance)(self.handle, None) }
-    }
-}
-
 impl std::fmt::Debug for Instance {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.handle.fmt(f)
+    }
+}
+
+impl Drop for Instance {
+    fn drop(&mut self) {
+        unsafe { (self.fun.destroy_instance)(self.handle, None) }
     }
 }
 
