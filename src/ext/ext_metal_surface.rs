@@ -22,7 +22,7 @@ impl Instance {
 impl EXTMetalSurface {
     pub unsafe fn create_metal_surface_ext(
         &self,
-        info: &MetalSurfaceCreateInfoEXT<'_>,
+        info: &MetalSurfaceCreateInfoEXT,
     ) -> Result<Arc<SurfaceKHR>> {
         let mut handle = None;
         (self.fun.create_metal_surface_ext)(

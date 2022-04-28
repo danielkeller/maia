@@ -68,12 +68,9 @@ fn main() -> anyhow::Result<()> {
     instance_exts
         .extend(ember::window::required_instance_extensions(&window)?.iter());
     instance_exts.extend(required_instance_extensions()?.iter());
-    let inst = vk::create_instance(&vk::InstanceCreateInfo::S {
-        next: None,
-        flags: Default::default(),
-        application_info: None,
-        enabled_layer_names: Default::default(),
+    let inst = vk::create_instance(&vk::InstanceCreateInfo {
         enabled_extension_names: instance_exts.as_slice().into(),
+        ..Default::default()
     })?;
     println!("{:?}", inst);
 
@@ -85,19 +82,15 @@ fn main() -> anyhow::Result<()> {
     let queue_family = pick_queue_family(&phy, &surf)?;
 
     let device_extensions = required_device_extensions(&phy)?;
-    let device = phy.create_device(&vk::DeviceCreateInfo::S {
-        next: None,
-        flags: Default::default(),
-        queue_create_infos: (&[vk::DeviceQueueCreateInfo::S {
-            next: None,
-            flags: Default::default(),
+    let device = phy.create_device(&vk::DeviceCreateInfo {
+        queue_create_infos: (&[vk::DeviceQueueCreateInfo {
             queue_family_index: queue_family,
             queue_priorities: (&[1.0]).into(),
+            ..Default::default()
         }])
             .into(),
-        enabled_layer_names: Default::default(),
         enabled_extension_names: device_extensions.into(),
-        enabled_features: None,
+        ..Default::default()
     })?;
 
     println!("{:?}", device);

@@ -111,11 +111,7 @@ pub struct SurfaceKHRRef<'a> {
 }
 handle_debug!(SurfaceKHRRef);
 
-// Unlike in the spec, these are required to be non-null.
-#[cfg(target_pointer_width = "32")]
-pub(crate) type NonNullNonDispatchableHandle = NonZeroU64;
-#[cfg(target_pointer_width = "64")]
-pub(crate) type NonNullNonDispatchableHandle = NonNull<c_void>;
+pub(crate) type NonNullNonDispatchableHandle = std::num::NonZeroU64;
 
 macro_rules! flags {
     ($name: ident, [$($member:ident),*]) => {
@@ -204,6 +200,17 @@ macro_rules! flags {
     };
 }
 
+macro_rules! structure_type {
+    ($name: ident, $value: literal) => {
+        #[repr(u32)]
+        #[derive(Debug, Default)]
+        pub enum $name {
+            #[default]
+            Value = $value,
+        }
+    };
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct Extent3D {
@@ -218,32 +225,30 @@ flags!(InstanceCreateFlags, []);
 
 pub enum AllocationCallbacks {}
 
-#[repr(C, u32)]
-pub enum InstanceCreateInfo<'a> {
-    S {
-        next: Option<&'a InstanceCreateInfoExtension>,
-        flags: InstanceCreateFlags,
-        application_info: Option<&'a ApplicationInfo<'a>>,
-        enabled_layer_names: Slice<'a, Str<'a>>,
-        enabled_extension_names: Slice<'a, Str<'a>>,
-    } = 1,
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct InstanceCreateInfo<'a, Next = Null, AINext = Null> {
+    pub stype: InstanceCreateInfoType,
+    pub next: Next,
+    pub flags: InstanceCreateFlags,
+    pub application_info: Option<&'a ApplicationInfo<'a, AINext>>,
+    pub enabled_layer_names: Slice<'a, Str<'a>>,
+    pub enabled_extension_names: Slice<'a, Str<'a>>,
 }
+structure_type!(InstanceCreateInfoType, 1);
 
-pub enum InstanceCreateInfoExtension {}
-
-#[repr(C, u32)]
-pub enum ApplicationInfo<'a> {
-    S {
-        next: Option<&'a ApplicationInfoExtension>,
-        application_name: Str<'a>,
-        application_version: u32,
-        engine_name: Str<'a>,
-        engine_version: u32,
-        api_version: u32,
-    } = 0,
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct ApplicationInfo<'a, Next> {
+    pub stype: ApplicationInfoType,
+    pub next: Next,
+    pub application_name: Str<'a>,
+    pub application_version: u32,
+    pub engine_name: Str<'a>,
+    pub engine_version: u32,
+    pub api_version: u32,
 }
-
-pub enum ApplicationInfoExtension {}
+structure_type!(ApplicationInfoType, 0);
 
 #[repr(C)]
 #[derive(Debug)]
@@ -445,17 +450,18 @@ impl QueueFlags {
 }
 flags!(QueueFlags, [GRAPHICS, COMPUTE, TRANSFER, SPARSE_BINDING, PROTECTED]);
 
-#[repr(C, u32)]
-pub enum DeviceCreateInfo<'a> {
-    S {
-        next: Option<&'a DeviceCreateInfoExtension>,
-        flags: DeviceCreateFlags,
-        queue_create_infos: Slice_<'a, DeviceQueueCreateInfo<'a>>,
-        enabled_layer_names: Slice<'a, Str<'a>>,
-        enabled_extension_names: Slice<'a, Str<'a>>,
-        enabled_features: Option<&'a PhysicalDeviceFeatures>,
-    } = 3,
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct DeviceCreateInfo<'a, Next = Null> {
+    pub stype: DeviceCreateInfoType,
+    pub next: Next,
+    pub flags: DeviceCreateFlags,
+    pub queue_create_infos: Slice_<'a, DeviceQueueCreateInfo<'a>>,
+    pub enabled_layer_names: Slice<'a, Str<'a>>,
+    pub enabled_extension_names: Slice<'a, Str<'a>>,
+    pub enabled_features: Option<&'a PhysicalDeviceFeatures>,
 }
+structure_type!(DeviceCreateInfoType, 3);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeviceCreateFlags(u32);
@@ -463,17 +469,16 @@ flags!(DeviceCreateFlags, []);
 
 pub enum DeviceCreateInfoExtension {}
 
-#[repr(C, u32)]
-pub enum DeviceQueueCreateInfo<'a> {
-    S {
-        next: Option<&'a DeviceQueueCreateInfoExtension>,
-        flags: DeviceQueueCreateFlags,
-        queue_family_index: u32,
-        queue_priorities: Slice<'a, f32>,
-    } = 2,
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct DeviceQueueCreateInfo<'a, Next = Null> {
+    pub stype: DeviceQueueCreateInfoType,
+    pub next: Next,
+    pub flags: DeviceQueueCreateFlags,
+    pub queue_family_index: u32,
+    pub queue_priorities: Slice<'a, f32>,
 }
-
-pub enum DeviceQueueCreateInfoExtension {}
+structure_type!(DeviceQueueCreateInfoType, 2);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeviceQueueCreateFlags(u32);
@@ -483,7 +488,7 @@ impl DeviceQueueCreateFlags {
 flags!(DeviceQueueCreateFlags, [PROTECTED]);
 
 #[repr(C)]
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct PhysicalDeviceFeatures {
     robust_buffer_access: Bool,
     full_draw_index_uint32: Bool,
@@ -542,16 +547,15 @@ pub struct PhysicalDeviceFeatures {
     inherited_queries: Bool,
 }
 
-#[repr(C, u32)]
-pub enum MetalSurfaceCreateInfoEXT<'a> {
-    S {
-        next: Option<&'a MetalSurfaceCreateInfoEXTExtension>,
-        flags: MetalSurfaceCreateFlagsEXT,
-        layer: NonNull<c_void>,
-    } = 1000217000,
+#[repr(C)]
+#[derive(Debug)]
+pub struct MetalSurfaceCreateInfoEXT<Next = Null> {
+    pub stype: MetalSurfaceCreateInfoEXTType,
+    pub next: Next,
+    pub flags: MetalSurfaceCreateFlagsEXT,
+    pub layer: NonNull<c_void>,
 }
-
-pub enum MetalSurfaceCreateInfoEXTExtension {}
+structure_type!(MetalSurfaceCreateInfoEXTType, 1000217000);
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MetalSurfaceCreateFlagsEXT(u32);

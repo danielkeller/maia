@@ -98,8 +98,9 @@ pub fn create_surface(
                 match appkit::metal_layer_from_handle(handle) {
                     Layer::Existing(layer) | Layer::Allocated(layer) => {
                         instance.ext_metal_surface().create_metal_surface_ext(
-                            &MetalSurfaceCreateInfoEXT::S {
-                                next: None,
+                            &MetalSurfaceCreateInfoEXT {
+                                stype: Default::default(),
+                                next: Default::default(),
                                 flags: Default::default(),
                                 layer: NonNull::new(layer as *mut c_void)
                                     .unwrap(),

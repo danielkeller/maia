@@ -84,20 +84,14 @@ impl PhysicalDevice {
     ) -> Result<Arc<Device>> {
         let props = self.queue_family_properties();
         let mut queues = vec![0; props.len()];
-        let DeviceCreateInfo::S { queue_create_infos, .. } = info;
-        for queue in queue_create_infos.as_slice() {
-            let DeviceQueueCreateInfo::S {
-                queue_family_index,
-                queue_priorities,
-                ..
-            } = queue;
-            let i = *queue_family_index as usize;
+        for q in info.queue_create_infos.as_slice() {
+            let i = q.queue_family_index as usize;
             assert!(i < props.len(), "Queue family index out of bounds");
             assert!(
-                queue_priorities.len() <= props[i].queue_count,
+                q.queue_priorities.len() <= props[i].queue_count,
                 "Too many queues requested"
             );
-            queues[i] = queue_priorities.len();
+            queues[i] = q.queue_priorities.len();
         }
 
         let mut handle = None;

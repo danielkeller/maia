@@ -4,6 +4,18 @@ pub use std::marker::PhantomData;
 use std::os::raw::c_char;
 pub use std::ptr::NonNull;
 
+/// The null pointer
+#[repr(transparent)]
+#[derive(Copy, Clone, Default)]
+pub struct Null(Option<&'static Never>);
+enum Never {}
+
+impl std::fmt::Debug for Null {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Null")
+    }
+}
+
 /// An immutably borrowed, null-terminated utf-8 string, represented as
 /// a non-null c 'const char*'.
 #[repr(transparent)]
@@ -33,6 +45,13 @@ impl<'a> Str<'a> {
                 CStr::from_ptr(self.ptr.as_ptr()).to_bytes(),
             )
         }
+    }
+}
+
+impl Default for Str<'_> {
+    fn default() -> Self {
+        const INST: Str<'static> = unsafe { Str::new_unchecked(b"\0") };
+        INST
     }
 }
 

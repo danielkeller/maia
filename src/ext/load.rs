@@ -39,7 +39,7 @@ impl SurfaceKHRFn {
 pub struct MetalSurfaceFn {
     pub create_metal_surface_ext: unsafe extern "system" fn(
         InstanceRef<'_>,
-        &MetalSurfaceCreateInfoEXT<'_>,
+        &MetalSurfaceCreateInfoEXT,
         Option<&'_ AllocationCallbacks>,
         &mut Option<SurfaceKHRRef<'static>>,
     ) -> Result<()>,
