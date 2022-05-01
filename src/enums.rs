@@ -86,11 +86,15 @@ macro_rules! flags {
 }
 
 #[repr(u32)]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Bool {
-    #[default]
     False = 0,
     True = 1,
+}
+impl Default for Bool {
+    fn default() -> Self {
+        Self::False
+    }
 }
 impl From<Bool> for bool {
     #[inline]

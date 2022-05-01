@@ -101,10 +101,14 @@ pub(crate) type NonNullNonDispatchableHandle = std::num::NonZeroU64;
 macro_rules! structure_type {
     ($name: ident, $value: literal) => {
         #[repr(u32)]
-        #[derive(Debug, Default)]
+        #[derive(Debug)]
         pub enum $name {
-            #[default]
             Value = $value,
+        }
+        impl Default for $name {
+            fn default() -> Self {
+                Self::Value
+            }
         }
     };
 }
