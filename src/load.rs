@@ -9,7 +9,7 @@ extern "system" {
     fn vkGetInstanceProcAddr(
         instance: Option<InstanceRef<'_>>,
         name: Str<'_>,
-    ) -> *const c_void;
+    ) -> Option<NonNull<c_void>>;
 }
 
 pub unsafe fn vk_create_instance() -> unsafe extern "system" fn(
@@ -63,10 +63,11 @@ pub struct InstanceFn {
         Option<&'_ AllocationCallbacks>,
         &mut Option<DeviceRef<'static>>,
     ) -> Result<()>,
-    pub get_device_proc_addr: unsafe extern "system" fn(
-        DeviceRef<'_>,
-        name: Str<'_>,
-    ) -> *const c_void,
+    pub get_device_proc_addr:
+        unsafe extern "system" fn(
+            DeviceRef<'_>,
+            name: Str<'_>,
+        ) -> Option<NonNull<c_void>>,
 }
 
 impl InstanceFn {
@@ -103,17 +104,12 @@ impl InstanceFn {
 
 /// Load instance function. Panics if the string is not null-terminated or the
 /// function was not found.
-pub unsafe fn load(
-    instance: Option<InstanceRef<'_>>,
-    name: &str,
-) -> *const c_void {
-    let ptr = vkGetInstanceProcAddr(instance, name.try_into().unwrap());
-    assert!(
-        ptr != std::ptr::null(),
-        "Could not load {:?}",
-        &name[0..name.len() - 1]
-    );
-    ptr
+pub fn load(instance: Option<InstanceRef<'_>>, name: &str) -> NonNull<c_void> {
+    let ptr =
+        unsafe { vkGetInstanceProcAddr(instance, name.try_into().unwrap()) };
+    ptr.unwrap_or_else(|| {
+        panic!("Could not load {:?}", &name[0..name.len() - 1])
+    })
 }
 
 pub struct DeviceFn {
@@ -147,14 +143,16 @@ impl DeviceFn {
 impl Instance {
     /// Load device function. Panics if the string is not null-terminated or the
     /// function was not found.
-    unsafe fn load(&self, device: DeviceRef<'_>, name: &str) -> *const c_void {
-        let ptr =
-            (self.fun.get_device_proc_addr)(device, name.try_into().unwrap());
-        assert!(
-            ptr != std::ptr::null(),
-            "Could not load {:?}",
-            &name[0..name.len() - 1]
-        );
-        ptr
+    pub(crate) fn load(
+        &self,
+        device: DeviceRef<'_>,
+        name: &str,
+    ) -> NonNull<c_void> {
+        let ptr = unsafe {
+            (self.fun.get_device_proc_addr)(device, name.try_into().unwrap())
+        };
+        ptr.unwrap_or_else(|| {
+            panic!("Could not load {:?}", &name[0..name.len() - 1])
+        })
     }
 }

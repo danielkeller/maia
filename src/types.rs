@@ -1,3 +1,4 @@
+use crate::enums::*;
 use crate::ffi::*;
 pub use std::sync::Arc;
 
@@ -36,30 +37,6 @@ const _: () = assert!(matches!(
     unsafe { std::mem::transmute::<i32, Result<()>>(-1) },
     Err(Error::ERROR_OUT_OF_HOST_MEMORY)
 ));
-
-#[repr(u32)]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Bool {
-    #[default]
-    False = 0,
-    True = 1,
-}
-impl From<Bool> for bool {
-    #[inline]
-    fn from(b: Bool) -> Self {
-        b == Bool::True
-    }
-}
-impl From<bool> for Bool {
-    #[inline]
-    fn from(b: bool) -> Self {
-        if b {
-            Bool::True
-        } else {
-            Bool::False
-        }
-    }
-}
 
 macro_rules! handle_debug {
     ($name: ident) => {
@@ -111,94 +88,15 @@ pub struct SurfaceKHRRef<'a> {
 }
 handle_debug!(SurfaceKHRRef);
 
-pub(crate) type NonNullNonDispatchableHandle = std::num::NonZeroU64;
-
-macro_rules! flags {
-    ($name: ident, [$($member:ident),*]) => {
-        impl Default for $name {
-            fn default() -> Self {
-                Self(0)
-            }
-        }
-        impl $name {
-            #[inline]
-            pub const fn empty() -> Self {
-                Self(0)
-            }
-            #[inline]
-            pub const fn is_empty(self) -> bool {
-                self.0 == Self::empty().0
-            }
-        }
-        impl ::std::ops::BitOr for $name {
-            type Output = Self;
-            #[inline]
-            fn bitor(self, rhs: Self) -> Self {
-                Self(self.0 | rhs.0)
-            }
-        }
-        impl ::std::ops::BitOrAssign for $name {
-            #[inline]
-            fn bitor_assign(&mut self, rhs: Self) {
-                *self = *self | rhs
-            }
-        }
-        impl ::std::ops::BitAnd for $name {
-            type Output = Self;
-            #[inline]
-            fn bitand(self, rhs: Self) -> Self {
-                Self(self.0 & rhs.0)
-            }
-        }
-        impl ::std::ops::BitAndAssign for $name {
-            #[inline]
-            fn bitand_assign(&mut self, rhs: Self) {
-                *self = *self & rhs
-            }
-        }
-        impl ::std::ops::BitXor for $name {
-            type Output = Self;
-            #[inline]
-            fn bitxor(self, rhs: Self) -> Self {
-                Self(self.0 ^ rhs.0)
-            }
-        }
-        impl ::std::ops::BitXorAssign for $name {
-            #[inline]
-            fn bitxor_assign(&mut self, rhs: Self) {
-                *self = *self ^ rhs
-            }
-        }
-        impl ::std::fmt::Debug for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                #[allow(unused_mut)]
-                let mut remaining = *self;
-                $(if !(*self & $name::$member).is_empty() {
-                    if remaining != *self { f.write_str(" | ")?; }
-                    f.write_str("vk::")?;
-                    f.write_str(stringify!($name))?;
-                    f.write_str("::")?;
-                    f.write_str(stringify!($member))?;
-                    remaining ^= $name::$member;
-                })*
-                if !remaining.is_empty() {
-                    if remaining != *self { f.write_str(" | ")?; }
-                    f.write_str("vk::")?;
-                    f.write_str(stringify!($name))?;
-                    f.write_str("(")?;
-                    remaining.0.fmt(f)?;
-                    f.write_str(")")?;
-                }
-                if self.is_empty() {
-                    f.write_str("vk::")?;
-                    f.write_str(stringify!($name))?;
-                    f.write_str("::empty()")?;
-                }
-                Ok(())
-            }
-        }
-    };
+#[repr(transparent)]
+#[derive(Copy, Clone)]
+pub struct SwapchainKHRRef<'a> {
+    _value: NonNullNonDispatchableHandle,
+    _lt: PhantomData<&'a ()>,
 }
+handle_debug!(SwapchainKHRRef);
+
+pub(crate) type NonNullNonDispatchableHandle = std::num::NonZeroU64;
 
 macro_rules! structure_type {
     ($name: ident, $value: literal) => {
@@ -213,15 +111,18 @@ macro_rules! structure_type {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
+pub struct Extent2D {
+    width: u32,
+    height: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
 pub struct Extent3D {
     width: u32,
     height: u32,
     depth: u32,
 }
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct InstanceCreateFlags(u32);
-flags!(InstanceCreateFlags, []);
 
 pub enum AllocationCallbacks {}
 
@@ -271,16 +172,6 @@ pub struct PhysicalDeviceProperties {
     pub pipeline_cache_uuid: UUID,
     pub limits: PhysicalDeviceLimits,
     pub sparse_properties: PhysicalDeviceSparseProperties,
-}
-
-#[repr(u32)]
-#[derive(Debug, PartialEq, Eq)]
-pub enum PhysicalDeviceType {
-    Other = 0,
-    IntegratedGPU = 1,
-    DiscreteGPU = 2,
-    VirtualGPU = 3,
-    CPU = 4,
 }
 
 pub const MAX_PHYSICAL_DEVICE_NAME_SIZE: usize = 256;
@@ -406,30 +297,6 @@ pub struct PhysicalDeviceSparseProperties {
     pub residency_non_resident_strict: Bool,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SampleCountFlags(u32);
-impl SampleCountFlags {
-    pub const SAMPLE_COUNT_1: SampleCountFlags = SampleCountFlags(0x01);
-    pub const SAMPLE_COUNT_2: SampleCountFlags = SampleCountFlags(0x02);
-    pub const SAMPLE_COUNT_4: SampleCountFlags = SampleCountFlags(0x04);
-    pub const SAMPLE_COUNT_8: SampleCountFlags = SampleCountFlags(0x08);
-    pub const SAMPLE_COUNT_16: SampleCountFlags = SampleCountFlags(0x10);
-    pub const SAMPLE_COUNT_32: SampleCountFlags = SampleCountFlags(0x20);
-    pub const SAMPLE_COUNT_64: SampleCountFlags = SampleCountFlags(0x40);
-}
-flags!(
-    SampleCountFlags,
-    [
-        SAMPLE_COUNT_1,
-        SAMPLE_COUNT_2,
-        SAMPLE_COUNT_4,
-        SAMPLE_COUNT_8,
-        SAMPLE_COUNT_16,
-        SAMPLE_COUNT_32,
-        SAMPLE_COUNT_64
-    ]
-);
-
 #[repr(C)]
 #[derive(Debug)]
 pub struct QueueFamilyProperties {
@@ -438,17 +305,6 @@ pub struct QueueFamilyProperties {
     pub timestamp_valid_bits: u32,
     pub min_image_transfer_granularity: Extent3D,
 }
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct QueueFlags(u32);
-impl QueueFlags {
-    pub const GRAPHICS: QueueFlags = QueueFlags(0x01);
-    pub const COMPUTE: QueueFlags = QueueFlags(0x02);
-    pub const TRANSFER: QueueFlags = QueueFlags(0x04);
-    pub const SPARSE_BINDING: QueueFlags = QueueFlags(0x08);
-    pub const PROTECTED: QueueFlags = QueueFlags(0x10);
-}
-flags!(QueueFlags, [GRAPHICS, COMPUTE, TRANSFER, SPARSE_BINDING, PROTECTED]);
 
 #[repr(C)]
 #[derive(Debug, Default)]
@@ -463,10 +319,6 @@ pub struct DeviceCreateInfo<'a, Next = Null> {
 }
 structure_type!(DeviceCreateInfoType, 3);
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DeviceCreateFlags(u32);
-flags!(DeviceCreateFlags, []);
-
 pub enum DeviceCreateInfoExtension {}
 
 #[repr(C)]
@@ -479,13 +331,6 @@ pub struct DeviceQueueCreateInfo<'a, Next = Null> {
     pub queue_priorities: Slice<'a, f32>,
 }
 structure_type!(DeviceQueueCreateInfoType, 2);
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DeviceQueueCreateFlags(u32);
-impl DeviceQueueCreateFlags {
-    pub const PROTECTED: DeviceQueueCreateFlags = DeviceQueueCreateFlags(0x1);
-}
-flags!(DeviceQueueCreateFlags, [PROTECTED]);
 
 #[repr(C)]
 #[derive(Default, Debug)]
@@ -557,6 +402,24 @@ pub struct MetalSurfaceCreateInfoEXT<Next = Null> {
 }
 structure_type!(MetalSurfaceCreateInfoEXTType, 1000217000);
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MetalSurfaceCreateFlagsEXT(u32);
-flags!(MetalSurfaceCreateFlagsEXT, []);
+#[repr(C)]
+#[derive(Debug)]
+pub struct SurfaceCapabilitiesKHR {
+    pub min_image_count: u32,
+    pub max_image_count: u32,
+    pub current_extent: Extent2D,
+    pub min_image_extent: Extent2D,
+    pub max_image_extent: Extent2D,
+    pub max_image_array_layers: u32,
+    pub supported_transforms: SurfaceTransformFlagsKHR,
+    pub current_transform: SurfaceTransformKHR,
+    pub supported_composite_alpha: CompositeAlphaFlagsKHR,
+    pub supported_usage_flags: ImageUsageFlags,
+}
+
+#[repr(C)]
+#[derive(Debug, PartialEq, Eq)]
+pub struct SurfaceFormatKHR {
+    pub format: Format,
+    pub color_space: ColorSpaceKHR,
+}

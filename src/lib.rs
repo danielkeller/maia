@@ -1,5 +1,6 @@
 #![feature(arbitrary_enum_discriminant)]
 mod device;
+mod enums;
 pub mod ext;
 mod ffi;
 mod instance;
@@ -40,6 +41,7 @@ pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
 pub mod vk {
     pub use crate::create_instance;
     pub use crate::device::Device;
+    pub use crate::enums::*;
     pub use crate::ext;
     pub use crate::ffi::*;
     pub use crate::instance::Instance;

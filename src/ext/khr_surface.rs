@@ -1,4 +1,7 @@
+use std::mem::MaybeUninit;
+
 use super::load::SurfaceKHRFn;
+use crate::enums::*;
 use crate::instance::Instance;
 use crate::physical_device::PhysicalDevice;
 use crate::types::*;
@@ -35,7 +38,7 @@ impl SurfaceKHR {
     ) -> Arc<Self> {
         Arc::new(SurfaceKHR {
             handle,
-            fun: SurfaceKHRFn::new(instance.inst_ref()),
+            fun: SurfaceKHRFn::new(&instance),
             instance,
         })
     }
@@ -44,7 +47,7 @@ impl SurfaceKHR {
         self.handle
     }
 
-    pub fn physical_device_support(
+    pub fn support(
         &self,
         phy: &PhysicalDevice,
         queue_family: u32,
@@ -64,5 +67,48 @@ impl SurfaceKHR {
             )?;
         }
         Ok(result.into())
+    }
+
+    pub fn capabilities(
+        &self,
+        phy: &PhysicalDevice,
+    ) -> Result<SurfaceCapabilitiesKHR> {
+        assert!(Arc::ptr_eq(&self.instance, &phy.instance));
+        // Check phy support?
+        let mut result = MaybeUninit::uninit();
+        unsafe {
+            (self.fun.get_physical_device_surface_capabilities_khr)(
+                phy.as_ref(),
+                self.handle,
+                &mut result,
+            )?;
+            Ok(result.assume_init())
+        }
+    }
+
+    pub fn surface_formats(
+        &self,
+        phy: &PhysicalDevice,
+    ) -> Result<Vec<SurfaceFormatKHR>> {
+        assert!(Arc::ptr_eq(&self.instance, &phy.instance));
+        let mut len = 0;
+        let mut result = vec![];
+        unsafe {
+            (self.fun.get_physical_device_surface_formats_khr)(
+                phy.as_ref(),
+                self.handle,
+                &mut len,
+                None,
+            )?;
+            result.reserve(len.try_into().unwrap());
+            (self.fun.get_physical_device_surface_formats_khr)(
+                phy.as_ref(),
+                self.handle,
+                &mut len,
+                result.spare_capacity_mut().first_mut(),
+            )?;
+            result.set_len(len.try_into().unwrap());
+        }
+        Ok(result)
     }
 }

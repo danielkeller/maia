@@ -1,3 +1,6 @@
+use std::ffi::c_void;
+use std::ptr::NonNull;
+
 use crate::instance::Instance;
 use crate::load::DeviceFn;
 use crate::queue::Queue;
@@ -42,6 +45,12 @@ impl Device {
 }
 
 impl Device {
+    /// Load device function. Panics if the string is not null-terminated or the
+    /// function was not found.
+    pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
+        self.instance.load(self.dev_ref(), name)
+    }
+
     pub fn queue(
         self: &Arc<Self>,
         family_index: u32,

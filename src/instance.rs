@@ -1,3 +1,6 @@
+use std::ffi::c_void;
+use std::ptr::NonNull;
+
 use crate::load::InstanceFn;
 use crate::physical_device::PhysicalDevice;
 use crate::types::*;
@@ -29,6 +32,12 @@ impl Instance {
 }
 
 impl Instance {
+    /// Load instance function. Panics if the string is not null-terminated or
+    /// the function was not found.
+    pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
+        crate::load::load(Some(self.inst_ref()), name)
+    }
+
     pub fn enumerate_physical_devices(
         self: &Arc<Self>,
     ) -> Result<Vec<PhysicalDevice>> {

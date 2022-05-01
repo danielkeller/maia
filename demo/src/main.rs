@@ -40,7 +40,7 @@ fn pick_queue_family(
     let props = phy.queue_family_properties();
     for i in 0..props.len() {
         if !(props[i].queue_flags | vk::QueueFlags::GRAPHICS).is_empty()
-            && surf.physical_device_support(phy, i.try_into().unwrap())?
+            && surf.support(phy, i.try_into().unwrap())?
         {
             return Ok(i.try_into().unwrap());
         }
@@ -80,6 +80,14 @@ fn main() -> anyhow::Result<()> {
     let phy = pick_physical_device(inst.enumerate_physical_devices()?);
     println!("{:?}", phy);
     let queue_family = pick_queue_family(&phy, &surf)?;
+    if !surf.surface_formats(&phy)?.iter().any(|f| {
+        f == &vk::SurfaceFormatKHR {
+            format: vk::Format::B8G8R8A8_UNORM,
+            color_space: vk::ColorSpaceKHR::SRGB_NONLINEAR_KHR,
+        }
+    }) {
+        anyhow::bail!("Desired surface format not found");
+    }
 
     let device_extensions = required_device_extensions(&phy)?;
     let device = phy.create_device(&vk::DeviceCreateInfo {

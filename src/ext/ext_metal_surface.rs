@@ -13,7 +13,7 @@ pub struct EXTMetalSurface {
 impl Instance {
     pub fn ext_metal_surface(self: &Arc<Self>) -> EXTMetalSurface {
         EXTMetalSurface {
-            fun: MetalSurfaceFn::new(self.inst_ref()),
+            fun: MetalSurfaceFn::new(&self),
             instance: self.clone(),
         }
     }
