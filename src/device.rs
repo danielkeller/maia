@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::ptr::NonNull;
 
+use crate::error::{Error, Result};
 use crate::instance::Instance;
 use crate::load::DeviceFn;
 use crate::queue::Queue;
@@ -58,7 +59,7 @@ impl Device {
     ) -> Result<Queue> {
         let i = family_index as usize;
         if i > self.queues.len() || self.queues[i] <= queue_index {
-            return Err(Error::INITIALIZATION_FAILED);
+            return Err(Error::InvalidArgument);
         }
         let mut handle = None;
         unsafe {

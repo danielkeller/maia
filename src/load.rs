@@ -16,7 +16,7 @@ pub unsafe fn vk_create_instance() -> unsafe extern "system" fn(
     &'_ InstanceCreateInfo<'_>,
     Option<&'_ AllocationCallbacks>,
     &mut Option<InstanceRef<'static>>,
-) -> Result<()> {
+) -> VkResult {
     transmute(load(None, "vkCreateInstance\0"))
 }
 
@@ -25,7 +25,7 @@ pub unsafe fn vk_enumerate_instance_extension_properties(
     Option<Str<'_>>,
     &mut u32,
     Option<&mut MaybeUninit<ExtensionProperties>>,
-) -> Result<()> {
+) -> VkResult {
     transmute(load(None, "vkEnumerateInstanceExtensionProperties\0"))
 }
 
@@ -38,8 +38,7 @@ pub struct InstanceFn {
         InstanceRef<'_>,
         &mut u32,
         Option<&mut MaybeUninit<PhysicalDeviceRef<'_>>>,
-    )
-        -> Result<()>,
+    ) -> VkResult,
     pub get_physical_device_properties: unsafe extern "system" fn(
         PhysicalDeviceRef<'_>,
         &mut MaybeUninit<PhysicalDeviceProperties>,
@@ -56,13 +55,13 @@ pub struct InstanceFn {
             Option<Str<'_>>,
             &mut u32,
             Option<&mut MaybeUninit<ExtensionProperties>>,
-        ) -> Result<()>,
+        ) -> VkResult,
     pub create_device: unsafe extern "system" fn(
         PhysicalDeviceRef<'_>,
         &'_ DeviceCreateInfo,
         Option<&'_ AllocationCallbacks>,
         &mut Option<DeviceRef<'static>>,
-    ) -> Result<()>,
+    ) -> VkResult,
     pub get_device_proc_addr:
         unsafe extern "system" fn(
             DeviceRef<'_>,

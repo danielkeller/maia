@@ -1,7 +1,9 @@
+use std::mem::{transmute, MaybeUninit};
+
+use crate::device::Device;
 use crate::enums::*;
 use crate::instance::Instance;
 use crate::types::*;
-use std::mem::{transmute, MaybeUninit};
 
 pub struct SurfaceKHRFn {
     pub destroy_surface_khr: unsafe extern "system" fn(
@@ -15,20 +17,20 @@ pub struct SurfaceKHRFn {
             u32,
             SurfaceKHRRef<'_>,
             &mut Bool,
-        ) -> Result<()>,
+        ) -> VkResult,
     pub get_physical_device_surface_capabilities_khr:
         unsafe extern "system" fn(
             PhysicalDeviceRef<'_>,
             SurfaceKHRRef<'_>,
             &mut MaybeUninit<SurfaceCapabilitiesKHR>,
-        ) -> Result<()>,
+        ) -> VkResult,
     pub get_physical_device_surface_formats_khr:
         unsafe extern "system" fn(
             PhysicalDeviceRef<'_>,
             SurfaceKHRRef<'_>,
             &mut u32,
             Option<&mut MaybeUninit<SurfaceFormatKHR>>,
-        ) -> Result<()>,
+        ) -> VkResult,
 }
 
 impl SurfaceKHRFn {
@@ -64,7 +66,7 @@ pub struct MetalSurfaceFn {
         &MetalSurfaceCreateInfoEXT,
         Option<&'_ AllocationCallbacks>,
         &mut Option<SurfaceKHRRef<'static>>,
-    ) -> Result<()>,
+    ) -> VkResult,
 }
 
 impl MetalSurfaceFn {
@@ -73,6 +75,47 @@ impl MetalSurfaceFn {
             Self {
                 create_metal_surface_ext: transmute(
                     inst.get_proc_addr("vkCreateMetalSurfaceEXT\0"),
+                ),
+            }
+        }
+    }
+}
+
+pub struct SwapchainDeviceFn {
+    pub create_swapchain_khr: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        &VkSwapchainCreateInfoKHR,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<SwapchainKHRMut<'static>>,
+    ) -> VkResult,
+}
+
+impl SwapchainDeviceFn {
+    pub fn new(dev: &Device) -> Self {
+        unsafe {
+            Self {
+                create_swapchain_khr: transmute(
+                    dev.get_proc_addr("vkCreateSwapchainKHR\0"),
+                ),
+            }
+        }
+    }
+}
+
+pub struct SwapchainKHRFn {
+    pub destroy_swapchain_khr: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        SwapchainKHRMut<'static>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+}
+
+impl SwapchainKHRFn {
+    pub fn new(dev: &Device) -> Self {
+        unsafe {
+            Self {
+                destroy_swapchain_khr: transmute(
+                    dev.get_proc_addr("vkDestroySwapchainKHR\0"),
                 ),
             }
         }

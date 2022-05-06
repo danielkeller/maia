@@ -1,6 +1,7 @@
 use std::mem::MaybeUninit;
 
 use crate::device::Device;
+use crate::error::Result;
 use crate::instance::Instance;
 use crate::types::*;
 
@@ -17,7 +18,7 @@ impl PhysicalDevice {
     ) -> Self {
         Self { handle, instance }
     }
-    pub fn as_ref(&self) -> PhysicalDeviceRef<'_> {
+    pub fn phy_ref(&self) -> PhysicalDeviceRef<'_> {
         self.handle
     }
 }
@@ -27,7 +28,7 @@ impl PhysicalDevice {
         let mut result = MaybeUninit::uninit();
         unsafe {
             (self.instance.fun.get_physical_device_properties)(
-                self.as_ref(),
+                self.phy_ref(),
                 &mut result,
             );
             result.assume_init()
@@ -39,13 +40,13 @@ impl PhysicalDevice {
         let mut result = Vec::new();
         unsafe {
             (self.instance.fun.get_physical_device_queue_family_properties)(
-                self.as_ref(),
+                self.phy_ref(),
                 &mut len,
                 None,
             );
             result.reserve(len.try_into().unwrap());
             (self.instance.fun.get_physical_device_queue_family_properties)(
-                self.as_ref(),
+                self.phy_ref(),
                 &mut len,
                 result.spare_capacity_mut().first_mut(),
             );
@@ -61,14 +62,14 @@ impl PhysicalDevice {
         let mut result = Vec::new();
         unsafe {
             (self.instance.fun.enumerate_device_extension_properties)(
-                self.as_ref(),
+                self.phy_ref(),
                 None,
                 &mut len,
                 None,
             )?;
             result.reserve(len.try_into().unwrap());
             (self.instance.fun.enumerate_device_extension_properties)(
-                self.as_ref(),
+                self.phy_ref(),
                 None,
                 &mut len,
                 result.spare_capacity_mut().first_mut(),
@@ -97,7 +98,7 @@ impl PhysicalDevice {
         let mut handle = None;
         unsafe {
             (self.instance.fun.create_device)(
-                self.as_ref(),
+                self.phy_ref(),
                 info,
                 None,
                 &mut handle,

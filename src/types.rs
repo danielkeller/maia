@@ -6,36 +6,32 @@ use std::num::NonZeroI32;
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq)]
-pub struct Error(pub NonZeroI32);
-const fn err(code: i32) -> Error {
+pub struct VkError(pub NonZeroI32);
+const fn _err(code: i32) -> VkError {
     match NonZeroI32::new(code) {
-        Some(i) => Error(i),
-        None => panic!("Error code cannot be 0"),
+        Some(i) => VkError(i),
+        None => panic!("VkError code cannot be 0"),
     }
 }
-impl Error {
-    pub const ERROR_OUT_OF_HOST_MEMORY: Error = err(-1);
-    pub const INITIALIZATION_FAILED: Error = err(-3);
-    pub const EXTENSION_NOT_PRESENT: Error = err(-7);
-}
 
-impl std::fmt::Display for Error {
+impl std::fmt::Display for VkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f) // TODO
+        std::fmt::Debug::fmt(self, f)
     }
 }
-impl std::error::Error for Error {}
+impl std::error::Error for VkError {}
 
-pub type Result<T> = std::result::Result<T, Error>;
+pub type VkResult = std::result::Result<(), VkError>;
 
-// These checks allow vulkan functions that return VkResult to return a
-// Result<()> and use '?'. Note that this only works for that exact type.
-const _: () = assert!(std::mem::size_of::<Result<()>>() == 4);
+// Check that VkResult corresponds to Vulkan's definition. This allows wrapper
+// functions to use '?'.
+const _: () = assert!(std::mem::size_of::<VkResult>() == 4);
 const _: () =
-    assert!(unsafe { std::mem::transmute::<i32, Result<()>>(0).is_ok() });
+    assert!(unsafe { std::mem::transmute::<i32, VkResult>(0).is_ok() });
+const _EXPECTED: VkResult = Err(_err(-1));
 const _: () = assert!(matches!(
-    unsafe { std::mem::transmute::<i32, Result<()>>(-1) },
-    Err(Error::ERROR_OUT_OF_HOST_MEMORY)
+    unsafe { std::mem::transmute::<i32, VkResult>(-1) },
+    _EXPECTED
 ));
 
 macro_rules! handle_debug {
@@ -96,7 +92,29 @@ pub struct SwapchainKHRRef<'a> {
 }
 handle_debug!(SwapchainKHRRef);
 
-pub(crate) type NonNullNonDispatchableHandle = std::num::NonZeroU64;
+#[repr(transparent)]
+#[derive(Copy, Clone)]
+pub struct SwapchainKHRMut<'a> {
+    _value: NonNullNonDispatchableHandle,
+    _lt: PhantomData<&'a ()>,
+}
+handle_debug!(SwapchainKHRMut);
+
+impl<'a> From<SwapchainKHRMut<'a>> for SwapchainKHRRef<'a> {
+    fn from(m: SwapchainKHRMut<'a>) -> Self {
+        Self { _value: m._value, _lt: PhantomData }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
+
+impl std::fmt::Debug for NonNullNonDispatchableHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:#x}", self.0))
+    }
+}
 
 macro_rules! structure_type {
     ($name: ident, $value: literal) => {
@@ -114,18 +132,18 @@ macro_rules! structure_type {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Extent2D {
-    width: u32,
-    height: u32,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Extent3D {
-    width: u32,
-    height: u32,
-    depth: u32,
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32,
 }
 
 pub enum AllocationCallbacks {}
@@ -427,3 +445,26 @@ pub struct SurfaceFormatKHR {
     pub format: Format,
     pub color_space: ColorSpaceKHR,
 }
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VkSwapchainCreateInfoKHR<'a, Next = Null> {
+    pub stype: SwapchainCreateInfoKHRType,
+    pub next: Next,
+    pub flags: SwapchainCreateFlagsKHR,
+    pub surface: SurfaceKHRRef<'a>,
+    pub min_image_count: u32,
+    pub image_format: Format,
+    pub image_color_space: ColorSpaceKHR,
+    pub image_extent: Extent2D,
+    pub image_array_layers: u32,
+    pub image_usage: ImageUsageFlags,
+    pub image_sharing_mode: SharingMode,
+    pub queue_family_indices: Slice<'a, u32>,
+    pub pre_transform: SurfaceTransformKHR,
+    pub composite_alpha: CompositeAlphaFlagsKHR,
+    pub present_mode: PresentModeKHR,
+    pub clipped: Bool,
+    pub old_swapchain: Option<SwapchainKHRMut<'a>>,
+}
+structure_type!(SwapchainCreateInfoKHRType, 1000001000);

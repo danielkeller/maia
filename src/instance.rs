@@ -1,6 +1,7 @@
 use std::ffi::c_void;
 use std::ptr::NonNull;
 
+use crate::error::Result;
 use crate::load::InstanceFn;
 use crate::physical_device::PhysicalDevice;
 use crate::types::*;

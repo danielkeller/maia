@@ -1,5 +1,6 @@
 mod device;
 mod enums;
+mod error;
 pub mod ext;
 mod ffi;
 mod instance;
@@ -14,6 +15,7 @@ use std::sync::Arc;
 
 use instance::Instance;
 
+use crate::error::Result;
 use crate::types::*;
 
 pub fn create_instance<'a>(
@@ -42,6 +44,9 @@ pub mod vk {
     pub use crate::device::Device;
     pub use crate::enums::*;
     pub use crate::ext;
+    pub use crate::ext::khr_swapchain::{
+        CreateSwapchainFrom, KHRSwapchain, SwapchainCreateInfoKHR,
+    };
     pub use crate::ffi::*;
     pub use crate::instance::Instance;
     pub use crate::instance_extension_properties;

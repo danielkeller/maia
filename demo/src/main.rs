@@ -18,14 +18,14 @@ fn pick_physical_device(
 ) -> vk::PhysicalDevice {
     for i in 0..phys.len() {
         if phys[i].properties().device_type
-            == vk::PhysicalDeviceType::DiscreteGPU
+            == vk::PhysicalDeviceType::DISCRETE_GPU
         {
             return phys.swap_remove(i);
         }
     }
     for i in 0..phys.len() {
         if phys[i].properties().device_type
-            == vk::PhysicalDeviceType::IntegratedGPU
+            == vk::PhysicalDeviceType::INTEGRATED_GPU
         {
             return phys.swap_remove(i);
         }
@@ -103,6 +103,19 @@ fn main() -> anyhow::Result<()> {
 
     println!("{:?}", device);
     println!("{:?}", device.queue(0, 0)?);
+
+    let swapchain = device.khr_swapchain().create(
+        vk::CreateSwapchainFrom::Surface(surf),
+        vk::SwapchainCreateInfoKHR {
+            min_image_count: 3,
+            image_format: vk::Format::B8G8R8A8_UNORM,
+            image_extent: vk::Extent2D { width: 3840, height: 2160 },
+            image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT,
+            ..Default::default()
+        },
+    )?;
+
+    println!("{:?}", swapchain);
 
     Ok(())
     // event_loop.run(move |event, _, control_flow| {

@@ -118,14 +118,15 @@ impl From<bool> for Bool {
 pub struct InstanceCreateFlags(u32);
 flags!(InstanceCreateFlags, []);
 
-#[repr(u32)]
+#[repr(transparent)]
 #[derive(Debug, PartialEq, Eq)]
-pub enum PhysicalDeviceType {
-    Other = 0,
-    IntegratedGPU = 1,
-    DiscreteGPU = 2,
-    VirtualGPU = 3,
-    CPU = 4,
+pub struct PhysicalDeviceType(u32);
+impl PhysicalDeviceType {
+    pub const OTHER: Self = Self(0);
+    pub const INTEGRATED_GPU: Self = Self(1);
+    pub const DISCRETE_GPU: Self = Self(2);
+    pub const VIRTUAL_GPU: Self = Self(3);
+    pub const CPU: Self = Self(4);
 }
 
 #[repr(transparent)]
@@ -200,6 +201,11 @@ impl SurfaceTransformKHR {
 impl std::fmt::Debug for SurfaceTransformKHR {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         SurfaceTransformFlagsKHR::from(*self).fmt(f)
+    }
+}
+impl Default for SurfaceTransformKHR {
+    fn default() -> Self {
+        Self::IDENTITY
     }
 }
 
@@ -279,7 +285,7 @@ flags!(
 );
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct Format(u32);
 impl Format {
     pub const UNDEFINED: Self = Self(0);
@@ -536,8 +542,51 @@ impl Format {
 }
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ColorSpaceKHR(u32);
 impl ColorSpaceKHR {
     pub const SRGB_NONLINEAR_KHR: Self = Self(0);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SwapchainCreateFlagsKHR(u32);
+impl SwapchainCreateFlagsKHR {
+    pub const SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR: Self = Self(0x1);
+    pub const PROTECTED_BIT_KHR: Self = Self(0x2);
+    pub const MUTABLE_FORMAT_BIT_KHR: Self = Self(0x4);
+}
+flags!(
+    SwapchainCreateFlagsKHR,
+    [
+        SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR,
+        PROTECTED_BIT_KHR,
+        MUTABLE_FORMAT_BIT_KHR
+    ]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct SharingMode(u32);
+impl SharingMode {
+    pub const EXCLUSIVE: Self = Self(0);
+    pub const CONCURRENT: Self = Self(1);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct PresentModeKHR(u32);
+impl PresentModeKHR {
+    pub const IMMEDIATE_KHR: Self = Self(0);
+    pub const MAILBOX_KHR: Self = Self(1);
+    pub const FIFO_KHR: Self = Self(2);
+    pub const FIFO_RELAXED_KHR: Self = Self(3);
+    pub const SHARED_DEMAND_REFRESH_KHR: Self = Self(1000111000);
+    pub const SHARED_CONTINUOUS_REFRESH_KHR: Self = Self(1000111001);
+}
+
+impl Default for PresentModeKHR {
+    fn default() -> Self {
+        Self::FIFO_KHR
+    }
 }

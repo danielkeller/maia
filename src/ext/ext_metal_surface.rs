@@ -1,5 +1,6 @@
 use crate::types::*;
 
+use crate::error::Result;
 use crate::instance::Instance;
 
 use super::khr_surface::SurfaceKHR;
@@ -23,7 +24,7 @@ impl EXTMetalSurface {
     pub unsafe fn create_metal_surface_ext(
         &self,
         info: &MetalSurfaceCreateInfoEXT,
-    ) -> Result<Arc<SurfaceKHR>> {
+    ) -> Result<SurfaceKHR> {
         let mut handle = None;
         (self.fun.create_metal_surface_ext)(
             self.instance.inst_ref(),
