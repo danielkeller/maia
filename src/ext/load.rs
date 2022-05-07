@@ -108,6 +108,14 @@ pub struct SwapchainKHRFn {
         SwapchainKHRMut<'static>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub acquire_next_image_khr: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        SwapchainKHRMut<'_>,
+        u64,
+        Option<SemaphoreMut<'_>>,
+        Option<FenceMut<'_>>,
+        &mut u32,
+    ) -> VkResult,
 }
 
 impl SwapchainKHRFn {
@@ -116,6 +124,9 @@ impl SwapchainKHRFn {
             Self {
                 destroy_swapchain_khr: transmute(
                     dev.get_proc_addr("vkDestroySwapchainKHR\0"),
+                ),
+                acquire_next_image_khr: transmute(
+                    dev.get_proc_addr("vkAcquireNextImageKHR\0"),
                 ),
             }
         }

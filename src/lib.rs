@@ -2,6 +2,7 @@ mod device;
 mod enums;
 mod error;
 pub mod ext;
+mod fence;
 mod ffi;
 mod instance;
 mod load;

@@ -181,6 +181,14 @@ flags!(DeviceQueueCreateFlags, [PROTECTED]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct FenceCreateFlags(u32);
+impl FenceCreateFlags {
+    pub const SIGNALLED: FenceCreateFlags = FenceCreateFlags(0x1);
+}
+flags!(FenceCreateFlags, [SIGNALLED]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MetalSurfaceCreateFlagsEXT(u32);
 flags!(MetalSurfaceCreateFlagsEXT, []);
 

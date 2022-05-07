@@ -78,6 +78,41 @@ handle_debug!(QueueRef);
 
 #[repr(transparent)]
 #[derive(Copy, Clone)]
+pub struct SemaphoreMut<'a> {
+    _value: NonNullNonDispatchableHandle,
+    _lt: PhantomData<&'a ()>,
+}
+handle_debug!(SemaphoreMut);
+
+#[repr(transparent)]
+#[derive(Copy, Clone)]
+pub struct FenceMut<'a> {
+    _value: NonNullNonDispatchableHandle,
+    _lt: PhantomData<&'a ()>,
+}
+handle_debug!(FenceMut);
+
+#[repr(transparent)]
+#[derive(Copy, Clone)]
+pub struct PendingFenceRef<'a> {
+    _value: NonNullNonDispatchableHandle,
+    _lt: PhantomData<&'a ()>,
+}
+handle_debug!(PendingFenceRef);
+
+impl<'a> FenceMut<'a> {
+    pub(crate) unsafe fn to_pending(self) -> PendingFenceRef<'a> {
+        PendingFenceRef { _value: self._value, _lt: PhantomData }
+    }
+}
+impl<'a> PendingFenceRef<'a> {
+    pub(crate) unsafe fn to_signalled(self) -> FenceMut<'a> {
+        FenceMut { _value: self._value, _lt: PhantomData }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Copy, Clone)]
 pub struct SurfaceKHRRef<'a> {
     _value: NonNullNonDispatchableHandle,
     _lt: PhantomData<&'a ()>,
@@ -109,6 +144,13 @@ impl<'a> From<SwapchainKHRMut<'a>> for SwapchainKHRRef<'a> {
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
+
+const _: () = assert!(matches!(
+    unsafe {
+        std::mem::transmute::<u64, Option<NonNullNonDispatchableHandle>>(0)
+    },
+    None
+));
 
 impl std::fmt::Debug for NonNullNonDispatchableHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -413,6 +455,15 @@ pub struct PhysicalDeviceFeatures {
     variable_multisample_rate: Bool,
     inherited_queries: Bool,
 }
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct FenceCreateInfo<Next = Null> {
+    pub stype: FenceCreateInfoType,
+    pub next: Next,
+    pub flags: FenceCreateFlags,
+}
+structure_type!(FenceCreateInfoType, 8);
 
 #[repr(C)]
 #[derive(Debug)]

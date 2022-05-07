@@ -1,5 +1,7 @@
 use crate::enums::*;
+use crate::error::Error;
 use crate::error::Result;
+use crate::fence::{Fence, PendingFence};
 use crate::types::*;
 use crate::vk::Device;
 
@@ -158,5 +160,30 @@ impl SwapchainKHR {
     }
     pub fn surface(&self) -> &SurfaceKHR {
         &self.surface
+    }
+
+    pub fn acquire_next_image(
+        &mut self,
+        mut fence: Fence, // TODO: This is really useful only for testing
+        timeout: u64,
+    ) -> Result<(u32, bool, PendingFence)> {
+        let mut index = 0;
+        let res = unsafe {
+            (self.res.fun.acquire_next_image_khr)(
+                self.res.device.dev_ref(),
+                self.res.handle,
+                timeout,
+                None,
+                Some(fence.fence_mut()),
+                &mut index,
+            )
+        };
+        match res {
+            Ok(()) => Ok((index, false, fence.to_pending())),
+            Err(e) => match e.into() {
+                Error::SuboptimalHKR => Ok((index, true, fence.to_pending())),
+                other => Err(other),
+            },
+        }
     }
 }

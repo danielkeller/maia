@@ -1,3 +1,4 @@
+use crate::enums::Bool;
 use crate::ffi::*;
 use crate::instance::Instance;
 use crate::types::*;
@@ -122,6 +123,26 @@ pub struct DeviceFn {
         u32,
         &mut Option<QueueRef<'_>>,
     ),
+    pub create_fence: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        &FenceCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<FenceMut<'static>>,
+    ) -> VkResult,
+    pub destroy_fence: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        FenceMut<'static>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+    pub wait_for_fences: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        u32,
+        &PendingFenceRef<'_>,
+        Bool,
+        u64,
+    ) -> VkResult,
+    pub reset_fences:
+        unsafe extern "system" fn(DeviceRef<'_>, u32, FenceMut<'_>) -> VkResult,
 }
 
 impl DeviceFn {
@@ -134,6 +155,12 @@ impl DeviceFn {
                 get_device_queue: transmute(
                     inst.load(device, "vkGetDeviceQueue\0"),
                 ),
+                create_fence: transmute(inst.load(device, "vkCreateFence\0")),
+                destroy_fence: transmute(inst.load(device, "vkDestroyFence\0")),
+                wait_for_fences: transmute(
+                    inst.load(device, "vkWaitForFences\0"),
+                ),
+                reset_fences: transmute(inst.load(device, "vkResetFences\0")),
             }
         }
     }
