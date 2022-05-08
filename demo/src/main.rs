@@ -117,13 +117,9 @@ fn main() -> anyhow::Result<()> {
 
     println!("{:?}", swapchain);
 
-    let fence = device.create_fence()?;
-    let (img, subopt, fence) = swapchain.acquire_next_image(fence, u64::MAX)?;
+    let mut sem = device.create_semaphore()?;
+    let (img, subopt) = swapchain.acquire_next_image(&mut sem, u64::MAX)?;
     println!("{:?}", (img, subopt));
-    let fence = fence.wait()?;
-    let (img, subopt, fence) = swapchain.acquire_next_image(fence, u64::MAX)?;
-    println!("{:?}", (img, subopt));
-    let fence = fence.wait()?;
 
     Ok(())
     // event_loop.run(move |event, _, control_flow| {

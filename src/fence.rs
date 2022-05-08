@@ -35,7 +35,7 @@ impl Drop for FenceRAII {
         unsafe {
             (self.device.fun.destroy_fence)(
                 self.device.dev_ref(),
-                self.handle,
+                self.handle.reborrow(),
                 None,
             )
         }
@@ -44,7 +44,7 @@ impl Drop for FenceRAII {
 
 impl Fence {
     pub fn fence_mut(&mut self) -> FenceMut<'_> {
-        self.0.handle
+        self.0.handle.reborrow()
     }
     pub(crate) fn to_pending(self) -> PendingFence {
         PendingFence(self.0)
@@ -53,7 +53,7 @@ impl Fence {
 
 impl PendingFence {
     pub fn fence_ref(&self) -> PendingFenceRef<'_> {
-        unsafe { self.0.handle.to_pending() }
+        unsafe { self.0.handle.as_pending() }
     }
     pub fn wait(self) -> Result<Fence> {
         unsafe {

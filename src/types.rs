@@ -34,113 +34,6 @@ const _: () = assert!(matches!(
     _EXPECTED
 ));
 
-macro_rules! handle_debug {
-    ($name: ident) => {
-        impl std::fmt::Debug for $name<'_> {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.debug_tuple(stringify!($name)).field(&self._value).finish()
-            }
-        }
-    };
-}
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct InstanceRef<'a> {
-    _value: NonNull<c_void>,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(InstanceRef);
-
-#[repr(transparent)]
-#[derive(Clone, Copy)]
-pub struct PhysicalDeviceRef<'a> {
-    _value: NonNull<c_void>,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(PhysicalDeviceRef);
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct DeviceRef<'a> {
-    _value: NonNull<c_void>,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(DeviceRef);
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct QueueRef<'a> {
-    _value: NonNull<c_void>,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(QueueRef);
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct SemaphoreMut<'a> {
-    _value: NonNullNonDispatchableHandle,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(SemaphoreMut);
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct FenceMut<'a> {
-    _value: NonNullNonDispatchableHandle,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(FenceMut);
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct PendingFenceRef<'a> {
-    _value: NonNullNonDispatchableHandle,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(PendingFenceRef);
-
-impl<'a> FenceMut<'a> {
-    pub(crate) unsafe fn to_pending(self) -> PendingFenceRef<'a> {
-        PendingFenceRef { _value: self._value, _lt: PhantomData }
-    }
-}
-impl<'a> PendingFenceRef<'a> {
-    pub(crate) unsafe fn to_signalled(self) -> FenceMut<'a> {
-        FenceMut { _value: self._value, _lt: PhantomData }
-    }
-}
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct SurfaceKHRRef<'a> {
-    _value: NonNullNonDispatchableHandle,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(SurfaceKHRRef);
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct SwapchainKHRRef<'a> {
-    _value: NonNullNonDispatchableHandle,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(SwapchainKHRRef);
-
-#[repr(transparent)]
-#[derive(Copy, Clone)]
-pub struct SwapchainKHRMut<'a> {
-    _value: NonNullNonDispatchableHandle,
-    _lt: PhantomData<&'a ()>,
-}
-handle_debug!(SwapchainKHRMut);
-
-impl<'a> From<SwapchainKHRMut<'a>> for SwapchainKHRRef<'a> {
-    fn from(m: SwapchainKHRMut<'a>) -> Self {
-        Self { _value: m._value, _lt: PhantomData }
-    }
-}
-
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
@@ -158,6 +51,81 @@ impl std::fmt::Debug for NonNullNonDispatchableHandle {
     }
 }
 
+macro_rules! handle_debug {
+    ($name: ident) => {
+        impl std::fmt::Debug for $name<'_> {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.debug_tuple(stringify!($name)).field(&self._value).finish()
+            }
+        }
+    };
+}
+macro_rules! dispatchable_ref {
+    ($name: ident) => {
+        #[repr(transparent)]
+        #[derive(Copy, Clone)]
+        pub struct $name<'a> {
+            _value: NonNull<c_void>,
+            _lt: PhantomData<&'a ()>,
+        }
+        handle_debug!($name);
+    };
+}
+macro_rules! non_dispatchable_ref {
+    ($name: ident) => {
+        #[repr(transparent)]
+        #[derive(Copy, Clone)]
+        pub struct $name<'a> {
+            _value: NonNullNonDispatchableHandle,
+            _lt: PhantomData<&'a ()>,
+        }
+        handle_debug!($name);
+    };
+}
+macro_rules! non_dispatchable_mut {
+    ($name: ident) => {
+        #[repr(transparent)]
+        pub struct $name<'a> {
+            _value: NonNullNonDispatchableHandle,
+            _lt: PhantomData<&'a ()>,
+        }
+        handle_debug!($name);
+        impl<'a> $name<'a> {
+            pub fn reborrow(&mut self) -> $name<'_> {
+                Self { ..*self }
+            }
+            pub unsafe fn clone(&self) -> Self {
+                Self { ..*self }
+            }
+        }
+    };
+}
+
+dispatchable_ref!(InstanceRef);
+dispatchable_ref!(PhysicalDeviceRef);
+dispatchable_ref!(DeviceRef);
+dispatchable_ref!(QueueRef);
+non_dispatchable_mut!(SemaphoreMut);
+non_dispatchable_mut!(FenceMut);
+non_dispatchable_ref!(PendingFenceRef);
+
+impl<'a> FenceMut<'a> {
+    pub(crate) unsafe fn as_pending(&self) -> PendingFenceRef<'a> {
+        PendingFenceRef { _value: self._value, _lt: PhantomData }
+    }
+}
+
+non_dispatchable_ref!(SurfaceKHRRef);
+non_dispatchable_ref!(SwapchainKHRRef);
+non_dispatchable_mut!(SwapchainKHRMut);
+
+impl<'a> From<SwapchainKHRMut<'a>> for SwapchainKHRRef<'a> {
+    fn from(m: SwapchainKHRMut<'a>) -> Self {
+        Self { _value: m._value, _lt: PhantomData }
+    }
+}
+
+/// u32 with only one allowed value
 macro_rules! structure_type {
     ($name: ident, $value: literal) => {
         #[repr(u32)]
@@ -464,6 +432,15 @@ pub struct FenceCreateInfo<Next = Null> {
     pub flags: FenceCreateFlags,
 }
 structure_type!(FenceCreateInfoType, 8);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct SemaphoreCreateInfo<Next = Null> {
+    pub stype: SemaphoreCreateInfoType,
+    pub next: Next,
+    pub flags: SemaphoreCreateFlags,
+}
+structure_type!(SemaphoreCreateInfoType, 9);
 
 #[repr(C)]
 #[derive(Debug)]

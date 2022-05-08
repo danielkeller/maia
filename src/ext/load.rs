@@ -105,7 +105,7 @@ impl SwapchainDeviceFn {
 pub struct SwapchainKHRFn {
     pub destroy_swapchain_khr: unsafe extern "system" fn(
         DeviceRef<'_>,
-        SwapchainKHRMut<'static>,
+        SwapchainKHRMut<'_>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub acquire_next_image_khr: unsafe extern "system" fn(

@@ -131,7 +131,7 @@ pub struct DeviceFn {
     ) -> VkResult,
     pub destroy_fence: unsafe extern "system" fn(
         DeviceRef<'_>,
-        FenceMut<'static>,
+        FenceMut<'_>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub wait_for_fences: unsafe extern "system" fn(
@@ -143,6 +143,17 @@ pub struct DeviceFn {
     ) -> VkResult,
     pub reset_fences:
         unsafe extern "system" fn(DeviceRef<'_>, u32, FenceMut<'_>) -> VkResult,
+    pub create_semaphore: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        &SemaphoreCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<SemaphoreMut<'static>>,
+    ) -> VkResult,
+    pub destroy_semaphore: unsafe extern "system" fn(
+        DeviceRef<'_>,
+        SemaphoreMut<'_>,
+        Option<&'_ AllocationCallbacks>,
+    ),
 }
 
 impl DeviceFn {
@@ -161,6 +172,12 @@ impl DeviceFn {
                     inst.load(device, "vkWaitForFences\0"),
                 ),
                 reset_fences: transmute(inst.load(device, "vkResetFences\0")),
+                create_semaphore: transmute(
+                    inst.load(device, "vkCreateSemaphore\0"),
+                ),
+                destroy_semaphore: transmute(
+                    inst.load(device, "vkDestroySemaphore\0"),
+                ),
             }
         }
     }

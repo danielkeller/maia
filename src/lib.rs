@@ -8,6 +8,7 @@ mod instance;
 mod load;
 mod physical_device;
 mod queue;
+mod semaphore;
 mod types;
 #[cfg(feature = "window")]
 pub mod window;

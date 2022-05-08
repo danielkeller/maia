@@ -1,7 +1,7 @@
 use crate::enums::*;
 use crate::error::Error;
 use crate::error::Result;
-use crate::fence::{Fence, PendingFence};
+use crate::semaphore::Semaphore;
 use crate::types::*;
 use crate::vk::Device;
 
@@ -73,7 +73,7 @@ impl KHRSwapchain {
     ) -> Result<SwapchainKHR> {
         let (surface, old_swapchain) = match create_from {
             CreateSwapchainFrom::OldSwapchain(old) => {
-                (old.surface, Some(old.res.handle))
+                (old.surface, Some(old.handle))
             }
             CreateSwapchainFrom::Surface(surf) => (surf, None),
         };
@@ -104,20 +104,23 @@ impl KHRSwapchain {
                 &mut handle,
             )?;
         }
+        let handle = handle.unwrap();
         let res = Arc::new(SwapchainImages {
-            handle: handle.unwrap(),
+            // Safety: Only used after the SwapchainKHR is destroyed.
+            _handle: unsafe { handle.clone() },
             fun: SwapchainKHRFn::new(&self.device),
             device: self.device.clone(),
             _surface: surface.res.clone(),
         });
-        Ok(SwapchainKHR { res, surface })
+        Ok(SwapchainKHR { handle, res, surface })
     }
 }
 
 // Conceptually this owns the images, but it's also used to delay destruction
-// of the swapchain until it's no longer used.
+// of the swapchain until it's no longer used by the images.
 pub struct SwapchainImages {
-    handle: SwapchainKHRMut<'static>,
+    /// Safety: Only use in Drop::drop
+    _handle: SwapchainKHRMut<'static>,
     fun: SwapchainKHRFn,
     device: Arc<Device>,
     // Needs to be destroyed after the swapchain
@@ -129,7 +132,7 @@ impl Drop for SwapchainImages {
         unsafe {
             (self.fun.destroy_swapchain_khr)(
                 self.device.dev_ref(),
-                self.handle,
+                self._handle.reborrow(),
                 None,
             )
         }
@@ -138,19 +141,20 @@ impl Drop for SwapchainImages {
 
 impl std::fmt::Debug for SwapchainImages {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.handle.fmt(f)
+        f.debug_struct("SwapchainImages").finish()
     }
 }
 
 #[derive(Debug)]
 pub struct SwapchainKHR {
+    handle: SwapchainKHRMut<'static>,
     res: Arc<SwapchainImages>,
     surface: SurfaceKHR,
 }
 
 impl SwapchainKHR {
     pub fn swapchain_mut(&mut self) -> SwapchainKHRMut<'_> {
-        self.res.handle
+        self.handle.reborrow()
     }
     pub fn images(&self) -> &Arc<SwapchainImages> {
         &self.res
@@ -164,24 +168,24 @@ impl SwapchainKHR {
 
     pub fn acquire_next_image(
         &mut self,
-        mut fence: Fence, // TODO: This is really useful only for testing
+        semaphore: &mut Semaphore,
         timeout: u64,
-    ) -> Result<(u32, bool, PendingFence)> {
+    ) -> Result<(u32, bool)> {
         let mut index = 0;
         let res = unsafe {
             (self.res.fun.acquire_next_image_khr)(
                 self.res.device.dev_ref(),
-                self.res.handle,
+                self.handle.reborrow(),
                 timeout,
+                Some(semaphore.sem_mut()),
                 None,
-                Some(fence.fence_mut()),
                 &mut index,
             )
         };
         match res {
-            Ok(()) => Ok((index, false, fence.to_pending())),
+            Ok(()) => Ok((index, false)),
             Err(e) => match e.into() {
-                Error::SuboptimalHKR => Ok((index, true, fence.to_pending())),
+                Error::SuboptimalHKR => Ok((index, true)),
                 other => Err(other),
             },
         }

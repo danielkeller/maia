@@ -189,6 +189,11 @@ flags!(FenceCreateFlags, [SIGNALLED]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SemaphoreCreateFlags(u32);
+flags!(SemaphoreCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MetalSurfaceCreateFlagsEXT(u32);
 flags!(MetalSurfaceCreateFlagsEXT, []);
 
