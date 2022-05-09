@@ -7,27 +7,27 @@ use crate::types::*;
 
 pub struct SurfaceKHRFn {
     pub destroy_surface_khr: unsafe extern "system" fn(
-        InstanceRef<'_>,
-        SurfaceKHRRef<'static>,
+        Ref<VkInstance>,
+        Mut<VkSurfaceKHR>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub get_physical_device_surface_support_khr:
         unsafe extern "system" fn(
-            PhysicalDeviceRef<'_>,
+            Ref<VkPhysicalDevice>,
             u32,
-            SurfaceKHRRef<'_>,
+            Ref<VkSurfaceKHR>,
             &mut Bool,
         ) -> VkResult,
     pub get_physical_device_surface_capabilities_khr:
         unsafe extern "system" fn(
-            PhysicalDeviceRef<'_>,
-            SurfaceKHRRef<'_>,
+            Ref<VkPhysicalDevice>,
+            Ref<VkSurfaceKHR>,
             &mut MaybeUninit<SurfaceCapabilitiesKHR>,
         ) -> VkResult,
     pub get_physical_device_surface_formats_khr:
         unsafe extern "system" fn(
-            PhysicalDeviceRef<'_>,
-            SurfaceKHRRef<'_>,
+            Ref<VkPhysicalDevice>,
+            Ref<VkSurfaceKHR>,
             &mut u32,
             Option<&mut MaybeUninit<SurfaceFormatKHR>>,
         ) -> VkResult,
@@ -62,10 +62,10 @@ impl SurfaceKHRFn {
 
 pub struct MetalSurfaceFn {
     pub create_metal_surface_ext: unsafe extern "system" fn(
-        InstanceRef<'_>,
+        Ref<VkInstance>,
         &MetalSurfaceCreateInfoEXT,
         Option<&'_ AllocationCallbacks>,
-        &mut Option<SurfaceKHRRef<'static>>,
+        &mut Option<Handle<VkSurfaceKHR>>,
     ) -> VkResult,
 }
 
@@ -83,10 +83,10 @@ impl MetalSurfaceFn {
 
 pub struct SwapchainDeviceFn {
     pub create_swapchain_khr: unsafe extern "system" fn(
-        DeviceRef<'_>,
+        Ref<VkDevice>,
         &VkSwapchainCreateInfoKHR,
         Option<&'_ AllocationCallbacks>,
-        &mut Option<SwapchainKHRMut<'static>>,
+        &mut Option<Handle<VkSwapchainKHR>>,
     ) -> VkResult,
 }
 
@@ -104,17 +104,21 @@ impl SwapchainDeviceFn {
 
 pub struct SwapchainKHRFn {
     pub destroy_swapchain_khr: unsafe extern "system" fn(
-        DeviceRef<'_>,
-        SwapchainKHRMut<'_>,
+        Ref<VkDevice>,
+        Mut<VkSwapchainKHR>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub acquire_next_image_khr: unsafe extern "system" fn(
-        DeviceRef<'_>,
-        SwapchainKHRMut<'_>,
+        Ref<VkDevice>,
+        Mut<VkSwapchainKHR>,
         u64,
-        Option<SemaphoreMut<'_>>,
-        Option<FenceMut<'_>>,
+        Option<Mut<VkSemaphore>>,
+        Option<Mut<VkFence>>,
         &mut u32,
+    ) -> VkResult,
+    pub queue_present_khr: unsafe extern "system" fn(
+        Mut<VkQueue>,
+        &PresentInfoKHR<'_>,
     ) -> VkResult,
 }
 
@@ -127,6 +131,9 @@ impl SwapchainKHRFn {
                 ),
                 acquire_next_image_khr: transmute(
                     dev.get_proc_addr("vkAcquireNextImageKHR\0"),
+                ),
+                queue_present_khr: transmute(
+                    dev.get_proc_addr("vkQueuePresentKHR\0"),
                 ),
             }
         }

@@ -1,7 +1,7 @@
 use crate::{error::Result, types::*, vk::Device};
 
 pub struct Semaphore {
-    handle: SemaphoreMut<'static>,
+    handle: Handle<VkSemaphore>,
     device: Arc<Device>,
 }
 
@@ -10,7 +10,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.create_semaphore)(
-                self.dev_ref(),
+                self.borrow(),
                 &Default::default(),
                 None,
                 &mut handle,
@@ -24,8 +24,8 @@ impl Drop for Semaphore {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_semaphore)(
-                self.device.dev_ref(),
-                self.handle.reborrow(),
+                self.device.borrow(),
+                self.handle.borrow_mut(),
                 None,
             )
         }
@@ -33,7 +33,7 @@ impl Drop for Semaphore {
 }
 
 impl Semaphore {
-    pub fn sem_mut(&mut self) -> SemaphoreMut<'_> {
-        self.handle.reborrow()
+    pub fn borrow_mut(&mut self) -> Mut<VkSemaphore> {
+        self.handle.borrow_mut()
     }
 }

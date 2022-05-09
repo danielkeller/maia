@@ -7,7 +7,7 @@ use crate::physical_device::PhysicalDevice;
 use crate::types::*;
 
 pub struct Instance {
-    handle: InstanceRef<'static>,
+    handle: Handle<VkInstance>,
     pub(crate) fun: InstanceFn,
 }
 
@@ -19,16 +19,17 @@ impl std::fmt::Debug for Instance {
 
 impl Drop for Instance {
     fn drop(&mut self) {
-        unsafe { (self.fun.destroy_instance)(self.handle, None) }
+        unsafe { (self.fun.destroy_instance)(self.handle.borrow_mut(), None) }
     }
 }
 
 impl Instance {
-    pub(crate) fn new(handle: InstanceRef<'static>) -> Arc<Self> {
-        Arc::new(Instance { handle, fun: InstanceFn::new(handle) })
+    pub(crate) fn new(handle: Handle<VkInstance>) -> Arc<Self> {
+        let fun = InstanceFn::new(handle.borrow());
+        Arc::new(Instance { handle, fun })
     }
-    pub fn inst_ref(&self) -> InstanceRef<'_> {
-        self.handle
+    pub fn borrow(&self) -> Ref<VkInstance> {
+        self.handle.borrow()
     }
 }
 
@@ -36,7 +37,7 @@ impl Instance {
     /// Load instance function. Panics if the string is not null-terminated or
     /// the function was not found.
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
-        crate::load::load(Some(self.inst_ref()), name)
+        crate::load::load(Some(self.borrow()), name)
     }
 
     pub fn enumerate_physical_devices(
@@ -46,13 +47,13 @@ impl Instance {
         let mut result = Vec::new();
         unsafe {
             (self.fun.enumerate_physical_devices)(
-                self.inst_ref(),
+                self.borrow(),
                 &mut len,
                 None,
             )?;
             result.reserve(len.try_into().unwrap());
             (self.fun.enumerate_physical_devices)(
-                self.inst_ref(),
+                self.borrow(),
                 &mut len,
                 result.spare_capacity_mut().first_mut(),
             )?;

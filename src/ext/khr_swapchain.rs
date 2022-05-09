@@ -1,9 +1,10 @@
+use crate::device::Device;
 use crate::enums::*;
 use crate::error::Error;
 use crate::error::Result;
+// use crate::queue::Queue;
 use crate::semaphore::Semaphore;
 use crate::types::*;
-use crate::vk::Device;
 
 use super::khr_surface::SurfaceResource;
 use super::load::SwapchainDeviceFn;
@@ -71,7 +72,7 @@ impl KHRSwapchain {
         create_from: CreateSwapchainFrom,
         info: SwapchainCreateInfoKHR,
     ) -> Result<SwapchainKHR> {
-        let (surface, old_swapchain) = match create_from {
+        let (surface, mut old_swapchain) = match create_from {
             CreateSwapchainFrom::OldSwapchain(old) => {
                 (old.surface, Some(old.handle))
             }
@@ -80,12 +81,12 @@ impl KHRSwapchain {
         let mut handle = None;
         unsafe {
             (self.fun.create_swapchain_khr)(
-                self.device.dev_ref(),
+                self.device.borrow(),
                 &VkSwapchainCreateInfoKHR {
                     stype: Default::default(),
                     next: Default::default(),
                     flags: info.flags,
-                    surface: surface.surface_ref(),
+                    surface: surface.borrow(),
                     min_image_count: info.min_image_count,
                     image_format: info.image_format,
                     image_color_space: info.image_color_space,
@@ -98,7 +99,9 @@ impl KHRSwapchain {
                     composite_alpha: info.composite_alpha,
                     present_mode: info.present_mode,
                     clipped: info.clipped,
-                    old_swapchain,
+                    old_swapchain: old_swapchain
+                        .as_mut()
+                        .map(|h| h.borrow_mut()),
                 },
                 None,
                 &mut handle,
@@ -120,7 +123,7 @@ impl KHRSwapchain {
 // of the swapchain until it's no longer used by the images.
 pub struct SwapchainImages {
     /// Safety: Only use in Drop::drop
-    _handle: SwapchainKHRMut<'static>,
+    _handle: Handle<VkSwapchainKHR>,
     fun: SwapchainKHRFn,
     device: Arc<Device>,
     // Needs to be destroyed after the swapchain
@@ -131,8 +134,8 @@ impl Drop for SwapchainImages {
     fn drop(&mut self) {
         unsafe {
             (self.fun.destroy_swapchain_khr)(
-                self.device.dev_ref(),
-                self._handle.reborrow(),
+                self.device.borrow(),
+                self._handle.borrow_mut(),
                 None,
             )
         }
@@ -147,14 +150,20 @@ impl std::fmt::Debug for SwapchainImages {
 
 #[derive(Debug)]
 pub struct SwapchainKHR {
-    handle: SwapchainKHRMut<'static>,
+    handle: Handle<VkSwapchainKHR>,
     res: Arc<SwapchainImages>,
     surface: SurfaceKHR,
 }
 
+// pub struct SwapchainImage {
+//     //handle
+//     res: Arc<SwapchainImages>,
+//     index: u32,
+// }
+
 impl SwapchainKHR {
-    pub fn swapchain_mut(&mut self) -> SwapchainKHRMut<'_> {
-        self.handle.reborrow()
+    pub fn borrow_mut(&mut self) -> Mut<'_, VkSwapchainKHR> {
+        self.handle.borrow_mut()
     }
     pub fn images(&self) -> &Arc<SwapchainImages> {
         &self.res
@@ -168,16 +177,16 @@ impl SwapchainKHR {
 
     pub fn acquire_next_image(
         &mut self,
-        semaphore: &mut Semaphore,
+        signal: &mut Semaphore,
         timeout: u64,
     ) -> Result<(u32, bool)> {
         let mut index = 0;
         let res = unsafe {
             (self.res.fun.acquire_next_image_khr)(
-                self.res.device.dev_ref(),
-                self.handle.reborrow(),
+                self.res.device.borrow(),
+                self.handle.borrow_mut(),
                 timeout,
-                Some(semaphore.sem_mut()),
+                Some(signal.borrow_mut()),
                 None,
                 &mut index,
             )
@@ -190,4 +199,12 @@ impl SwapchainKHR {
             },
         }
     }
+
+    // pub fn present(
+    //     &mut self,
+    //     queue: &mut Queue,
+    //     wait: &mut Semaphore,
+    // ) -> Result<()> {
+    //     Ok(())
+    // }
 }

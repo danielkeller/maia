@@ -36,6 +36,9 @@ const _: () = assert!(matches!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) struct NonNullDispatchableHandle(NonNull<c_void>);
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
 
 const _: () = assert!(matches!(
@@ -45,85 +48,105 @@ const _: () = assert!(matches!(
     None
 ));
 
+impl std::fmt::Debug for NonNullDispatchableHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}", self.0))
+    }
+}
+
 impl std::fmt::Debug for NonNullNonDispatchableHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:#x}", self.0))
     }
 }
 
-macro_rules! handle_debug {
-    ($name: ident) => {
-        impl std::fmt::Debug for $name<'_> {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                f.debug_tuple(stringify!($name)).field(&self._value).finish()
-            }
-        }
-    };
+/// Owned Vulkan handle
+#[repr(transparent)]
+pub struct Handle<T> {
+    _value: T,
 }
-macro_rules! dispatchable_ref {
-    ($name: ident) => {
-        #[repr(transparent)]
-        #[derive(Copy, Clone)]
-        pub struct $name<'a> {
-            _value: NonNull<c_void>,
-            _lt: PhantomData<&'a ()>,
-        }
-        handle_debug!($name);
-    };
+impl<T: std::fmt::Debug> std::fmt::Debug for Handle<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self._value.fmt(f)
+    }
 }
-macro_rules! non_dispatchable_ref {
-    ($name: ident) => {
-        #[repr(transparent)]
-        #[derive(Copy, Clone)]
-        pub struct $name<'a> {
-            _value: NonNullNonDispatchableHandle,
-            _lt: PhantomData<&'a ()>,
-        }
-        handle_debug!($name);
-    };
-}
-macro_rules! non_dispatchable_mut {
-    ($name: ident) => {
-        #[repr(transparent)]
-        pub struct $name<'a> {
-            _value: NonNullNonDispatchableHandle,
-            _lt: PhantomData<&'a ()>,
-        }
-        handle_debug!($name);
-        impl<'a> $name<'a> {
-            pub fn reborrow(&mut self) -> $name<'_> {
-                Self { ..*self }
-            }
-            pub unsafe fn clone(&self) -> Self {
-                Self { ..*self }
-            }
-        }
-    };
-}
-
-dispatchable_ref!(InstanceRef);
-dispatchable_ref!(PhysicalDeviceRef);
-dispatchable_ref!(DeviceRef);
-dispatchable_ref!(QueueRef);
-non_dispatchable_mut!(SemaphoreMut);
-non_dispatchable_mut!(FenceMut);
-non_dispatchable_ref!(PendingFenceRef);
-
-impl<'a> FenceMut<'a> {
-    pub(crate) unsafe fn as_pending(&self) -> PendingFenceRef<'a> {
-        PendingFenceRef { _value: self._value, _lt: PhantomData }
+impl<T: Copy> Handle<T> {
+    pub fn borrow(&self) -> Ref<'_, T> {
+        Ref { _value: self._value, _lt: PhantomData }
+    }
+    pub fn borrow_mut(&mut self) -> Mut<'_, T> {
+        Mut { _value: self._value, _lt: PhantomData }
+    }
+    /// It is not UB to clone this type, the clones just can't be used at the
+    /// same time.
+    pub unsafe fn clone(&self) -> Self {
+        Self { ..*self }
     }
 }
 
-non_dispatchable_ref!(SurfaceKHRRef);
-non_dispatchable_ref!(SwapchainKHRRef);
-non_dispatchable_mut!(SwapchainKHRMut);
-
-impl<'a> From<SwapchainKHRMut<'a>> for SwapchainKHRRef<'a> {
-    fn from(m: SwapchainKHRMut<'a>) -> Self {
-        Self { _value: m._value, _lt: PhantomData }
+/// Borrowed Vulkan handle
+#[repr(transparent)]
+#[derive(Copy, Clone)]
+pub struct Ref<'a, T> {
+    _value: T,
+    _lt: PhantomData<&'a T>,
+}
+impl<T: std::fmt::Debug> std::fmt::Debug for Ref<'_, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self._value.fmt(f)
     }
 }
+
+/// Mutably borrowed Vulkan handle
+#[repr(transparent)]
+pub struct Mut<'a, T> {
+    _value: T,
+    _lt: PhantomData<&'a T>,
+}
+impl<T: std::fmt::Debug> std::fmt::Debug for Mut<'_, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self._value.fmt(f)
+    }
+}
+impl<'a, T: Copy> Mut<'a, T> {
+    // Note that this cannot be used to extend 'a, since &'b Self<'a>
+    // requires 'a: 'b
+    pub fn reborrow(&self) -> Ref<'_, T> {
+        Ref { _value: self._value, _lt: PhantomData }
+    }
+    pub fn reborrow_mut(&mut self) -> Mut<'_, T> {
+        Self { ..*self }
+    }
+}
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+pub struct VkInstance(NonNullDispatchableHandle);
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+pub struct VkPhysicalDevice(NonNullDispatchableHandle);
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+pub struct VkDevice(NonNullDispatchableHandle);
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+pub struct VkQueue(NonNullDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+pub struct VkSemaphore(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+pub struct VkFence(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+pub struct VkSurfaceKHR(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug)]
+pub struct VkSwapchainKHR(NonNullNonDispatchableHandle);
 
 /// u32 with only one allowed value
 macro_rules! structure_type {
@@ -480,7 +503,7 @@ pub struct VkSwapchainCreateInfoKHR<'a, Next = Null> {
     pub stype: SwapchainCreateInfoKHRType,
     pub next: Next,
     pub flags: SwapchainCreateFlagsKHR,
-    pub surface: SurfaceKHRRef<'a>,
+    pub surface: Ref<'a, VkSurfaceKHR>,
     pub min_image_count: u32,
     pub image_format: Format,
     pub image_color_space: ColorSpaceKHR,
@@ -493,6 +516,20 @@ pub struct VkSwapchainCreateInfoKHR<'a, Next = Null> {
     pub composite_alpha: CompositeAlphaFlagsKHR,
     pub present_mode: PresentModeKHR,
     pub clipped: Bool,
-    pub old_swapchain: Option<SwapchainKHRMut<'a>>,
+    pub old_swapchain: Option<Mut<'a, VkSwapchainKHR>>,
 }
 structure_type!(SwapchainCreateInfoKHRType, 1000001000);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct PresentInfoKHR<'a, Next = Null> {
+    pub stype: PresentInfoType,
+    pub next: Next,
+    pub wait: Slice<'a, Ref<'a, VkSemaphore>>,
+    /// Safety: The following members are arrays of this length
+    pub swapchain_count: u32,
+    pub swapchains: &'a Mut<'a, VkSwapchainKHR>,
+    pub indices: &'a u32,
+    pub result: Option<&'a mut VkResult>,
+}
+structure_type!(PresentInfoType, 1000001001);

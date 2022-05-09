@@ -7,18 +7,18 @@ use crate::types::*;
 
 #[derive(Debug)]
 pub struct PhysicalDevice {
-    handle: PhysicalDeviceRef<'static>,
+    handle: Ref<'static, VkPhysicalDevice>,
     pub(crate) instance: Arc<Instance>,
 }
 
 impl PhysicalDevice {
     pub(crate) fn new(
-        handle: PhysicalDeviceRef<'static>,
+        handle: Ref<'static, VkPhysicalDevice>,
         instance: Arc<Instance>,
     ) -> Self {
         Self { handle, instance }
     }
-    pub fn phy_ref(&self) -> PhysicalDeviceRef<'_> {
+    pub fn phy_ref(&self) -> Ref<'_, VkPhysicalDevice> {
         self.handle
     }
 }

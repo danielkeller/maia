@@ -4,6 +4,8 @@ pub use std::marker::PhantomData;
 use std::os::raw::c_char;
 pub use std::ptr::NonNull;
 
+use crate::error::Error;
+
 /// The null pointer
 #[repr(transparent)]
 #[derive(Copy, Clone, Default)]
@@ -155,10 +157,13 @@ impl<'a, T> From<&'a [T]> for Slice<'a, T> {
     }
 }
 
-/// Panics if the slice has 2^32 or more elements
 impl<'a, T, const N: usize> From<&'a [T; N]> for Slice<'a, T> {
     fn from(ts: &'a [T; N]) -> Self {
-        ts.as_slice().into()
+        Self {
+            count: N as u32,
+            ptr: ts.as_ptr(),
+            _lt: PhantomData,
+        }
     }
 }
 
@@ -220,9 +225,12 @@ impl<'a, T> From<&'a [T]> for Slice_<'a, T> {
     }
 }
 
-/// Panics if the slice has 2^32 or more elements
 impl<'a, T, const N: usize> From<&'a [T; N]> for Slice_<'a, T> {
     fn from(ts: &'a [T; N]) -> Self {
-        ts.as_slice().into()
+        Self {
+            count: N as u32,
+            ptr: unsafe { std::mem::transmute(ts.as_ptr()) },
+            _lt: PhantomData,
+        }
     }
 }

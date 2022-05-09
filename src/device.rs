@@ -8,7 +8,7 @@ use crate::queue::Queue;
 use crate::types::*;
 
 pub struct Device {
-    handle: DeviceRef<'static>,
+    handle: Handle<VkDevice>,
     pub(crate) fun: DeviceFn,
     #[allow(dead_code)]
     instance: Arc<Instance>,
@@ -23,25 +23,21 @@ impl std::fmt::Debug for Device {
 
 impl Drop for Device {
     fn drop(&mut self) {
-        unsafe { (self.fun.destroy_device)(self.handle, None) }
+        unsafe { (self.fun.destroy_device)(self.handle.borrow_mut(), None) }
     }
 }
 
 impl Device {
     pub(crate) fn new(
-        handle: DeviceRef<'static>,
+        handle: Handle<VkDevice>,
         instance: Arc<Instance>,
         queues: Vec<u32>,
     ) -> Arc<Self> {
-        Arc::new(Device {
-            handle,
-            fun: DeviceFn::new(&instance, handle),
-            instance,
-            queues,
-        })
+        let fun = DeviceFn::new(&instance, handle.borrow());
+        Arc::new(Device { handle, fun, instance, queues })
     }
-    pub fn dev_ref(&self) -> DeviceRef<'_> {
-        self.handle
+    pub fn borrow(&self) -> Ref<VkDevice> {
+        self.handle.borrow()
     }
 }
 
@@ -49,7 +45,7 @@ impl Device {
     /// Load device function. Panics if the string is not null-terminated or the
     /// function was not found.
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
-        self.instance.load(self.dev_ref(), name)
+        self.instance.load(self.borrow(), name)
     }
 
     pub fn queue(
@@ -64,7 +60,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.get_device_queue)(
-                self.dev_ref(),
+                self.borrow(),
                 family_index,
                 queue_index,
                 &mut handle,

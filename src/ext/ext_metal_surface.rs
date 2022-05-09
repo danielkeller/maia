@@ -27,7 +27,7 @@ impl EXTMetalSurface {
     ) -> Result<SurfaceKHR> {
         let mut handle = None;
         (self.fun.create_metal_surface_ext)(
-            self.instance.inst_ref(),
+            self.instance.borrow(),
             info,
             None,
             &mut handle,

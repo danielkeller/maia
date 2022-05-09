@@ -8,7 +8,7 @@ use std::mem::MaybeUninit;
 
 extern "system" {
     fn vkGetInstanceProcAddr(
-        instance: Option<InstanceRef<'_>>,
+        instance: Option<Ref<VkInstance>>,
         name: Str<'_>,
     ) -> Option<NonNull<c_void>>;
 }
@@ -16,7 +16,7 @@ extern "system" {
 pub unsafe fn vk_create_instance() -> unsafe extern "system" fn(
     &'_ InstanceCreateInfo<'_>,
     Option<&'_ AllocationCallbacks>,
-    &mut Option<InstanceRef<'static>>,
+    &mut Option<Handle<VkInstance>>,
 ) -> VkResult {
     transmute(load(None, "vkCreateInstance\0"))
 }
@@ -32,46 +32,46 @@ pub unsafe fn vk_enumerate_instance_extension_properties(
 
 pub struct InstanceFn {
     pub destroy_instance: unsafe extern "system" fn(
-        InstanceRef<'static>,
+        Mut<VkInstance>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub enumerate_physical_devices: unsafe extern "system" fn(
-        InstanceRef<'_>,
+        Ref<VkInstance>,
         &mut u32,
-        Option<&mut MaybeUninit<PhysicalDeviceRef<'_>>>,
+        Option<&mut MaybeUninit<Ref<VkPhysicalDevice>>>,
     ) -> VkResult,
     pub get_physical_device_properties: unsafe extern "system" fn(
-        PhysicalDeviceRef<'_>,
+        Ref<VkPhysicalDevice>,
         &mut MaybeUninit<PhysicalDeviceProperties>,
     ),
     pub get_physical_device_queue_family_properties:
         unsafe extern "system" fn(
-            PhysicalDeviceRef<'_>,
+            Ref<VkPhysicalDevice>,
             &mut u32,
             Option<&mut MaybeUninit<QueueFamilyProperties>>,
         ),
     pub enumerate_device_extension_properties:
         unsafe extern "system" fn(
-            PhysicalDeviceRef<'_>,
+            Ref<VkPhysicalDevice>,
             Option<Str<'_>>,
             &mut u32,
             Option<&mut MaybeUninit<ExtensionProperties>>,
         ) -> VkResult,
     pub create_device: unsafe extern "system" fn(
-        PhysicalDeviceRef<'_>,
+        Ref<VkPhysicalDevice>,
         &'_ DeviceCreateInfo,
         Option<&'_ AllocationCallbacks>,
-        &mut Option<DeviceRef<'static>>,
+        &mut Option<Handle<VkDevice>>,
     ) -> VkResult,
     pub get_device_proc_addr:
         unsafe extern "system" fn(
-            DeviceRef<'_>,
+            Ref<VkDevice>,
             name: Str<'_>,
         ) -> Option<NonNull<c_void>>,
 }
 
 impl InstanceFn {
-    pub fn new(inst: InstanceRef<'_>) -> Self {
+    pub fn new(inst: Ref<VkInstance>) -> Self {
         let inst = Some(inst);
         unsafe {
             Self {
@@ -104,7 +104,7 @@ impl InstanceFn {
 
 /// Load instance function. Panics if the string is not null-terminated or the
 /// function was not found.
-pub fn load(instance: Option<InstanceRef<'_>>, name: &str) -> NonNull<c_void> {
+pub fn load(instance: Option<Ref<VkInstance>>, name: &str) -> NonNull<c_void> {
     let ptr =
         unsafe { vkGetInstanceProcAddr(instance, name.try_into().unwrap()) };
     ptr.unwrap_or_else(|| {
@@ -114,50 +114,50 @@ pub fn load(instance: Option<InstanceRef<'_>>, name: &str) -> NonNull<c_void> {
 
 pub struct DeviceFn {
     pub destroy_device: unsafe extern "system" fn(
-        DeviceRef<'static>,
+        Mut<VkDevice>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub get_device_queue: unsafe extern "system" fn(
-        DeviceRef<'_>,
+        Ref<VkDevice>,
         u32,
         u32,
-        &mut Option<QueueRef<'_>>,
+        &mut Option<Ref<VkQueue>>,
     ),
     pub create_fence: unsafe extern "system" fn(
-        DeviceRef<'_>,
+        Ref<VkDevice>,
         &FenceCreateInfo,
         Option<&'_ AllocationCallbacks>,
-        &mut Option<FenceMut<'static>>,
+        &mut Option<Handle<VkFence>>,
     ) -> VkResult,
     pub destroy_fence: unsafe extern "system" fn(
-        DeviceRef<'_>,
-        FenceMut<'_>,
+        Ref<VkDevice>,
+        Mut<VkFence>,
         Option<&'_ AllocationCallbacks>,
     ),
     pub wait_for_fences: unsafe extern "system" fn(
-        DeviceRef<'_>,
+        Ref<VkDevice>,
         u32,
-        &PendingFenceRef<'_>,
+        &Ref<VkFence>,
         Bool,
         u64,
     ) -> VkResult,
     pub reset_fences:
-        unsafe extern "system" fn(DeviceRef<'_>, u32, FenceMut<'_>) -> VkResult,
+        unsafe extern "system" fn(Ref<VkDevice>, u32, Mut<VkFence>) -> VkResult,
     pub create_semaphore: unsafe extern "system" fn(
-        DeviceRef<'_>,
+        Ref<VkDevice>,
         &SemaphoreCreateInfo,
         Option<&'_ AllocationCallbacks>,
-        &mut Option<SemaphoreMut<'static>>,
+        &mut Option<Handle<VkSemaphore>>,
     ) -> VkResult,
     pub destroy_semaphore: unsafe extern "system" fn(
-        DeviceRef<'_>,
-        SemaphoreMut<'_>,
+        Ref<VkDevice>,
+        Mut<VkSemaphore>,
         Option<&'_ AllocationCallbacks>,
     ),
 }
 
 impl DeviceFn {
-    pub fn new(inst: &Instance, device: DeviceRef<'_>) -> Self {
+    pub fn new(inst: &Instance, device: Ref<VkDevice>) -> Self {
         unsafe {
             Self {
                 destroy_device: {
@@ -188,7 +188,7 @@ impl Instance {
     /// function was not found.
     pub(crate) fn load(
         &self,
-        device: DeviceRef<'_>,
+        device: Ref<VkDevice>,
         name: &str,
     ) -> NonNull<c_void> {
         let ptr = unsafe {

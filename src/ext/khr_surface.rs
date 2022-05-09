@@ -8,7 +8,7 @@ use crate::physical_device::PhysicalDevice;
 use crate::types::*;
 
 pub(crate) struct SurfaceResource {
-    handle: SurfaceKHRRef<'static>,
+    handle: Handle<VkSurfaceKHR>,
     fun: SurfaceKHRFn,
     instance: Arc<Instance>,
 }
@@ -28,8 +28,8 @@ impl Drop for SurfaceResource {
     fn drop(&mut self) {
         unsafe {
             (self.fun.destroy_surface_khr)(
-                self.instance.inst_ref(),
-                self.handle,
+                self.instance.borrow(),
+                self.handle.borrow_mut(),
                 None,
             )
         }
@@ -39,7 +39,7 @@ impl Drop for SurfaceResource {
 impl SurfaceKHR {
     // Does this need to be an arc?
     pub(crate) fn new(
-        handle: SurfaceKHRRef<'static>,
+        handle: Handle<VkSurfaceKHR>,
         instance: Arc<Instance>,
     ) -> Self {
         Self {
@@ -51,8 +51,8 @@ impl SurfaceKHR {
         }
     }
 
-    pub fn surface_ref(&self) -> SurfaceKHRRef<'_> {
-        self.res.handle
+    pub fn borrow(&self) -> Ref<VkSurfaceKHR> {
+        self.res.handle.borrow()
     }
 
     pub fn support(
@@ -70,7 +70,7 @@ impl SurfaceKHR {
             (self.res.fun.get_physical_device_surface_support_khr)(
                 phy.phy_ref(),
                 queue_family,
-                self.surface_ref(),
+                self.borrow(),
                 &mut result,
             )?;
         }
@@ -87,7 +87,7 @@ impl SurfaceKHR {
         unsafe {
             (self.res.fun.get_physical_device_surface_capabilities_khr)(
                 phy.phy_ref(),
-                self.surface_ref(),
+                self.borrow(),
                 &mut result,
             )?;
             Ok(result.assume_init())
@@ -104,14 +104,14 @@ impl SurfaceKHR {
         unsafe {
             (self.res.fun.get_physical_device_surface_formats_khr)(
                 phy.phy_ref(),
-                self.surface_ref(),
+                self.borrow(),
                 &mut len,
                 None,
             )?;
             result.reserve(len.try_into().unwrap());
             (self.res.fun.get_physical_device_surface_formats_khr)(
                 phy.phy_ref(),
-                self.surface_ref(),
+                self.borrow(),
                 &mut len,
                 result.spare_capacity_mut().first_mut(),
             )?;

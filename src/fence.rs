@@ -4,7 +4,7 @@ use crate::types::*;
 
 #[derive(Debug)]
 struct FenceRAII {
-    handle: FenceMut<'static>,
+    handle: Handle<VkFence>,
     #[allow(dead_code)]
     device: Arc<Device>,
 }
@@ -20,7 +20,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.create_fence)(
-                self.dev_ref(),
+                self.borrow(),
                 &Default::default(),
                 None,
                 &mut handle,
@@ -34,8 +34,8 @@ impl Drop for FenceRAII {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_fence)(
-                self.device.dev_ref(),
-                self.handle.reborrow(),
+                self.device.borrow(),
+                self.handle.borrow_mut(),
                 None,
             )
         }
@@ -43,8 +43,8 @@ impl Drop for FenceRAII {
 }
 
 impl Fence {
-    pub fn fence_mut(&mut self) -> FenceMut<'_> {
-        self.0.handle.reborrow()
+    pub fn fence_mut(&mut self) -> Mut<VkFence> {
+        self.0.handle.borrow_mut()
     }
     pub(crate) fn to_pending(self) -> PendingFence {
         PendingFence(self.0)
@@ -52,15 +52,15 @@ impl Fence {
 }
 
 impl PendingFence {
-    pub fn fence_ref(&self) -> PendingFenceRef<'_> {
-        unsafe { self.0.handle.as_pending() }
+    pub fn borrow(&self) -> Ref<VkFence> {
+        self.0.handle.borrow()
     }
     pub fn wait(self) -> Result<Fence> {
         unsafe {
             (self.0.device.fun.wait_for_fences)(
-                self.0.device.dev_ref(),
+                self.0.device.borrow(),
                 1,
-                &self.fence_ref(),
+                &self.borrow(),
                 true.into(),
                 u64::MAX,
             )?;
