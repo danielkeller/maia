@@ -512,7 +512,7 @@ pub struct VkSwapchainCreateInfoKHR<'a, Next = Null> {
     pub stype: SwapchainCreateInfoKHRType,
     pub next: Next,
     pub flags: SwapchainCreateFlagsKHR,
-    pub surface: Ref<'a, VkSurfaceKHR>,
+    pub surface: Mut<'a, VkSurfaceKHR>,
     pub min_image_count: u32,
     pub image_format: Format,
     pub image_color_space: ColorSpaceKHR,

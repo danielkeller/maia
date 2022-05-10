@@ -8,7 +8,8 @@ use crate::physical_device::PhysicalDevice;
 use crate::types::*;
 
 pub(crate) struct SurfaceResource {
-    handle: Handle<VkSurfaceKHR>,
+    /// Safety: Only use in Drop::drop
+    _handle: Handle<VkSurfaceKHR>,
     fun: SurfaceKHRFn,
     instance: Arc<Instance>,
 }
@@ -16,11 +17,12 @@ pub(crate) struct SurfaceResource {
 #[derive(Debug)]
 pub struct SurfaceKHR {
     pub(crate) res: Arc<SurfaceResource>,
+    handle: Handle<VkSurfaceKHR>,
 }
 
 impl std::fmt::Debug for SurfaceResource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.handle.fmt(f)
+        f.debug_struct("SurfaceResource").finish()
     }
 }
 
@@ -29,7 +31,7 @@ impl Drop for SurfaceResource {
         unsafe {
             (self.fun.destroy_surface_khr)(
                 self.instance.borrow(),
-                self.handle.borrow_mut(),
+                self._handle.borrow_mut(),
                 None,
             )
         }
@@ -43,8 +45,9 @@ impl SurfaceKHR {
         instance: Arc<Instance>,
     ) -> Self {
         Self {
+            handle: unsafe { handle.clone() },
             res: Arc::new(SurfaceResource {
-                handle,
+                _handle: handle,
                 fun: SurfaceKHRFn::new(&instance),
                 instance,
             }),
@@ -52,7 +55,10 @@ impl SurfaceKHR {
     }
 
     pub fn borrow(&self) -> Ref<VkSurfaceKHR> {
-        self.res.handle.borrow()
+        self.handle.borrow()
+    }
+    pub fn borrow_mut(&mut self) -> Mut<VkSurfaceKHR> {
+        self.handle.borrow_mut()
     }
 
     pub fn support(

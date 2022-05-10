@@ -73,7 +73,7 @@ impl KHRSwapchain {
         create_from: CreateSwapchainFrom,
         info: SwapchainCreateInfoKHR,
     ) -> Result<SwapchainKHR> {
-        let (surface, mut old_swapchain) = match create_from {
+        let (mut surface, mut old_swapchain) = match create_from {
             CreateSwapchainFrom::OldSwapchain(old) => {
                 (old.surface, Some(old.handle))
             }
@@ -87,7 +87,7 @@ impl KHRSwapchain {
                     stype: Default::default(),
                     next: Default::default(),
                     flags: info.flags,
-                    surface: surface.borrow(),
+                    surface: surface.borrow_mut(),
                     min_image_count: info.min_image_count,
                     image_format: info.image_format,
                     image_color_space: info.image_color_space,
