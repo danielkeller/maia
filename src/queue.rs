@@ -3,19 +3,19 @@ use crate::types::*;
 
 #[derive(Debug)]
 pub struct Queue {
-    handle: Ref<'static, VkQueue>,
+    handle: Handle<VkQueue>,
     #[allow(dead_code)]
     device: Arc<Device>,
 }
 
 impl Queue {
-    pub(crate) fn new(
-        handle: Ref<'static, VkQueue>,
-        device: Arc<Device>,
-    ) -> Self {
+    pub(crate) fn new(handle: Handle<VkQueue>, device: Arc<Device>) -> Self {
         Self { handle, device }
     }
-    pub fn borrow(&self) -> Ref<'_, VkQueue> {
-        self.handle
+    pub fn borrow(&self) -> Ref<VkQueue> {
+        self.handle.borrow()
+    }
+    pub fn borrow_mut(&mut self) -> Mut<VkQueue> {
+        self.handle.borrow_mut()
     }
 }

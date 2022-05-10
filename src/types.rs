@@ -1,5 +1,6 @@
 use crate::enums::*;
 use crate::ffi::*;
+use std::fmt::Debug;
 pub use std::sync::Arc;
 
 use std::num::NonZeroI32;
@@ -16,7 +17,7 @@ const fn _err(code: i32) -> VkError {
 
 impl std::fmt::Display for VkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(self, f)
+        Debug::fmt(self, f)
     }
 }
 impl std::error::Error for VkError {}
@@ -35,10 +36,10 @@ const _: () = assert!(matches!(
 ));
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct NonNullDispatchableHandle(NonNull<c_void>);
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
 
 const _: () = assert!(matches!(
@@ -48,24 +49,28 @@ const _: () = assert!(matches!(
     None
 ));
 
-impl std::fmt::Debug for NonNullDispatchableHandle {
+impl Debug for NonNullDispatchableHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:?}", self.0))
     }
 }
 
-impl std::fmt::Debug for NonNullNonDispatchableHandle {
+impl Debug for NonNullNonDispatchableHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:#x}", self.0))
     }
 }
+
+// This hides its pointer and is thus thread safe.
+unsafe impl Send for NonNullDispatchableHandle {}
+unsafe impl Sync for NonNullDispatchableHandle {}
 
 /// Owned Vulkan handle
 #[repr(transparent)]
 pub struct Handle<T> {
     _value: T,
 }
-impl<T: std::fmt::Debug> std::fmt::Debug for Handle<T> {
+impl<T: Debug> Debug for Handle<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self._value.fmt(f)
     }
@@ -86,12 +91,12 @@ impl<T: Copy> Handle<T> {
 
 /// Borrowed Vulkan handle
 #[repr(transparent)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Ref<'a, T> {
     _value: T,
     _lt: PhantomData<&'a T>,
 }
-impl<T: std::fmt::Debug> std::fmt::Debug for Ref<'_, T> {
+impl<T: Debug> Debug for Ref<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self._value.fmt(f)
     }
@@ -103,7 +108,7 @@ pub struct Mut<'a, T> {
     _value: T,
     _lt: PhantomData<&'a T>,
 }
-impl<T: std::fmt::Debug> std::fmt::Debug for Mut<'_, T> {
+impl<T: Debug> Debug for Mut<'_, T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self._value.fmt(f)
     }
@@ -120,32 +125,36 @@ impl<'a, T: Copy> Mut<'a, T> {
 }
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkInstance(NonNullDispatchableHandle);
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkPhysicalDevice(NonNullDispatchableHandle);
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkDevice(NonNullDispatchableHandle);
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkQueue(NonNullDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkSemaphore(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkFence(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VkImage(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkSurfaceKHR(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkSwapchainKHR(NonNullNonDispatchableHandle);
 
 /// u32 with only one allowed value
@@ -513,7 +522,7 @@ pub struct VkSwapchainCreateInfoKHR<'a, Next = Null> {
     pub image_sharing_mode: SharingMode,
     pub queue_family_indices: Slice<'a, u32>,
     pub pre_transform: SurfaceTransformKHR,
-    pub composite_alpha: CompositeAlphaFlagsKHR,
+    pub composite_alpha: CompositeAlphaKHR,
     pub present_mode: PresentModeKHR,
     pub clipped: Bool,
     pub old_swapchain: Option<Mut<'a, VkSwapchainKHR>>,
@@ -525,7 +534,7 @@ structure_type!(SwapchainCreateInfoKHRType, 1000001000);
 pub struct PresentInfoKHR<'a, Next = Null> {
     pub stype: PresentInfoType,
     pub next: Next,
-    pub wait: Slice<'a, Ref<'a, VkSemaphore>>,
+    pub wait: Slice<'a, Mut<'a, VkSemaphore>>,
     /// Safety: The following members are arrays of this length
     pub swapchain_count: u32,
     pub swapchains: &'a Mut<'a, VkSwapchainKHR>,

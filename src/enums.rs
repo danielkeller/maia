@@ -258,6 +258,26 @@ impl From<SurfaceTransformKHR> for SurfaceTransformFlagsKHR {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CompositeAlphaKHR(u32);
+impl CompositeAlphaKHR {
+    pub const OPAQUE: Self = Self(0x1);
+    pub const PRE_MULTIPLIED: Self = Self(0x2);
+    pub const POST_MULTIPLIED: Self = Self(0x4);
+    pub const INHERIT: Self = Self(0x8);
+}
+impl std::fmt::Debug for CompositeAlphaKHR {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        CompositeAlphaFlagsKHR::from(*self).fmt(f)
+    }
+}
+impl Default for CompositeAlphaKHR {
+    fn default() -> Self {
+        Self::OPAQUE
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CompositeAlphaFlagsKHR(u32);
 impl CompositeAlphaFlagsKHR {
     pub const OPAQUE: Self = Self(0x1);
@@ -269,6 +289,11 @@ flags!(
     CompositeAlphaFlagsKHR,
     [OPAQUE, PRE_MULTIPLIED, POST_MULTIPLIED, INHERIT]
 );
+impl From<CompositeAlphaKHR> for CompositeAlphaFlagsKHR {
+    fn from(bit: CompositeAlphaKHR) -> Self {
+        Self(bit.0)
+    }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

@@ -121,7 +121,7 @@ pub struct DeviceFn {
         Ref<VkDevice>,
         u32,
         u32,
-        &mut Option<Ref<VkQueue>>,
+        &mut Option<Handle<VkQueue>>,
     ),
     pub create_fence: unsafe extern "system" fn(
         Ref<VkDevice>,

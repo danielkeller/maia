@@ -4,8 +4,6 @@ pub use std::marker::PhantomData;
 use std::os::raw::c_char;
 pub use std::ptr::NonNull;
 
-use crate::error::Error;
-
 /// The null pointer
 #[repr(transparent)]
 #[derive(Copy, Clone, Default)]

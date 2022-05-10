@@ -100,9 +100,10 @@ fn main() -> anyhow::Result<()> {
         enabled_extension_names: device_extensions.into(),
         ..Default::default()
     })?;
+    let mut queue = device.queue(0, 0)?;
 
     println!("{:?}", device);
-    println!("{:?}", device.queue(0, 0)?);
+    println!("{:?}", queue);
 
     let mut swapchain = device.khr_swapchain().create(
         vk::CreateSwapchainFrom::Surface(surf),
@@ -119,18 +120,21 @@ fn main() -> anyhow::Result<()> {
 
     let mut sem = device.create_semaphore()?;
     let (img, subopt) = swapchain.acquire_next_image(&mut sem, u64::MAX)?;
-    println!("{:?}", (img, subopt));
+    println!("{:?}", (&img, subopt));
 
-    Ok(())
-    // event_loop.run(move |event, _, control_flow| {
-    //     use winit::event::{Event, WindowEvent};
-    //     use winit::event_loop::ControlFlow;
-    //     *control_flow = ControlFlow::Wait;
-    //     match event {
-    //         Event::WindowEvent {
-    //             event: WindowEvent::CloseRequested, ..
-    //         } => *control_flow = ControlFlow::Exit,
-    //         _ => (),
-    //     }
-    // })
+    swapchain.present(&mut queue, img, &mut sem)?;
+
+    // Ok(())
+    event_loop.run(move |event, _, control_flow| {
+        use winit::event::{Event, WindowEvent};
+        use winit::event_loop::ControlFlow;
+        *control_flow = ControlFlow::Wait;
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested, ..
+            } => *control_flow = ControlFlow::Exit,
+            Event::RedrawRequested(_) => {}
+            _ => (),
+        }
+    })
 }

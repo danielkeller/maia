@@ -2,7 +2,8 @@ use crate::device::Device;
 use crate::enums::*;
 use crate::error::Error;
 use crate::error::Result;
-// use crate::queue::Queue;
+use crate::image::Image;
+use crate::queue::Queue;
 use crate::semaphore::Semaphore;
 use crate::types::*;
 
@@ -41,7 +42,7 @@ pub struct SwapchainCreateInfoKHR<'a> {
     pub image_sharing_mode: SharingMode,
     pub queue_family_indices: &'a [u32],
     pub pre_transform: SurfaceTransformKHR,
-    pub composite_alpha: CompositeAlphaFlagsKHR,
+    pub composite_alpha: CompositeAlphaKHR,
     pub present_mode: PresentModeKHR,
     pub clipped: Bool,
 }
@@ -107,15 +108,38 @@ impl KHRSwapchain {
                 &mut handle,
             )?;
         }
+        let fun = SwapchainKHRFn::new(&self.device);
         let handle = handle.unwrap();
+
+        let mut n_images = 0;
+        let mut images = vec![];
+        unsafe {
+            (fun.get_swapchain_images_khr)(
+                self.device.borrow(),
+                handle.borrow(),
+                &mut n_images,
+                None,
+            )?;
+            images.reserve(n_images.try_into().unwrap());
+            (fun.get_swapchain_images_khr)(
+                self.device.borrow(),
+                handle.borrow(),
+                &mut n_images,
+                images.spare_capacity_mut().first_mut(),
+            )?;
+            images.set_len(n_images.try_into().unwrap());
+        }
+
         let res = Arc::new(SwapchainImages {
             // Safety: Only used after the SwapchainKHR is destroyed.
             _handle: unsafe { handle.clone() },
-            fun: SwapchainKHRFn::new(&self.device),
+            fun,
             device: self.device.clone(),
             _surface: surface.res.clone(),
         });
-        Ok(SwapchainKHR { handle, res, surface })
+        let images = images.into_boxed_slice();
+
+        Ok(SwapchainKHR { handle, res, surface, images })
     }
 }
 
@@ -144,25 +168,28 @@ impl Drop for SwapchainImages {
 
 impl std::fmt::Debug for SwapchainImages {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SwapchainImages").finish()
+        f.debug_struct("SwapchainImages")
+            .field("_handle", &self._handle)
+            .finish()
     }
 }
 
 #[derive(Debug)]
 pub struct SwapchainKHR {
     handle: Handle<VkSwapchainKHR>,
+    images: Box<[Handle<VkImage>]>,
     res: Arc<SwapchainImages>,
     surface: SurfaceKHR,
 }
 
-// pub struct SwapchainImage {
-//     //handle
-//     res: Arc<SwapchainImages>,
-//     index: u32,
-// }
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum ImageOptimality {
+    Optimal,
+    Suboptimal,
+}
 
 impl SwapchainKHR {
-    pub fn borrow_mut(&mut self) -> Mut<'_, VkSwapchainKHR> {
+    pub fn borrow_mut(&mut self) -> Mut<VkSwapchainKHR> {
         self.handle.borrow_mut()
     }
     pub fn images(&self) -> &Arc<SwapchainImages> {
@@ -179,7 +206,7 @@ impl SwapchainKHR {
         &mut self,
         signal: &mut Semaphore,
         timeout: u64,
-    ) -> Result<(u32, bool)> {
+    ) -> Result<(Image, ImageOptimality)> {
         let mut index = 0;
         let res = unsafe {
             (self.res.fun.acquire_next_image_khr)(
@@ -191,20 +218,54 @@ impl SwapchainKHR {
                 &mut index,
             )
         };
+        // Safety: You can't acquire the same image twice.
+        let handle = unsafe { self.images[index as usize].clone() };
+        let image = Image::new(handle, self.res.clone());
         match res {
-            Ok(()) => Ok((index, false)),
+            Ok(()) => Ok((image, ImageOptimality::Optimal)),
             Err(e) => match e.into() {
-                Error::SuboptimalHKR => Ok((index, true)),
+                Error::SuboptimalHKR => {
+                    Ok((image, ImageOptimality::Suboptimal))
+                }
                 other => Err(other),
             },
         }
     }
 
-    // pub fn present(
-    //     &mut self,
-    //     queue: &mut Queue,
-    //     wait: &mut Semaphore,
-    // ) -> Result<()> {
-    //     Ok(())
-    // }
+    pub fn present(
+        &mut self,
+        queue: &mut Queue,
+        image: Image,
+        wait: &mut Semaphore,
+    ) -> Result<ImageOptimality> {
+        let index = self
+            .images
+            .iter()
+            .position(|h| h.borrow() == image.borrow())
+            .ok_or(Error::InvalidArgument)?
+            .try_into()
+            .unwrap();
+
+        let res = unsafe {
+            (self.res.fun.queue_present_khr)(
+                queue.borrow_mut(),
+                &PresentInfoKHR {
+                    stype: Default::default(),
+                    next: Default::default(),
+                    wait: (&[wait.borrow_mut()]).into(),
+                    swapchain_count: 1,
+                    swapchains: &self.borrow_mut(),
+                    indices: &index,
+                    result: None,
+                },
+            )
+        };
+        match res {
+            Ok(()) => Ok(ImageOptimality::Optimal),
+            Err(e) => match e.into() {
+                Error::SuboptimalHKR => Ok(ImageOptimality::Suboptimal),
+                other => Err(other),
+            },
+        }
+    }
 }

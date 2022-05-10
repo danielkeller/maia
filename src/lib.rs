@@ -4,6 +4,7 @@ mod error;
 pub mod ext;
 mod fence;
 mod ffi;
+mod image;
 mod instance;
 mod load;
 mod physical_device;
@@ -50,6 +51,7 @@ pub mod vk {
         CreateSwapchainFrom, KHRSwapchain, SwapchainCreateInfoKHR,
     };
     pub use crate::ffi::*;
+    pub use crate::image::Image;
     pub use crate::instance::Instance;
     pub use crate::instance_extension_properties;
     pub use crate::physical_device::PhysicalDevice;
