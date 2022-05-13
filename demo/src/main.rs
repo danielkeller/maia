@@ -40,9 +40,9 @@ fn pick_queue_family(
     let props = phy.queue_family_properties();
     for i in 0..props.len() {
         if !(props[i].queue_flags | vk::QueueFlags::GRAPHICS).is_empty()
-            && surf.support(phy, i.try_into().unwrap())?
+            && surf.support(phy, i as u32)?
         {
-            return Ok(i.try_into().unwrap());
+            return Ok(i as u32);
         }
     }
     anyhow::bail!("No graphics queue")

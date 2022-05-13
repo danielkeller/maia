@@ -44,13 +44,13 @@ impl PhysicalDevice {
                 &mut len,
                 None,
             );
-            result.reserve(len.try_into().unwrap());
+            result.reserve(len as usize);
             (self.instance.fun.get_physical_device_queue_family_properties)(
                 self.phy_ref(),
                 &mut len,
                 result.spare_capacity_mut().first_mut(),
             );
-            result.set_len(len.try_into().unwrap());
+            result.set_len(len as usize);
         }
         result
     }
@@ -67,14 +67,14 @@ impl PhysicalDevice {
                 &mut len,
                 None,
             )?;
-            result.reserve(len.try_into().unwrap());
+            result.reserve(len as usize);
             (self.instance.fun.enumerate_device_extension_properties)(
                 self.phy_ref(),
                 None,
                 &mut len,
                 result.spare_capacity_mut().first_mut(),
             )?;
-            result.set_len(len.try_into().unwrap());
+            result.set_len(len as usize);
         }
         Ok(result)
     }

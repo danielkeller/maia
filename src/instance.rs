@@ -51,13 +51,13 @@ impl Instance {
                 &mut len,
                 None,
             )?;
-            result.reserve(len.try_into().unwrap());
+            result.reserve(len as usize);
             (self.fun.enumerate_physical_devices)(
                 self.borrow(),
                 &mut len,
                 result.spare_capacity_mut().first_mut(),
             )?;
-            result.set_len(len.try_into().unwrap());
+            result.set_len(len as usize);
         }
         Ok(result
             .into_iter()

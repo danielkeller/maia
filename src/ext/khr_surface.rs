@@ -113,14 +113,14 @@ impl SurfaceKHR {
                 &mut len,
                 None,
             )?;
-            result.reserve(len.try_into().unwrap());
+            result.reserve(len as usize);
             (self.res.fun.get_physical_device_surface_formats_khr)(
                 phy.phy_ref(),
                 self.borrow(),
                 &mut len,
                 result.spare_capacity_mut().first_mut(),
             )?;
-            result.set_len(len.try_into().unwrap());
+            result.set_len(len as usize);
         }
         Ok(result)
     }

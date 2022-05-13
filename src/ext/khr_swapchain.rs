@@ -120,14 +120,14 @@ impl KHRSwapchain {
                 &mut n_images,
                 None,
             )?;
-            images.reserve(n_images.try_into().unwrap());
+            images.reserve(n_images as usize);
             (fun.get_swapchain_images_khr)(
                 self.device.borrow(),
                 handle.borrow(),
                 &mut n_images,
                 images.spare_capacity_mut().first_mut(),
             )?;
-            images.set_len(n_images.try_into().unwrap());
+            images.set_len(n_images as usize);
         }
 
         let res = Arc::new(SwapchainImages {

@@ -36,9 +36,9 @@ pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
     unsafe {
         let fn_ptr = load::vk_enumerate_instance_extension_properties();
         fn_ptr(None, &mut len, None)?;
-        result.reserve(len.try_into().unwrap());
+        result.reserve(len as usize);
         fn_ptr(None, &mut len, result.spare_capacity_mut().first_mut())?;
-        result.set_len(len.try_into().unwrap());
+        result.set_len(len as usize);
     }
     Ok(result)
 }
