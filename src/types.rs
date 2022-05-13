@@ -42,13 +42,6 @@ pub(crate) struct NonNullDispatchableHandle(NonNull<c_void>);
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
 
-const _: () = assert!(matches!(
-    unsafe {
-        std::mem::transmute::<u64, Option<NonNullNonDispatchableHandle>>(0)
-    },
-    None
-));
-
 impl Debug for NonNullDispatchableHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_fmt(format_args!("{:?}", self.0))
@@ -148,6 +141,18 @@ pub struct VkFence(NonNullNonDispatchableHandle);
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkImage(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VkFramebuffer(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VkCommandPool(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VkCommandBuffer(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -473,6 +478,37 @@ pub struct SemaphoreCreateInfo<Next = Null> {
     pub flags: SemaphoreCreateFlags,
 }
 structure_type!(SemaphoreCreateInfoType, 9);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct CommandPoolCreateInfo<Next = Null> {
+    pub stype: CommandPoolCreateInfoType,
+    pub next: Next,
+    pub flags: CommandPoolCreateFlags,
+    pub queue_family_index: u32,
+}
+structure_type!(CommandPoolCreateInfoType, 39);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct CommandBufferAllocateInfo<'a, Next = Null> {
+    pub stype: CommandBufferAllocateInfoType,
+    pub next: Next,
+    pub pool: Mut<'a, VkCommandPool>,
+    pub level: CommandBufferLevel,
+    pub count: u32,
+}
+structure_type!(CommandBufferAllocateInfoType, 40);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct CommandBufferBeginInfo<Next = Null> {
+    pub stype: CommandBufferBeginInfoType,
+    pub next: Next,
+    pub flags: CommandBufferUsageFlags,
+    pub inheritance_info: Null, //TODO
+}
+structure_type!(CommandBufferBeginInfoType, 42);
 
 #[repr(C)]
 #[derive(Debug)]

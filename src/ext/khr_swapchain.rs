@@ -7,7 +7,7 @@ use crate::queue::Queue;
 use crate::semaphore::Semaphore;
 use crate::types::*;
 
-use super::khr_surface::SurfaceResource;
+use super::khr_surface::SurfaceLifetime;
 use super::load::SwapchainDeviceFn;
 use super::load::SwapchainKHRFn;
 use super::SurfaceKHR;
@@ -145,13 +145,13 @@ impl KHRSwapchain {
 
 // Conceptually this owns the images, but it's also used to delay destruction
 // of the swapchain until it's no longer used by the images.
-pub struct SwapchainImages {
+struct SwapchainImages {
     /// Safety: Only use in Drop::drop
     _handle: Handle<VkSwapchainKHR>,
     fun: SwapchainKHRFn,
     device: Arc<Device>,
     // Needs to be destroyed after the swapchain
-    _surface: Arc<SurfaceResource>,
+    _surface: Arc<SurfaceLifetime>,
 }
 
 impl Drop for SwapchainImages {
@@ -191,12 +191,6 @@ pub enum ImageOptimality {
 impl SwapchainKHR {
     pub fn borrow_mut(&mut self) -> Mut<VkSwapchainKHR> {
         self.handle.borrow_mut()
-    }
-    pub fn images(&self) -> &Arc<SwapchainImages> {
-        &self.res
-    }
-    pub fn images_mut(&mut self) -> &mut Arc<SwapchainImages> {
-        &mut self.res
     }
     pub fn surface(&self) -> &SurfaceKHR {
         &self.surface

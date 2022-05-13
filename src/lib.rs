@@ -1,3 +1,4 @@
+mod command_buffer;
 mod device;
 mod enums;
 mod error;

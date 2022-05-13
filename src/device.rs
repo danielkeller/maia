@@ -12,7 +12,7 @@ pub struct Device {
     pub(crate) fun: DeviceFn,
     #[allow(dead_code)]
     instance: Arc<Instance>,
-    queues: Vec<u32>,
+    pub(crate) queues: Vec<u32>,
 }
 
 impl std::fmt::Debug for Device {

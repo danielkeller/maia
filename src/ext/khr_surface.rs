@@ -7,7 +7,7 @@ use crate::instance::Instance;
 use crate::physical_device::PhysicalDevice;
 use crate::types::*;
 
-pub(crate) struct SurfaceResource {
+pub(crate) struct SurfaceLifetime {
     /// Safety: Only use in Drop::drop
     _handle: Handle<VkSurfaceKHR>,
     fun: SurfaceKHRFn,
@@ -16,17 +16,17 @@ pub(crate) struct SurfaceResource {
 
 #[derive(Debug)]
 pub struct SurfaceKHR {
-    pub(crate) res: Arc<SurfaceResource>,
+    pub(crate) res: Arc<SurfaceLifetime>,
     handle: Handle<VkSurfaceKHR>,
 }
 
-impl std::fmt::Debug for SurfaceResource {
+impl std::fmt::Debug for SurfaceLifetime {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SurfaceResource").finish()
     }
 }
 
-impl Drop for SurfaceResource {
+impl Drop for SurfaceLifetime {
     fn drop(&mut self) {
         unsafe {
             (self.fun.destroy_surface_khr)(
@@ -39,14 +39,13 @@ impl Drop for SurfaceResource {
 }
 
 impl SurfaceKHR {
-    // Does this need to be an arc?
     pub(crate) fn new(
         handle: Handle<VkSurfaceKHR>,
         instance: Arc<Instance>,
     ) -> Self {
         Self {
             handle: unsafe { handle.clone() },
-            res: Arc::new(SurfaceResource {
+            res: Arc::new(SurfaceLifetime {
                 _handle: handle,
                 fun: SurfaceKHRFn::new(&instance),
                 instance,

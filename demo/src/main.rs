@@ -118,6 +118,18 @@ fn main() -> anyhow::Result<()> {
 
     println!("{:?}", swapchain);
 
+    let mut cmd_pool = device.create_command_pool(queue_family)?;
+    println!("{:?}", cmd_pool);
+
+    let buf = cmd_pool.allocate()?;
+    let rec = cmd_pool.begin(buf)?;
+    let buf = rec.end()?;
+    cmd_pool.reset(Default::default())?;
+    let rec = cmd_pool.begin(buf)?;
+    let buf = rec.end()?;
+    println!("{:?}", buf);
+    cmd_pool.free(buf)?;
+
     let mut sem = device.create_semaphore()?;
     let (img, subopt) = swapchain.acquire_next_image(&mut sem, u64::MAX)?;
     println!("{:?}", (&img, subopt));

@@ -580,6 +580,45 @@ impl Format {
 }
 
 #[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CommandPoolCreateFlags(u32);
+impl CommandPoolCreateFlags {
+    pub const TRANSIENT: Self = Self(0x1);
+    pub const RESET_COMMAND_BUFFER: Self = Self(0x2);
+    pub const PROTECTED: Self = Self(0x4);
+}
+flags!(CommandPoolCreateFlags, [TRANSIENT, RESET_COMMAND_BUFFER, PROTECTED]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CommandPoolResetFlags(u32);
+impl CommandPoolResetFlags {
+    pub const RELEASE_RESOURCES: Self = Self(0x1);
+}
+flags!(CommandPoolResetFlags, [RELEASE_RESOURCES]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct CommandBufferLevel(u32);
+impl CommandBufferLevel {
+    pub const PRIMARY: Self = Self(0);
+    pub const SECONDARY: Self = Self(1);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CommandBufferUsageFlags(u32);
+impl CommandBufferUsageFlags {
+    pub const ONE_TIME_SUBMIT: Self = Self(0x1);
+    pub const RENDER_PASS_CONTINUE: Self = Self(0x2);
+    pub const SIMULTANEOUS_USE: Self = Self(0x4);
+}
+flags!(
+    CommandBufferUsageFlags,
+    [ONE_TIME_SUBMIT, RENDER_PASS_CONTINUE, SIMULTANEOUS_USE]
+);
+
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct ColorSpaceKHR(u32);
 impl ColorSpaceKHR {
@@ -590,17 +629,13 @@ impl ColorSpaceKHR {
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SwapchainCreateFlagsKHR(u32);
 impl SwapchainCreateFlagsKHR {
-    pub const SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR: Self = Self(0x1);
-    pub const PROTECTED_BIT_KHR: Self = Self(0x2);
-    pub const MUTABLE_FORMAT_BIT_KHR: Self = Self(0x4);
+    pub const SPLIT_INSTANCE_BIND_REGIONS: Self = Self(0x1);
+    pub const PROTECTED: Self = Self(0x2);
+    pub const MUTABLE_FORMAT: Self = Self(0x4);
 }
 flags!(
     SwapchainCreateFlagsKHR,
-    [
-        SPLIT_INSTANCE_BIND_REGIONS_BIT_KHR,
-        PROTECTED_BIT_KHR,
-        MUTABLE_FORMAT_BIT_KHR
-    ]
+    [SPLIT_INSTANCE_BIND_REGIONS, PROTECTED, MUTABLE_FORMAT]
 );
 
 #[repr(transparent)]
@@ -615,16 +650,16 @@ impl SharingMode {
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct PresentModeKHR(u32);
 impl PresentModeKHR {
-    pub const IMMEDIATE_KHR: Self = Self(0);
-    pub const MAILBOX_KHR: Self = Self(1);
-    pub const FIFO_KHR: Self = Self(2);
-    pub const FIFO_RELAXED_KHR: Self = Self(3);
-    pub const SHARED_DEMAND_REFRESH_KHR: Self = Self(1000111000);
-    pub const SHARED_CONTINUOUS_REFRESH_KHR: Self = Self(1000111001);
+    pub const IMMEDIATE: Self = Self(0);
+    pub const MAILBOX: Self = Self(1);
+    pub const FIFO: Self = Self(2);
+    pub const FIFO_RELAXED: Self = Self(3);
+    pub const SHARED_DEMAND_REFRESH: Self = Self(1000111000);
+    pub const SHARED_CONTINUOUS_REFRESH: Self = Self(1000111001);
 }
 
 impl Default for PresentModeKHR {
     fn default() -> Self {
-        Self::FIFO_KHR
+        Self::FIFO
     }
 }

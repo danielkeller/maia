@@ -1,4 +1,5 @@
 use crate::enums::Bool;
+use crate::enums::*;
 use crate::ffi::*;
 use crate::instance::Instance;
 use crate::types::*;
@@ -154,6 +155,39 @@ pub struct DeviceFn {
         Mut<VkSemaphore>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_command_pool: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &CommandPoolCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkCommandPool>>,
+    ) -> VkResult,
+    pub destroy_command_pool: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkCommandPool>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+    pub reset_command_pool: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkCommandPool>,
+        CommandPoolResetFlags,
+    ) -> VkResult,
+    pub allocate_command_buffers: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &CommandBufferAllocateInfo<'_>,
+        &mut MaybeUninit<Handle<VkCommandBuffer>>,
+    ) -> VkResult,
+    pub free_command_buffers: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkCommandPool>,
+        u32,
+        &Mut<VkCommandBuffer>,
+    ),
+    pub begin_command_buffer: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        &CommandBufferBeginInfo,
+    ) -> VkResult,
+    pub end_command_buffer:
+        unsafe extern "system" fn(Mut<VkCommandBuffer>) -> VkResult,
 }
 
 impl DeviceFn {
@@ -177,6 +211,27 @@ impl DeviceFn {
                 ),
                 destroy_semaphore: transmute(
                     inst.load(device, "vkDestroySemaphore\0"),
+                ),
+                create_command_pool: transmute(
+                    inst.load(device, "vkCreateCommandPool\0"),
+                ),
+                destroy_command_pool: transmute(
+                    inst.load(device, "vkDestroyCommandPool\0"),
+                ),
+                reset_command_pool: transmute(
+                    inst.load(device, "vkResetCommandPool\0"),
+                ),
+                allocate_command_buffers: transmute(
+                    inst.load(device, "vkAllocateCommandBuffers\0"),
+                ),
+                free_command_buffers: transmute(
+                    inst.load(device, "vkFreeCommandBuffers\0"),
+                ),
+                begin_command_buffer: transmute(
+                    inst.load(device, "vkBeginCommandBuffer\0"),
+                ),
+                end_command_buffer: transmute(
+                    inst.load(device, "vkEndCommandBuffer\0"),
                 ),
             }
         }
