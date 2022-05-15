@@ -1,15 +1,18 @@
 use std::fmt::Debug;
 use std::mem::MaybeUninit;
-use std::sync::Weak;
 
 use crate::device::Device;
 use crate::enums::*;
 use crate::error::{Error, Result};
+use crate::ffi::ArrayMut;
+use crate::subobject::{Owner, Subobject, WeakSubobject};
 use crate::types::*;
+
+pub mod command;
 
 pub struct CommandPool {
     handle: Handle<VkCommandPool>,
-    recorded: Option<Arc<RecordedCommands>>,
+    recorded: Option<Owner<RecordedCommands>>,
     res: Arc<CommandPoolLifetime>,
 }
 
@@ -19,7 +22,7 @@ pub struct CommandBuffer {
     pool: Arc<CommandPoolLifetime>,
     /// For buffers in the initial state, upgrading this will give None. For
     /// buffers in the executable state, it will give an Arc.
-    recording: Weak<RecordedCommands>,
+    recording: WeakSubobject<RecordedCommands>,
 }
 
 pub struct CommandRecording<'a> {
@@ -35,7 +38,8 @@ struct CommandPoolLifetime {
 }
 
 #[derive(Debug)]
-struct RecordedCommands {
+pub(crate) struct RecordedCommands {
+    resources: Vec<Arc<dyn Send + Sync + Debug>>,
     _res: Arc<CommandPoolLifetime>,
 }
 
@@ -83,7 +87,10 @@ impl Device {
             _handle: unsafe { handle.clone() },
             device: self.clone(),
         });
-        let recorded = Some(Arc::new(RecordedCommands { _res: res.clone() }));
+        let recorded = Some(Owner::new(RecordedCommands {
+            _res: res.clone(),
+            resources: vec![],
+        }));
         Ok(CommandPool { handle, res, recorded })
     }
 }
@@ -110,9 +117,9 @@ impl CommandPool {
         let recorded = self.recorded.take().unwrap();
         // Try to lock the Arc, disassociating any Weak pointers from executable
         // command buffers.
-        match Arc::try_unwrap(recorded) {
-            Err(arc) => {
-                self.recorded = Some(arc);
+        match Owner::try_unwrap(recorded) {
+            Err(owner) => {
+                self.recorded = Some(owner);
                 Err(Error::SynchronizationError)
             }
             Ok(_inner) => {
@@ -123,8 +130,11 @@ impl CommandPool {
                         flags,
                     )?;
                 }
-                let arc = Arc::new(RecordedCommands { _res: self.res.clone() });
-                self.recorded = Some(arc);
+                let owner = Owner::new(RecordedCommands {
+                    _res: self.res.clone(),
+                    resources: vec![],
+                });
+                self.recorded = Some(owner);
                 Ok(())
             }
         }
@@ -142,14 +152,14 @@ impl CommandPool {
                     level: CommandBufferLevel::PRIMARY,
                     count: 1,
                 },
-                &mut handle,
+                std::array::from_mut(&mut handle).into(),
             )?;
             handle.assume_init()
         };
         Ok(CommandBuffer {
             handle,
             pool: self.res.clone(),
-            recording: Weak::new(),
+            recording: WeakSubobject::new(),
         })
     }
 
@@ -195,14 +205,17 @@ impl CommandBuffer {
     pub fn borrow_mut(&mut self) -> Mut<VkCommandBuffer> {
         self.handle.borrow_mut()
     }
-    pub(crate) fn lock_resources(
-        &self,
-    ) -> Option<Arc<dyn Send + Sync + Debug>> {
-        self.recording.upgrade().map(|arc| arc as Arc<dyn Send + Sync + Debug>)
+    /// Prevent the command pool from being cleared, or any bound objects
+    /// from being freed, until the Arc is dropped.
+    pub(crate) fn lock_resources(&self) -> Option<Subobject<RecordedCommands>> {
+        self.recording.upgrade()
     }
 }
 
 impl<'a> CommandRecording<'a> {
+    pub(crate) fn add_resource(&mut self, value: Arc<dyn Send + Sync + Debug>) {
+        self.pool.recorded.as_mut().unwrap().resources.push(value);
+    }
     pub fn end(mut self) -> Result<CommandBuffer> {
         unsafe {
             (self.pool.res.device.fun.end_command_buffer)(
@@ -210,7 +223,7 @@ impl<'a> CommandRecording<'a> {
             )?;
         }
         self.buffer.recording =
-            Arc::downgrade(self.pool.recorded.as_ref().unwrap());
+            Owner::downgrade(self.pool.recorded.as_ref().unwrap());
         Ok(self.buffer)
     }
 }

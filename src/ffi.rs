@@ -21,8 +21,7 @@ impl std::fmt::Debug for Null {
 #[repr(transparent)]
 #[derive(Debug, Copy, Clone)]
 pub struct Str<'a> {
-    #[allow(dead_code)]
-    ptr: NonNull<c_char>,
+    _ptr: NonNull<c_char>,
     _lt: PhantomData<&'a ()>,
 }
 
@@ -33,7 +32,7 @@ impl<'a> Str<'a> {
     // TODO: const checked constructor
     pub const unsafe fn new_unchecked(b: &'a [u8]) -> Self {
         Str {
-            ptr: NonNull::new_unchecked(
+            _ptr: NonNull::new_unchecked(
                 CStr::from_bytes_with_nul_unchecked(b).as_ptr() as *mut c_char,
             ),
             _lt: PhantomData,
@@ -42,7 +41,7 @@ impl<'a> Str<'a> {
     pub fn as_str(self) -> &'a str {
         unsafe {
             std::str::from_utf8_unchecked(
-                CStr::from_ptr(self.ptr.as_ptr()).to_bytes(),
+                CStr::from_ptr(self._ptr.as_ptr()).to_bytes(),
             )
         }
     }
@@ -61,7 +60,7 @@ impl<'a> From<&'a CStr> for Str<'a> {
     fn from(cstring: &'a CStr) -> Self {
         // Safety: CStr::as_ptr is always non-null.
         Str {
-            ptr: unsafe { (&*cstring.as_ptr()).into() },
+            _ptr: unsafe { (&*cstring.as_ptr()).into() },
             _lt: PhantomData,
         }
     }
@@ -119,8 +118,8 @@ pub struct UUID([u8; 16]);
 
 // Note: Be *very* careful about how this is aligned in the outer struct.
 
-/// A borrowed contiguous sequence of T. Represented as a u32 followed by a
-/// pointer.
+/// An immutably borrowed contiguous sequence of T. Represented as a u32
+/// followed by a pointer.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct Slice<'a, T> {
@@ -165,11 +164,12 @@ impl<'a, T, const N: usize> From<&'a [T; N]> for Slice<'a, T> {
     }
 }
 
-/// A borrowed contiguous sequence of T. Represented as a u32 followed by a
-/// pointer. This type differs from Slice only in that it is aligned to a 4-byte
-/// boundary, for cases where the structure alignment of Slice puts the count
-/// member in the wrong place on 64 bit systems. This type does not use
-/// unaligned loads or stores and has no special alignment requirement.
+/// An immutably borrowed contiguous sequence of T. Represented as a u32
+/// followed by a pointer. This type differs from Slice only in that it is
+/// aligned to a 4-byte boundary, for cases where the structure alignment of
+/// Slice puts the count member in the wrong place on 64 bit systems. This type
+/// does not use unaligned loads or stores and has no special alignment
+/// requirement.
 #[repr(C)]
 #[derive(Debug)]
 pub struct Slice_<'a, T> {
@@ -229,6 +229,70 @@ impl<'a, T, const N: usize> From<&'a [T; N]> for Slice_<'a, T> {
             count: N as u32,
             ptr: unsafe { std::mem::transmute(ts.as_ptr()) },
             _lt: PhantomData,
+        }
+    }
+}
+
+/// An immutably borrowed contiguous nonempty sequence of T. Represented as a
+/// non-null pointer.
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct Array<'a, T> {
+    _ptr: NonNull<T>,
+    _lt: PhantomData<&'a T>,
+}
+
+impl<'a, T, const N: usize> From<&'a [T; N]> for Array<'a, T> {
+    fn from(ts: &'a [T; N]) -> Self {
+        let _array_must_be_non_empty = N - 1;
+        Self {
+            _ptr: unsafe { NonNull::new_unchecked(ts.as_ptr() as *mut T) },
+            _lt: PhantomData,
+        }
+    }
+}
+
+impl<'a, T> Array<'a, T> {
+    pub fn from_slice(ts: &'a [T]) -> Option<Array<'a, T>> {
+        if ts.is_empty() {
+            None
+        } else {
+            Some(Self {
+                _ptr: unsafe { NonNull::new_unchecked(ts.as_ptr() as *mut T) },
+                _lt: PhantomData,
+            })
+        }
+    }
+}
+
+/// A mutably borrowed contiguous nonempty sequence of T. Represented as a
+/// non-null pointer.
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct ArrayMut<'a, T> {
+    _ptr: NonNull<T>,
+    _lt: PhantomData<&'a mut T>,
+}
+
+impl<'a, T, const N: usize> From<&'a mut [T; N]> for ArrayMut<'a, T> {
+    fn from(ts: &'a mut [T; N]) -> Self {
+        let _array_must_be_non_empty = N - 1;
+        Self {
+            _ptr: unsafe { NonNull::new_unchecked(ts.as_ptr() as *mut T) },
+            _lt: PhantomData,
+        }
+    }
+}
+
+impl<'a, T> ArrayMut<'a, T> {
+    pub fn from_slice(ts: &'a mut [T]) -> Option<ArrayMut<'a, T>> {
+        if ts.is_empty() {
+            None
+        } else {
+            Some(Self {
+                _ptr: unsafe { NonNull::new_unchecked(ts.as_ptr() as *mut T) },
+                _lt: PhantomData,
+            })
         }
     }
 }

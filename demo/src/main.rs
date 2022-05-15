@@ -111,7 +111,8 @@ fn main() -> anyhow::Result<()> {
             min_image_count: 3,
             image_format: vk::Format::B8G8R8A8_UNORM,
             image_extent: vk::Extent2D { width: 3840, height: 2160 },
-            image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT,
+            image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT
+                | vk::ImageUsageFlags::TRANSFER_DST,
             ..Default::default()
         },
     )?;
@@ -121,20 +122,25 @@ fn main() -> anyhow::Result<()> {
     let mut cmd_pool = device.create_command_pool(queue_family)?;
     println!("{:?}", cmd_pool);
 
-    let buf = cmd_pool.allocate()?;
-    let rec = cmd_pool.begin(buf)?;
-    let buf = rec.end()?;
-    cmd_pool.reset(Default::default())?;
-    let rec = cmd_pool.begin(buf)?;
-    let buf = rec.end()?;
-    println!("{:?}", buf);
-    cmd_pool.free(buf)?;
-
     let mut sem = device.create_semaphore()?;
-    let (img, subopt) = swapchain.acquire_next_image(&mut sem, u64::MAX)?;
-    println!("{:?}", (&img, subopt));
 
-    swapchain.present(&mut queue, img, &mut sem)?;
+    let mut redraw = move || -> anyhow::Result<()> {
+        let (img, _subopt) =
+            swapchain.acquire_next_image(&mut sem, u64::MAX)?;
+
+        cmd_pool.reset(Default::default())?;
+        let buf = cmd_pool.allocate()?;
+        let mut rec = cmd_pool.begin(buf)?;
+        rec.clear_color_image(
+            img.clone(),
+            vk::ImageLayout::GENERAL,
+            vk::ClearColor::F32([0.1, 0.2, 0.3, 1.0]),
+            &[Default::default()],
+        )?;
+        let buf = rec.end()?;
+        swapchain.present(&mut queue, &img, &mut sem)?;
+        Ok(())
+    };
 
     // Ok(())
     event_loop.run(move |event, _, control_flow| {
@@ -145,7 +151,12 @@ fn main() -> anyhow::Result<()> {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested, ..
             } => *control_flow = ControlFlow::Exit,
-            Event::RedrawRequested(_) => {}
+            Event::RedrawRequested(_) => {
+                if let Err(e) = redraw() {
+                    println!("{:?}", e);
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
             _ => (),
         }
     })

@@ -3,21 +3,21 @@ use std::mem::MaybeUninit;
 use super::load::SurfaceKHRFn;
 use crate::enums::*;
 use crate::error::Result;
+use crate::ffi::ArrayMut;
 use crate::instance::Instance;
 use crate::physical_device::PhysicalDevice;
+use crate::subobject::Owner;
 use crate::types::*;
 
 pub(crate) struct SurfaceLifetime {
-    /// Safety: Only use in Drop::drop
-    _handle: Handle<VkSurfaceKHR>,
+    handle: Handle<VkSurfaceKHR>,
     fun: SurfaceKHRFn,
     instance: Arc<Instance>,
 }
 
 #[derive(Debug)]
 pub struct SurfaceKHR {
-    pub(crate) res: Arc<SurfaceLifetime>,
-    handle: Handle<VkSurfaceKHR>,
+    pub(crate) res: Owner<SurfaceLifetime>,
 }
 
 impl std::fmt::Debug for SurfaceLifetime {
@@ -31,7 +31,7 @@ impl Drop for SurfaceLifetime {
         unsafe {
             (self.fun.destroy_surface_khr)(
                 self.instance.borrow(),
-                self._handle.borrow_mut(),
+                self.handle.borrow_mut(),
                 None,
             )
         }
@@ -44,9 +44,8 @@ impl SurfaceKHR {
         instance: Arc<Instance>,
     ) -> Self {
         Self {
-            handle: unsafe { handle.clone() },
-            res: Arc::new(SurfaceLifetime {
-                _handle: handle,
+            res: Owner::new(SurfaceLifetime {
+                handle,
                 fun: SurfaceKHRFn::new(&instance),
                 instance,
             }),
@@ -54,10 +53,10 @@ impl SurfaceKHR {
     }
 
     pub fn borrow(&self) -> Ref<VkSurfaceKHR> {
-        self.handle.borrow()
+        self.res.handle.borrow()
     }
     pub fn borrow_mut(&mut self) -> Mut<VkSurfaceKHR> {
-        self.handle.borrow_mut()
+        self.res.handle.borrow_mut()
     }
 
     pub fn support(
@@ -73,7 +72,7 @@ impl SurfaceKHR {
         );
         unsafe {
             (self.res.fun.get_physical_device_surface_support_khr)(
-                phy.phy_ref(),
+                phy.borrow(),
                 queue_family,
                 self.borrow(),
                 &mut result,
@@ -91,7 +90,7 @@ impl SurfaceKHR {
         let mut result = MaybeUninit::uninit();
         unsafe {
             (self.res.fun.get_physical_device_surface_capabilities_khr)(
-                phy.phy_ref(),
+                phy.borrow(),
                 self.borrow(),
                 &mut result,
             )?;
@@ -108,17 +107,17 @@ impl SurfaceKHR {
         let mut result = vec![];
         unsafe {
             (self.res.fun.get_physical_device_surface_formats_khr)(
-                phy.phy_ref(),
+                phy.borrow(),
                 self.borrow(),
                 &mut len,
                 None,
             )?;
             result.reserve(len as usize);
             (self.res.fun.get_physical_device_surface_formats_khr)(
-                phy.phy_ref(),
+                phy.borrow(),
                 self.borrow(),
                 &mut len,
-                result.spare_capacity_mut().first_mut(),
+                ArrayMut::from_slice(result.spare_capacity_mut()),
             )?;
             result.set_len(len as usize);
         }

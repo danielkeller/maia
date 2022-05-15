@@ -193,6 +193,37 @@ pub struct Extent3D {
     pub depth: u32,
 }
 
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union ClearColorValue {
+    f: [f32; 4],
+    i: [i32; 4],
+    u: [u32; 4],
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct ImageSubresourceRange {
+    aspect_mask: ImageAspectFlags,
+    base_mip_level: u32,
+    level_count: u32,
+    base_array_layer: u32,
+    layer_count: u32,
+}
+
+impl Default for ImageSubresourceRange {
+    /// The entirety of a color image
+    fn default() -> Self {
+        Self {
+            aspect_mask: ImageAspectFlags::COLOR,
+            base_mip_level: 0,
+            level_count: u32::MAX,
+            base_array_layer: 0,
+            layer_count: u32::MAX,
+        }
+    }
+}
+
 pub enum AllocationCallbacks {}
 
 #[repr(C)]
@@ -571,10 +602,9 @@ pub struct PresentInfoKHR<'a, Next = Null> {
     pub stype: PresentInfoType,
     pub next: Next,
     pub wait: Slice<'a, Mut<'a, VkSemaphore>>,
-    /// Safety: The following members are arrays of this length
-    pub swapchain_count: u32,
-    pub swapchains: &'a Mut<'a, VkSwapchainKHR>,
-    pub indices: &'a u32,
-    pub result: Option<&'a mut VkResult>,
+    /// Safety: The following members are arrays of the same length
+    pub swapchains: Slice<'a, Mut<'a, VkSwapchainKHR>>,
+    pub indices: Array<'a, u32>,
+    pub results: Option<ArrayMut<'a, VkResult>>,
 }
 structure_type!(PresentInfoType, 1000001001);

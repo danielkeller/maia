@@ -2,6 +2,7 @@ use std::mem::{transmute, MaybeUninit};
 
 use crate::device::Device;
 use crate::enums::*;
+use crate::ffi::ArrayMut;
 use crate::instance::Instance;
 use crate::types::*;
 
@@ -29,7 +30,7 @@ pub struct SurfaceKHRFn {
             Ref<VkPhysicalDevice>,
             Ref<VkSurfaceKHR>,
             &mut u32,
-            Option<&mut MaybeUninit<SurfaceFormatKHR>>,
+            Option<ArrayMut<MaybeUninit<SurfaceFormatKHR>>>,
         ) -> VkResult,
 }
 
@@ -112,7 +113,7 @@ pub struct SwapchainKHRFn {
         Ref<VkDevice>,
         Ref<VkSwapchainKHR>,
         &mut u32,
-        Option<&mut MaybeUninit<Handle<VkImage>>>,
+        Option<ArrayMut<MaybeUninit<Handle<VkImage>>>>,
     ) -> VkResult,
     pub acquire_next_image_khr: unsafe extern "system" fn(
         Ref<VkDevice>,

@@ -581,6 +581,50 @@ impl Format {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageLayout(u32);
+impl ImageLayout {
+    pub const UNDEFINED: Self = Self(0);
+    pub const GENERAL: Self = Self(1);
+    pub const COLOR_ATTACHMENT_OPTIMAL: Self = Self(2);
+    pub const DEPTH_STENCIL_ATTACHMENT_OPTIMAL: Self = Self(3);
+    pub const DEPTH_STENCIL_READ_ONLY_OPTIMAL: Self = Self(4);
+    pub const SHADER_READ_ONLY_OPTIMAL: Self = Self(5);
+    pub const TRANSFER_SRC_OPTIMAL: Self = Self(6);
+    pub const TRANSFER_DST_OPTIMAL: Self = Self(7);
+    pub const PREINITIALIZED: Self = Self(8);
+    pub const DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL: Self =
+        Self(1000117000);
+    pub const DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL: Self =
+        Self(1000117001);
+    pub const DEPTH_ATTACHMENT_OPTIMAL: Self = Self(1000241000);
+    pub const DEPTH_READ_ONLY_OPTIMAL: Self = Self(1000241001);
+    pub const STENCIL_ATTACHMENT_OPTIMAL: Self = Self(1000241002);
+    pub const STENCIL_READ_ONLY_OPTIMAL: Self = Self(1000241003);
+    pub const READ_ONLY_OPTIMAL: Self = Self(1000314000);
+    pub const ATTACHMENT_OPTIMAL: Self = Self(1000314001);
+    pub const PRESENT_SRC_KHR: Self = Self(1000001002);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageAspectFlags(u32);
+impl ImageAspectFlags {
+    pub const COLOR: Self = Self(0x01);
+    pub const DEPTH: Self = Self(0x02);
+    pub const STENCIL: Self = Self(0x04);
+    pub const METADATA: Self = Self(0x08);
+    pub const PLANE_0: Self = Self(0x10);
+    pub const PLANE_1: Self = Self(0x20);
+    pub const PLANE_2: Self = Self(0x40);
+    pub const NONE: Self = Self(0);
+}
+flags!(
+    ImageAspectFlags,
+    [COLOR, DEPTH, STENCIL, METADATA, PLANE_0, PLANE_1, PLANE_2]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CommandPoolCreateFlags(u32);
 impl CommandPoolCreateFlags {
     pub const TRANSIENT: Self = Self(0x1);

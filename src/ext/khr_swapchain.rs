@@ -2,9 +2,13 @@ use crate::device::Device;
 use crate::enums::*;
 use crate::error::Error;
 use crate::error::Result;
+use crate::ffi::ArrayMut;
 use crate::image::Image;
+use crate::image::ImageOwner;
 use crate::queue::Queue;
 use crate::semaphore::Semaphore;
+use crate::subobject::Owner;
+use crate::subobject::Subobject;
 use crate::types::*;
 
 use super::khr_surface::SurfaceLifetime;
@@ -75,7 +79,7 @@ impl KHRSwapchain {
     ) -> Result<SwapchainKHR> {
         let (mut surface, mut old_swapchain) = match create_from {
             CreateSwapchainFrom::OldSwapchain(old) => {
-                (old.surface, Some(old.handle))
+                (old.surface, Some(old.res))
             }
             CreateSwapchainFrom::Surface(surf) => (surf, None),
         };
@@ -102,7 +106,7 @@ impl KHRSwapchain {
                     clipped: info.clipped,
                     old_swapchain: old_swapchain
                         .as_mut()
-                        .map(|h| h.borrow_mut()),
+                        .map(|h| h.handle.borrow_mut()),
                 },
                 None,
                 &mut handle,
@@ -125,33 +129,38 @@ impl KHRSwapchain {
                 self.device.borrow(),
                 handle.borrow(),
                 &mut n_images,
-                images.spare_capacity_mut().first_mut(),
+                ArrayMut::from_slice(images.spare_capacity_mut()),
             )?;
             images.set_len(n_images as usize);
         }
 
-        let res = Arc::new(SwapchainImages {
-            // Safety: Only used after the SwapchainKHR is destroyed.
-            _handle: unsafe { handle.clone() },
+        let res = Owner::new(SwapchainImages {
+            handle,
             fun,
             device: self.device.clone(),
-            _surface: surface.res.clone(),
+            _surface: Subobject::new(&surface.res),
         });
-        let images = images.into_boxed_slice();
+        let images = images
+            .into_iter()
+            .map(|h| {
+                Arc::new(Image::new(
+                    h,
+                    ImageOwner::Swapchain(Subobject::new(&res)),
+                ))
+            })
+            .collect();
 
-        Ok(SwapchainKHR { handle, res, surface, images })
+        Ok(SwapchainKHR { res, surface, images })
     }
 }
 
 // Conceptually this owns the images, but it's also used to delay destruction
 // of the swapchain until it's no longer used by the images.
-struct SwapchainImages {
-    /// Safety: Only use in Drop::drop
-    _handle: Handle<VkSwapchainKHR>,
+pub(crate) struct SwapchainImages {
+    handle: Handle<VkSwapchainKHR>,
     fun: SwapchainKHRFn,
     device: Arc<Device>,
-    // Needs to be destroyed after the swapchain
-    _surface: Arc<SurfaceLifetime>,
+    _surface: Subobject<SurfaceLifetime>,
 }
 
 impl Drop for SwapchainImages {
@@ -159,7 +168,7 @@ impl Drop for SwapchainImages {
         unsafe {
             (self.fun.destroy_swapchain_khr)(
                 self.device.borrow(),
-                self._handle.borrow_mut(),
+                self.handle.borrow_mut(),
                 None,
             )
         }
@@ -168,17 +177,14 @@ impl Drop for SwapchainImages {
 
 impl std::fmt::Debug for SwapchainImages {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("SwapchainImages")
-            .field("_handle", &self._handle)
-            .finish()
+        f.debug_struct("SwapchainImages").field("handle", &self.handle).finish()
     }
 }
 
 #[derive(Debug)]
 pub struct SwapchainKHR {
-    handle: Handle<VkSwapchainKHR>,
-    images: Box<[Handle<VkImage>]>,
-    res: Arc<SwapchainImages>,
+    images: Vec<Arc<Image>>,
+    res: Owner<SwapchainImages>,
     surface: SurfaceKHR,
 }
 
@@ -190,7 +196,7 @@ pub enum ImageOptimality {
 
 impl SwapchainKHR {
     pub fn borrow_mut(&mut self) -> Mut<VkSwapchainKHR> {
-        self.handle.borrow_mut()
+        self.res.handle.borrow_mut()
     }
     pub fn surface(&self) -> &SurfaceKHR {
         &self.surface
@@ -200,21 +206,20 @@ impl SwapchainKHR {
         &mut self,
         signal: &mut Semaphore,
         timeout: u64,
-    ) -> Result<(Image, ImageOptimality)> {
+    ) -> Result<(Arc<Image>, ImageOptimality)> {
         let mut index = 0;
+        let res = &mut *self.res;
         let res = unsafe {
-            (self.res.fun.acquire_next_image_khr)(
-                self.res.device.borrow(),
-                self.handle.borrow_mut(),
+            (res.fun.acquire_next_image_khr)(
+                res.device.borrow(),
+                res.handle.borrow_mut(),
                 timeout,
                 Some(signal.borrow_mut()),
                 None,
                 &mut index,
             )
         };
-        // Safety: You can't acquire the same image twice.
-        let handle = unsafe { self.images[index as usize].clone() };
-        let image = Image::new(handle, self.res.clone());
+        let image = self.images[index as usize].clone();
         match res {
             Ok(()) => Ok((image, ImageOptimality::Optimal)),
             Err(e) => match e.into() {
@@ -229,7 +234,7 @@ impl SwapchainKHR {
     pub fn present(
         &mut self,
         queue: &mut Queue,
-        image: Image,
+        image: &Image,
         wait: &mut Semaphore,
     ) -> Result<ImageOptimality> {
         let index = self
@@ -247,10 +252,9 @@ impl SwapchainKHR {
                     stype: Default::default(),
                     next: Default::default(),
                     wait: (&[wait.borrow_mut()]).into(),
-                    swapchain_count: 1,
-                    swapchains: &self.borrow_mut(),
-                    indices: &index,
-                    result: None,
+                    swapchains: (&[self.borrow_mut()]).into(),
+                    indices: (&[index]).into(),
+                    results: None,
                 },
             )
         };

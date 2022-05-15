@@ -2,24 +2,25 @@ use std::mem::MaybeUninit;
 
 use crate::device::Device;
 use crate::error::Result;
+use crate::ffi::ArrayMut;
 use crate::instance::Instance;
 use crate::types::*;
 
 #[derive(Debug)]
 pub struct PhysicalDevice {
-    handle: Ref<'static, VkPhysicalDevice>,
+    handle: Handle<VkPhysicalDevice>,
     pub(crate) instance: Arc<Instance>,
 }
 
 impl PhysicalDevice {
     pub(crate) fn new(
-        handle: Ref<'static, VkPhysicalDevice>,
+        handle: Handle<VkPhysicalDevice>,
         instance: Arc<Instance>,
     ) -> Self {
         Self { handle, instance }
     }
-    pub fn phy_ref(&self) -> Ref<'_, VkPhysicalDevice> {
-        self.handle
+    pub fn borrow(&self) -> Ref<VkPhysicalDevice> {
+        self.handle.borrow()
     }
 }
 
@@ -28,7 +29,7 @@ impl PhysicalDevice {
         let mut result = MaybeUninit::uninit();
         unsafe {
             (self.instance.fun.get_physical_device_properties)(
-                self.phy_ref(),
+                self.borrow(),
                 &mut result,
             );
             result.assume_init()
@@ -40,15 +41,15 @@ impl PhysicalDevice {
         let mut result = Vec::new();
         unsafe {
             (self.instance.fun.get_physical_device_queue_family_properties)(
-                self.phy_ref(),
+                self.borrow(),
                 &mut len,
                 None,
             );
             result.reserve(len as usize);
             (self.instance.fun.get_physical_device_queue_family_properties)(
-                self.phy_ref(),
+                self.borrow(),
                 &mut len,
-                result.spare_capacity_mut().first_mut(),
+                ArrayMut::from_slice(result.spare_capacity_mut()),
             );
             result.set_len(len as usize);
         }
@@ -62,17 +63,17 @@ impl PhysicalDevice {
         let mut result = Vec::new();
         unsafe {
             (self.instance.fun.enumerate_device_extension_properties)(
-                self.phy_ref(),
+                self.borrow(),
                 None,
                 &mut len,
                 None,
             )?;
             result.reserve(len as usize);
             (self.instance.fun.enumerate_device_extension_properties)(
-                self.phy_ref(),
+                self.borrow(),
                 None,
                 &mut len,
-                result.spare_capacity_mut().first_mut(),
+                ArrayMut::from_slice(result.spare_capacity_mut()),
             )?;
             result.set_len(len as usize);
         }
@@ -98,7 +99,7 @@ impl PhysicalDevice {
         let mut handle = None;
         unsafe {
             (self.instance.fun.create_device)(
-                self.phy_ref(),
+                self.borrow(),
                 info,
                 None,
                 &mut handle,

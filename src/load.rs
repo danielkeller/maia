@@ -26,7 +26,7 @@ pub unsafe fn vk_enumerate_instance_extension_properties(
 ) -> unsafe extern "system" fn(
     Option<Str<'_>>,
     &mut u32,
-    Option<&mut MaybeUninit<ExtensionProperties>>,
+    Option<ArrayMut<MaybeUninit<ExtensionProperties>>>,
 ) -> VkResult {
     transmute(load(None, "vkEnumerateInstanceExtensionProperties\0"))
 }
@@ -39,7 +39,7 @@ pub struct InstanceFn {
     pub enumerate_physical_devices: unsafe extern "system" fn(
         Ref<VkInstance>,
         &mut u32,
-        Option<&mut MaybeUninit<Ref<VkPhysicalDevice>>>,
+        Option<ArrayMut<MaybeUninit<Handle<VkPhysicalDevice>>>>,
     ) -> VkResult,
     pub get_physical_device_properties: unsafe extern "system" fn(
         Ref<VkPhysicalDevice>,
@@ -49,14 +49,14 @@ pub struct InstanceFn {
         unsafe extern "system" fn(
             Ref<VkPhysicalDevice>,
             &mut u32,
-            Option<&mut MaybeUninit<QueueFamilyProperties>>,
+            Option<ArrayMut<MaybeUninit<QueueFamilyProperties>>>,
         ),
     pub enumerate_device_extension_properties:
         unsafe extern "system" fn(
             Ref<VkPhysicalDevice>,
             Option<Str<'_>>,
             &mut u32,
-            Option<&mut MaybeUninit<ExtensionProperties>>,
+            Option<ArrayMut<MaybeUninit<ExtensionProperties>>>,
         ) -> VkResult,
     pub create_device: unsafe extern "system" fn(
         Ref<VkPhysicalDevice>,
@@ -174,7 +174,7 @@ pub struct DeviceFn {
     pub allocate_command_buffers: unsafe extern "system" fn(
         Ref<VkDevice>,
         &CommandBufferAllocateInfo<'_>,
-        &mut MaybeUninit<Handle<VkCommandBuffer>>,
+        ArrayMut<MaybeUninit<Handle<VkCommandBuffer>>>,
     ) -> VkResult,
     pub free_command_buffers: unsafe extern "system" fn(
         Ref<VkDevice>,
@@ -188,6 +188,14 @@ pub struct DeviceFn {
     ) -> VkResult,
     pub end_command_buffer:
         unsafe extern "system" fn(Mut<VkCommandBuffer>) -> VkResult,
+    pub cmd_clear_color_image: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        Ref<VkImage>,
+        ImageLayout,
+        &ClearColorValue,
+        u32,
+        Array<ImageSubresourceRange>,
+    ),
 }
 
 impl DeviceFn {
@@ -232,6 +240,9 @@ impl DeviceFn {
                 ),
                 end_command_buffer: transmute(
                     inst.load(device, "vkEndCommandBuffer\0"),
+                ),
+                cmd_clear_color_image: transmute(
+                    inst.load(device, "vkCmdClearColorImage\0"),
                 ),
             }
         }

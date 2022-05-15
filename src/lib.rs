@@ -11,6 +11,7 @@ mod load;
 mod physical_device;
 mod queue;
 mod semaphore;
+mod subobject;
 mod types;
 #[cfg(feature = "window")]
 pub mod window;
@@ -37,13 +38,18 @@ pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
         let fn_ptr = load::vk_enumerate_instance_extension_properties();
         fn_ptr(None, &mut len, None)?;
         result.reserve(len as usize);
-        fn_ptr(None, &mut len, result.spare_capacity_mut().first_mut())?;
+        fn_ptr(
+            None,
+            &mut len,
+            ffi::ArrayMut::from_slice(result.spare_capacity_mut()),
+        )?;
         result.set_len(len as usize);
     }
     Ok(result)
 }
 
 pub mod vk {
+    pub use crate::command_buffer::command::ClearColor;
     pub use crate::create_instance;
     pub use crate::device::Device;
     pub use crate::enums::*;

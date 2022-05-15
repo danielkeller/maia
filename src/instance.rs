@@ -2,6 +2,7 @@ use std::ffi::c_void;
 use std::ptr::NonNull;
 
 use crate::error::Result;
+use crate::ffi::ArrayMut;
 use crate::load::InstanceFn;
 use crate::physical_device::PhysicalDevice;
 use crate::types::*;
@@ -55,7 +56,7 @@ impl Instance {
             (self.fun.enumerate_physical_devices)(
                 self.borrow(),
                 &mut len,
-                result.spare_capacity_mut().first_mut(),
+                ArrayMut::from_slice(result.spare_capacity_mut()),
             )?;
             result.set_len(len as usize);
         }

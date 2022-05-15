@@ -1,18 +1,22 @@
+use crate::ext::khr_swapchain::SwapchainImages;
+use crate::subobject::Subobject;
+use crate::types::*;
+
 use std::fmt::Debug;
 
-use crate::types::*;
+#[derive(Debug)]
+pub(crate) enum ImageOwner {
+    Swapchain(Subobject<SwapchainImages>),
+}
 
 #[derive(Debug)]
 pub struct Image {
     handle: Handle<VkImage>,
-    _res: Arc<dyn Send + Sync + Debug>,
+    _res: ImageOwner,
 }
 
 impl Image {
-    pub(crate) fn new(
-        handle: Handle<VkImage>,
-        _res: Arc<dyn Send + Sync + Debug>,
-    ) -> Self {
+    pub(crate) fn new(handle: Handle<VkImage>, _res: ImageOwner) -> Self {
         Self { handle, _res }
     }
 
