@@ -130,12 +130,46 @@ fn main() -> anyhow::Result<()> {
         let mut rec = cmd_pool.begin(&mut buf)?;
         let blue =
             Instant::now().duration_since(begin).subsec_micros() as f32 / 1e6;
+        rec.pipeline_barrier(
+            vk::PipelineStageFlags::TOP_OF_PIPE,
+            vk::PipelineStageFlags::TRANSFER,
+            Default::default(),
+            &[],
+            &[],
+            &[vk::ImageMemoryBarrier {
+                src_access_mask: Default::default(),
+                dst_access_mask: vk::AccessFlags::TRANSFER_WRITE,
+                old_layout: vk::ImageLayout::UNDEFINED,
+                new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                src_queue_family_index: 0,
+                dst_queue_family_index: 0,
+                image: img.clone(),
+                subresource_range: Default::default(),
+            }],
+        );
         rec.clear_color_image(
             &img,
-            vk::ImageLayout::GENERAL,
+            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
             vk::ClearColor::F32([0.1, 0.2, blue, 1.0]),
             &[Default::default()],
         )?;
+        rec.pipeline_barrier(
+            vk::PipelineStageFlags::TRANSFER,
+            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
+            Default::default(),
+            &[],
+            &[],
+            &[vk::ImageMemoryBarrier {
+                src_access_mask: vk::AccessFlags::TRANSFER_WRITE,
+                dst_access_mask: Default::default(),
+                old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                new_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+                src_queue_family_index: 0,
+                dst_queue_family_index: 0,
+                image: img.clone(),
+                subresource_range: Default::default(),
+            }],
+        );
         rec.end()?;
         let pending_fence = queue.submit(
             &mut [vk::SubmitInfo {

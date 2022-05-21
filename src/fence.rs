@@ -68,20 +68,25 @@ impl PendingFence {
         self.0.as_ref().unwrap().fence.handle.borrow()
     }
     pub fn wait(mut self) -> Result<Fence> {
-        let inner = self.0.take().unwrap();
+        let mut inner = self.0.take().unwrap();
         inner.wait_impl()?;
         Ok(Fence(inner.fence))
     }
 }
 impl PendingFenceRAII {
-    fn wait_impl(&self) -> Result<()> {
+    fn wait_impl(&mut self) -> Result<()> {
         unsafe {
             (self.fence.device.fun.wait_for_fences)(
                 self.fence.device.borrow(),
                 1,
-                &self.fence.handle.borrow(),
+                (&[self.fence.handle.borrow()]).into(),
                 true.into(),
                 u64::MAX,
+            )?;
+            (self.fence.device.fun.reset_fences)(
+                self.fence.device.borrow(),
+                1,
+                (&[self.fence.handle.borrow_mut()]).into(),
             )?;
         }
         Ok(())

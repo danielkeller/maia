@@ -254,22 +254,24 @@ pub struct Array<'a, T> {
 }
 
 impl<'a, T, const N: usize> From<&'a [T; N]> for Array<'a, T> {
-    fn from(ts: &'a [T; N]) -> Self {
+    fn from(array: &'a [T; N]) -> Self {
         let _array_must_be_non_empty = N - 1;
         Self {
-            _ptr: unsafe { NonNull::new_unchecked(ts.as_ptr() as *mut T) },
+            _ptr: unsafe { NonNull::new_unchecked(array.as_ptr() as *mut T) },
             _lt: PhantomData,
         }
     }
 }
 
 impl<'a, T> Array<'a, T> {
-    pub fn from_slice(ts: &'a [T]) -> Option<Array<'a, T>> {
-        if ts.is_empty() {
+    pub fn from_slice(slice: &'a [T]) -> Option<Array<'a, T>> {
+        if slice.is_empty() {
             None
         } else {
             Some(Self {
-                _ptr: unsafe { NonNull::new_unchecked(ts.as_ptr() as *mut T) },
+                _ptr: unsafe {
+                    NonNull::new_unchecked(slice.as_ptr() as *mut T)
+                },
                 _lt: PhantomData,
             })
         }
@@ -286,22 +288,24 @@ pub struct ArrayMut<'a, T> {
 }
 
 impl<'a, T, const N: usize> From<&'a mut [T; N]> for ArrayMut<'a, T> {
-    fn from(ts: &'a mut [T; N]) -> Self {
+    fn from(array: &'a mut [T; N]) -> Self {
         let _array_must_be_non_empty = N - 1;
         Self {
-            _ptr: unsafe { NonNull::new_unchecked(ts.as_ptr() as *mut T) },
+            _ptr: unsafe { NonNull::new_unchecked(array.as_ptr() as *mut T) },
             _lt: PhantomData,
         }
     }
 }
 
 impl<'a, T> ArrayMut<'a, T> {
-    pub fn from_slice(ts: &'a mut [T]) -> Option<ArrayMut<'a, T>> {
-        if ts.is_empty() {
+    pub fn from_slice(slice: &'a mut [T]) -> Option<ArrayMut<'a, T>> {
+        if slice.is_empty() {
             None
         } else {
             Some(Self {
-                _ptr: unsafe { NonNull::new_unchecked(ts.as_ptr() as *mut T) },
+                _ptr: unsafe {
+                    NonNull::new_unchecked(slice.as_ptr() as *mut T)
+                },
                 _lt: PhantomData,
             })
         }

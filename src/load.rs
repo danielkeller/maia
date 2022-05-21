@@ -145,12 +145,15 @@ pub struct DeviceFn {
     pub wait_for_fences: unsafe extern "system" fn(
         Ref<VkDevice>,
         u32,
-        &Ref<VkFence>,
+        Array<Ref<VkFence>>,
         Bool,
         u64,
     ) -> VkResult,
-    pub reset_fences:
-        unsafe extern "system" fn(Ref<VkDevice>, u32, Mut<VkFence>) -> VkResult,
+    pub reset_fences: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        u32,
+        Array<Mut<VkFence>>,
+    ) -> VkResult,
     pub create_semaphore: unsafe extern "system" fn(
         Ref<VkDevice>,
         &SemaphoreCreateInfo,
@@ -203,6 +206,18 @@ pub struct DeviceFn {
         u32,
         Array<ImageSubresourceRange>,
     ),
+    pub cmd_pipeline_barrier: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        PipelineStageFlags,
+        PipelineStageFlags,
+        DependencyFlags,
+        u32,
+        Option<Array<MemoryBarrier>>,
+        u32,
+        Option<Array<VkBufferMemoryBarrier>>,
+        u32,
+        Option<Array<VkImageMemoryBarrier>>,
+    ),
 }
 
 impl DeviceFn {
@@ -254,6 +269,9 @@ impl DeviceFn {
                 ),
                 cmd_clear_color_image: transmute(
                     inst.load(device, "vkCmdClearColorImage\0"),
+                ),
+                cmd_pipeline_barrier: transmute(
+                    inst.load(device, "vkCmdPipelineBarrier\0"),
                 ),
             }
         }

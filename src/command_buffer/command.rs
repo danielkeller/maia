@@ -28,6 +28,19 @@ impl ClearColor {
     }
 }
 
+// TODO
+// pub struct BufferMemoryBarrier {}
+pub struct ImageMemoryBarrier {
+    pub src_access_mask: AccessFlags,
+    pub dst_access_mask: AccessFlags,
+    pub old_layout: ImageLayout,
+    pub new_layout: ImageLayout,
+    pub src_queue_family_index: u32,
+    pub dst_queue_family_index: u32,
+    pub image: Arc<Image>,
+    pub subresource_range: ImageSubresourceRange,
+}
+
 impl<'a> CommandRecording<'a> {
     pub fn clear_color_image(
         &mut self,
@@ -51,5 +64,51 @@ impl<'a> CommandRecording<'a> {
         self.add_resource(image.clone());
 
         Ok(())
+    }
+
+    pub fn pipeline_barrier(
+        &mut self,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        dependency_flags: DependencyFlags,
+        memory_barriers: &[MemoryBarrier],
+        buffer_memory_barriers: &[()],
+        image_memory_barriers: &[ImageMemoryBarrier],
+    ) {
+        let vk_buffer_barriers: Vec<_> =
+            buffer_memory_barriers.iter().map(|_| unimplemented!()).collect();
+        let vk_image_barriers: Vec<_> = image_memory_barriers
+            .iter()
+            .map(|barrier| {
+                self.add_resource(barrier.image.clone());
+                VkImageMemoryBarrier {
+                    stype: Default::default(),
+                    next: Default::default(),
+                    src_access_mask: barrier.src_access_mask,
+                    dst_access_mask: barrier.dst_access_mask,
+                    old_layout: barrier.old_layout,
+                    new_layout: barrier.new_layout,
+                    src_queue_family_index: barrier.src_queue_family_index,
+                    dst_queue_family_index: barrier.dst_queue_family_index,
+                    image: barrier.image.borrow(),
+                    subresource_range: barrier.subresource_range,
+                }
+            })
+            .collect();
+
+        unsafe {
+            (self.pool.res.device.fun.cmd_pipeline_barrier)(
+                self.buffer.handle.borrow_mut(),
+                src_stage_mask,
+                dst_stage_mask,
+                dependency_flags,
+                memory_barriers.len() as u32,
+                Array::from_slice(memory_barriers),
+                vk_buffer_barriers.len() as u32,
+                Array::from_slice(&vk_buffer_barriers),
+                vk_image_barriers.len() as u32,
+                Array::from_slice(&vk_image_barriers),
+            )
+        }
     }
 }

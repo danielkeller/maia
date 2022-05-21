@@ -239,6 +239,61 @@ flags!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DependencyFlags(u32);
+impl DependencyFlags {
+    pub const BY_REGION: Self = Self(0x1);
+    pub const DEVICE_GROUP: Self = Self(0x4);
+    pub const VIEW_LOCAL: Self = Self(0x2);
+}
+flags!(DependencyFlags, [BY_REGION, DEVICE_GROUP, VIEW_LOCAL]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AccessFlags(u32);
+impl AccessFlags {
+    pub const INDIRECT_COMMAND_READ: Self = Self(0x00001);
+    pub const INDEX_READ: Self = Self(0x00002);
+    pub const VERTEX_ATTRIBUTE_READ: Self = Self(0x00004);
+    pub const UNIFORM_READ: Self = Self(0x00008);
+    pub const INPUT_ATTACHMENT_READ: Self = Self(0x00010);
+    pub const SHADER_READ: Self = Self(0x00020);
+    pub const SHADER_WRITE: Self = Self(0x00040);
+    pub const COLOR_ATTACHMENT_READ: Self = Self(0x00080);
+    pub const COLOR_ATTACHMENT_WRITE: Self = Self(0x00100);
+    pub const DEPTH_STENCIL_ATTACHMENT_READ: Self = Self(0x00200);
+    pub const DEPTH_STENCIL_ATTACHMENT_WRITE: Self = Self(0x00400);
+    pub const TRANSFER_READ: Self = Self(0x00800);
+    pub const TRANSFER_WRITE: Self = Self(0x01000);
+    pub const HOST_READ: Self = Self(0x02000);
+    pub const HOST_WRITE: Self = Self(0x04000);
+    pub const MEMORY_READ: Self = Self(0x08000);
+    pub const MEMORY_WRITE: Self = Self(0x10000);
+}
+flags!(
+    AccessFlags,
+    [
+        INDIRECT_COMMAND_READ,
+        INDEX_READ,
+        VERTEX_ATTRIBUTE_READ,
+        UNIFORM_READ,
+        INPUT_ATTACHMENT_READ,
+        SHADER_READ,
+        SHADER_WRITE,
+        COLOR_ATTACHMENT_READ,
+        COLOR_ATTACHMENT_WRITE,
+        DEPTH_STENCIL_ATTACHMENT_READ,
+        DEPTH_STENCIL_ATTACHMENT_WRITE,
+        TRANSFER_READ,
+        TRANSFER_WRITE,
+        HOST_READ,
+        HOST_WRITE,
+        MEMORY_READ,
+        MEMORY_WRITE
+    ]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FenceCreateFlags(u32);
 impl FenceCreateFlags {
     pub const SIGNALLED: FenceCreateFlags = FenceCreateFlags(0x1);
@@ -638,7 +693,7 @@ impl Format {
 }
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct ImageLayout(u32);
 impl ImageLayout {
     pub const UNDEFINED: Self = Self(0);

@@ -140,6 +140,10 @@ pub struct VkFence(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VkBuffer(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkImage(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
@@ -553,6 +557,47 @@ pub struct CommandBufferBeginInfo<Next = Null> {
     pub inheritance_info: Null, //TODO
 }
 structure_type!(CommandBufferBeginInfoType, 42);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VkBufferMemoryBarrier<'a, Next = Null> {
+    pub stype: BufferMemoryBarrierType,
+    pub next: Next,
+    pub src_access_mask: AccessFlags,
+    pub dst_access_mask: AccessFlags,
+    pub src_queue_family_index: u32,
+    pub dst_queue_family_index: u32,
+    pub buffer: Ref<'a, VkBuffer>,
+    pub offset: u64,
+    pub size: u64,
+}
+structure_type!(BufferMemoryBarrierType, 44);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VkImageMemoryBarrier<'a, Next = Null> {
+    pub stype: ImageMemoryBarrierType,
+    pub next: Next,
+    pub src_access_mask: AccessFlags,
+    pub dst_access_mask: AccessFlags,
+    pub old_layout: ImageLayout,
+    pub new_layout: ImageLayout,
+    pub src_queue_family_index: u32,
+    pub dst_queue_family_index: u32,
+    pub image: Ref<'a, VkImage>,
+    pub subresource_range: ImageSubresourceRange,
+}
+structure_type!(ImageMemoryBarrierType, 45);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct MemoryBarrier<Next = Null> {
+    pub stype: MemoryBarrierType,
+    pub next: Next,
+    src_access_mask: AccessFlags,
+    dst_access_mask: AccessFlags,
+}
+structure_type!(MemoryBarrierType, 46);
 
 #[repr(C)]
 #[derive(Debug)]
