@@ -154,6 +154,17 @@ impl<'a, T> From<&'a [T]> for Slice<'a, T> {
     }
 }
 
+/// Panics if the Vec has 2^32 or more elements
+impl<'a, T> From<&'a Vec<T>> for Slice<'a, T> {
+    fn from(ts: &'a Vec<T>) -> Self {
+        Slice {
+            count: ts.len().try_into().unwrap(),
+            ptr: ts.as_ptr(),
+            _lt: PhantomData,
+        }
+    }
+}
+
 impl<'a, T, const N: usize> From<&'a [T; N]> for Slice<'a, T> {
     fn from(ts: &'a [T; N]) -> Self {
         Self {

@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use ember::vk;
 
 fn required_instance_extensions() -> anyhow::Result<&'static [vk::Str<'static>]>
@@ -72,13 +74,10 @@ fn main() -> anyhow::Result<()> {
         enabled_extension_names: instance_exts.as_slice().into(),
         ..Default::default()
     })?;
-    println!("{:?}", inst);
 
     let surf = ember::window::create_surface(&inst, &window)?;
-    println!("{:?}", surf);
 
     let phy = pick_physical_device(inst.enumerate_physical_devices()?);
-    println!("{:?}", phy);
     let queue_family = pick_queue_family(&phy, &surf)?;
     if !surf.surface_formats(&phy)?.iter().any(|f| {
         f == &vk::SurfaceFormatKHR {
@@ -102,14 +101,11 @@ fn main() -> anyhow::Result<()> {
     })?;
     let mut queue = device.queue(0, 0)?;
 
-    println!("{:?}", device);
-    println!("{:?}", queue);
-
     let mut swapchain = device.khr_swapchain().create(
         vk::CreateSwapchainFrom::Surface(surf),
         vk::SwapchainCreateInfoKHR {
             min_image_count: 3,
-            image_format: vk::Format::B8G8R8A8_UNORM,
+            image_format: vk::Format::B8G8R8A8_SRGB,
             image_extent: vk::Extent2D { width: 3840, height: 2160 },
             image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT
                 | vk::ImageUsageFlags::TRANSFER_DST,
@@ -117,28 +113,40 @@ fn main() -> anyhow::Result<()> {
         },
     )?;
 
-    println!("{:?}", swapchain);
-
     let mut cmd_pool = device.create_command_pool(queue_family)?;
-    println!("{:?}", cmd_pool);
 
-    let mut sem = device.create_semaphore()?;
+    let mut acquire_sem = device.create_semaphore()?;
+    let mut present_sem = device.create_semaphore()?;
+    let mut fence = Some(device.create_fence()?);
+
+    let begin = Instant::now();
 
     let mut redraw = move || -> anyhow::Result<()> {
         let (img, _subopt) =
-            swapchain.acquire_next_image(&mut sem, u64::MAX)?;
+            swapchain.acquire_next_image(&mut acquire_sem, u64::MAX)?;
 
         cmd_pool.reset(Default::default())?;
-        let buf = cmd_pool.allocate()?;
-        let mut rec = cmd_pool.begin(buf)?;
+        let mut buf = cmd_pool.allocate()?;
+        let mut rec = cmd_pool.begin(&mut buf)?;
+        let blue =
+            Instant::now().duration_since(begin).subsec_micros() as f32 / 1e6;
         rec.clear_color_image(
-            img.clone(),
+            &img,
             vk::ImageLayout::GENERAL,
-            vk::ClearColor::F32([0.1, 0.2, 0.3, 1.0]),
+            vk::ClearColor::F32([0.1, 0.2, blue, 1.0]),
             &[Default::default()],
         )?;
-        let buf = rec.end()?;
-        swapchain.present(&mut queue, &img, &mut sem)?;
+        rec.end()?;
+        let pending_fence = queue.submit(
+            &mut [vk::SubmitInfo {
+                wait: &[(&acquire_sem, vk::PipelineStageFlags::TOP_OF_PIPE)],
+                commands: &mut [&mut buf],
+                signal: &[&present_sem],
+            }],
+            fence.take().unwrap(),
+        )?;
+        swapchain.present(&mut queue, &img, &mut present_sem)?;
+        fence = Some(pending_fence.wait()?);
         Ok(())
     };
 
@@ -157,6 +165,7 @@ fn main() -> anyhow::Result<()> {
                     *control_flow = ControlFlow::Exit;
                 }
             }
+            Event::MainEventsCleared => window.request_redraw(),
             _ => (),
         }
     })

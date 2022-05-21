@@ -33,6 +33,9 @@ impl Drop for Semaphore {
 }
 
 impl Semaphore {
+    pub fn borrow(&self) -> Ref<VkSemaphore> {
+        self.handle.borrow()
+    }
     pub fn borrow_mut(&mut self) -> Mut<VkSemaphore> {
         self.handle.borrow_mut()
     }

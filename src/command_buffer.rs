@@ -4,7 +4,6 @@ use std::mem::MaybeUninit;
 use crate::device::Device;
 use crate::enums::*;
 use crate::error::{Error, Result};
-use crate::ffi::ArrayMut;
 use crate::subobject::{Owner, Subobject, WeakSubobject};
 use crate::types::*;
 
@@ -17,17 +16,23 @@ pub struct CommandPool {
 }
 
 #[must_use = "Leaks pool resources if not freed"]
-pub struct CommandBuffer {
+#[derive(Debug)]
+pub struct CommandBuffer(pub(crate) Arc<CommandBufferLifetime>);
+
+#[must_use = "Will panic if end() is not called"]
+pub struct CommandRecording<'a> {
+    pool: &'a mut CommandPool,
+    buffer: &'a mut CommandBufferLifetime,
+    ended: bool,
+}
+
+#[derive(Debug)]
+pub(crate) struct CommandBufferLifetime {
     handle: Handle<VkCommandBuffer>,
     pool: Arc<CommandPoolLifetime>,
     /// For buffers in the initial state, upgrading this will give None. For
     /// buffers in the executable state, it will give an Arc.
     recording: WeakSubobject<RecordedCommands>,
-}
-
-pub struct CommandRecording<'a> {
-    pool: &'a mut CommandPool,
-    buffer: CommandBuffer,
 }
 
 #[derive(Debug)]
@@ -46,15 +51,6 @@ pub(crate) struct RecordedCommands {
 impl std::fmt::Debug for CommandPool {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.handle.fmt(f)
-    }
-}
-
-impl std::fmt::Debug for CommandBuffer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CommandBuffer")
-            .field("handle", &self.handle)
-            .field("pool", &self.pool._handle)
-            .finish()
     }
 }
 
@@ -122,7 +118,7 @@ impl CommandPool {
                 self.recorded = Some(owner);
                 Err(Error::SynchronizationError)
             }
-            Ok(_inner) => {
+            Ok(mut inner) => {
                 unsafe {
                     (self.res.device.fun.reset_command_pool)(
                         self.res.device.borrow(),
@@ -130,11 +126,8 @@ impl CommandPool {
                         flags,
                     )?;
                 }
-                let owner = Owner::new(RecordedCommands {
-                    _res: self.res.clone(),
-                    resources: vec![],
-                });
-                self.recorded = Some(owner);
+                inner.resources.clear();
+                self.recorded = Some(Owner::new(inner));
                 Ok(())
             }
         }
@@ -156,15 +149,15 @@ impl CommandPool {
             )?;
             handle.assume_init()
         };
-        Ok(CommandBuffer {
+        Ok(CommandBuffer(Arc::new(CommandBufferLifetime {
             handle,
             pool: self.res.clone(),
             recording: WeakSubobject::new(),
-        })
+        })))
     }
 
     pub fn free(&mut self, mut buffer: CommandBuffer) -> Result<()> {
-        if !Arc::ptr_eq(&self.res, &buffer.pool) {
+        if !Arc::ptr_eq(&self.res, &buffer.0.pool) {
             return Err(Error::InvalidArgument);
         }
 
@@ -173,42 +166,47 @@ impl CommandPool {
                 self.res.device.borrow(),
                 self.handle.borrow_mut(),
                 1,
-                &buffer.borrow_mut(),
+                &buffer.borrow_mut()?,
             );
         }
 
         Ok(())
     }
 
-    /// Return InvalidArgument if the buffer does not belong to this pool or is
+    /// Returns InvalidArgument if the buffer does not belong to this pool or is
     /// not in the initial state.
     pub fn begin<'a>(
         &'a mut self,
-        mut buffer: CommandBuffer,
+        buffer: &'a mut CommandBuffer,
     ) -> Result<CommandRecording<'a>> {
-        if !Arc::ptr_eq(&self.res, &buffer.pool)
-            || buffer.recording.upgrade().is_some()
+        if !Arc::ptr_eq(&self.res, &buffer.0.pool)
+            || buffer.0.recording.upgrade().is_some()
         {
             return Err(Error::InvalidArgument);
         }
+        let inner =
+            Arc::get_mut(&mut buffer.0).ok_or(Error::SynchronizationError)?;
         unsafe {
             (self.res.device.fun.begin_command_buffer)(
-                buffer.borrow_mut(),
+                inner.handle.borrow_mut(),
                 &Default::default(),
             )?;
         }
-        Ok(CommandRecording { pool: self, buffer })
+        Ok(CommandRecording { pool: self, buffer: inner, ended: false })
     }
 }
 
 impl CommandBuffer {
-    pub fn borrow_mut(&mut self) -> Mut<VkCommandBuffer> {
-        self.handle.borrow_mut()
+    pub fn borrow_mut(&mut self) -> Result<Mut<VkCommandBuffer>> {
+        match Arc::get_mut(&mut self.0) {
+            Some(inner) => Ok(inner.handle.borrow_mut()),
+            None => Err(Error::SynchronizationError),
+        }
     }
     /// Prevent the command pool from being cleared, or any bound objects
-    /// from being freed, until the Arc is dropped.
+    /// from being freed, until the value is dropped.
     pub(crate) fn lock_resources(&self) -> Option<Subobject<RecordedCommands>> {
-        self.recording.upgrade()
+        self.0.recording.upgrade()
     }
 }
 
@@ -216,14 +214,23 @@ impl<'a> CommandRecording<'a> {
     pub(crate) fn add_resource(&mut self, value: Arc<dyn Send + Sync + Debug>) {
         self.pool.recorded.as_mut().unwrap().resources.push(value);
     }
-    pub fn end(mut self) -> Result<CommandBuffer> {
+    pub fn end(mut self) -> Result<()> {
         unsafe {
             (self.pool.res.device.fun.end_command_buffer)(
-                self.buffer.borrow_mut(),
+                self.buffer.handle.borrow_mut(),
             )?;
         }
+        self.ended = true;
         self.buffer.recording =
             Owner::downgrade(self.pool.recorded.as_ref().unwrap());
-        Ok(self.buffer)
+        Ok(())
+    }
+}
+
+impl<'a> Drop for CommandRecording<'a> {
+    fn drop(&mut self) {
+        if !self.ended {
+            panic!("Command recording not ended")
+        }
     }
 }

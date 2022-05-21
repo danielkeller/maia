@@ -124,6 +124,13 @@ pub struct DeviceFn {
         u32,
         &mut Option<Handle<VkQueue>>,
     ),
+    pub queue_submit: unsafe extern "system" fn(
+        Mut<VkQueue>,
+        u32,
+        Option<Array<VkSubmitInfo<Null>>>,
+        Option<Mut<VkFence>>,
+    ) -> VkResult,
+    pub queue_wait_idle: unsafe extern "system" fn(Mut<VkQueue>) -> VkResult,
     pub create_fence: unsafe extern "system" fn(
         Ref<VkDevice>,
         &FenceCreateInfo,
@@ -207,6 +214,10 @@ impl DeviceFn {
                 },
                 get_device_queue: transmute(
                     inst.load(device, "vkGetDeviceQueue\0"),
+                ),
+                queue_submit: transmute(inst.load(device, "vkQueueSubmit\0")),
+                queue_wait_idle: transmute(
+                    inst.load(device, "vkQueueWaitIdle\0"),
                 ),
                 create_fence: transmute(inst.load(device, "vkCreateFence\0")),
                 destroy_fence: transmute(inst.load(device, "vkDestroyFence\0")),

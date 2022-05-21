@@ -181,6 +181,64 @@ flags!(DeviceQueueCreateFlags, [PROTECTED]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineStageFlags(u32);
+impl PipelineStageFlags {
+    pub const NONE: Self = Self(0);
+    pub const TOP_OF_PIPE: Self = Self(0x00000001);
+    pub const DRAW_INDIRECT: Self = Self(0x00000002);
+    pub const VERTEX_INPUT: Self = Self(0x00000004);
+    pub const VERTEX_SHADER: Self = Self(0x00000008);
+    pub const TESSELLATION_CONTROL_SHADER: Self = Self(0x00000010);
+    pub const TESSELLATION_EVALUATION_SHADER: Self = Self(0x00000020);
+    pub const GEOMETRY_SHADER: Self = Self(0x00000040);
+    pub const FRAGMENT_SHADER: Self = Self(0x00000080);
+    pub const EARLY_FRAGMENT_TESTS: Self = Self(0x00000100);
+    pub const LATE_FRAGMENT_TESTS: Self = Self(0x00000200);
+    pub const COLOR_ATTACHMENT_OUTPUT: Self = Self(0x00000400);
+    pub const COMPUTE_SHADER: Self = Self(0x00000800);
+    pub const TRANSFER: Self = Self(0x00001000);
+    pub const BOTTOM_OF_PIPE: Self = Self(0x00002000);
+    pub const HOST: Self = Self(0x00004000);
+    pub const ALL_GRAPHICS: Self = Self(0x00008000);
+    pub const ALL_COMMANDS: Self = Self(0x00010000);
+    pub const TRANSFORM_FEEDBACK_EXT: Self = Self(0x01000000);
+    pub const CONDITIONAL_RENDERING_EXT: Self = Self(0x00040000);
+    pub const ACCELERATION_STRUCTURE_BUILD_KHR: Self = Self(0x02000000);
+    pub const RAY_TRACING_SHADER_KHR: Self = Self(0x00200000);
+    pub const FRAGMENT_DENSITY_PROCESS_EXT: Self = Self(0x00800000);
+    pub const FRAGMENT_SHADING_RATE_ATTACHMENT_KHR: Self = Self(0x00400000);
+}
+flags!(
+    PipelineStageFlags,
+    [
+        TOP_OF_PIPE,
+        DRAW_INDIRECT,
+        VERTEX_INPUT,
+        VERTEX_SHADER,
+        TESSELLATION_CONTROL_SHADER,
+        TESSELLATION_EVALUATION_SHADER,
+        GEOMETRY_SHADER,
+        FRAGMENT_SHADER,
+        EARLY_FRAGMENT_TESTS,
+        LATE_FRAGMENT_TESTS,
+        COLOR_ATTACHMENT_OUTPUT,
+        COMPUTE_SHADER,
+        TRANSFER,
+        BOTTOM_OF_PIPE,
+        HOST,
+        ALL_GRAPHICS,
+        ALL_COMMANDS,
+        TRANSFORM_FEEDBACK_EXT,
+        CONDITIONAL_RENDERING_EXT,
+        ACCELERATION_STRUCTURE_BUILD_KHR,
+        RAY_TRACING_SHADER_KHR,
+        FRAGMENT_DENSITY_PROCESS_EXT,
+        FRAGMENT_SHADING_RATE_ATTACHMENT_KHR
+    ]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FenceCreateFlags(u32);
 impl FenceCreateFlags {
     pub const SIGNALLED: FenceCreateFlags = FenceCreateFlags(0x1);

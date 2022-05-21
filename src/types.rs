@@ -494,6 +494,19 @@ pub struct PhysicalDeviceFeatures {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+pub struct VkSubmitInfo<'a, Next = Null> {
+    pub stype: SubmitInfoType,
+    pub next: Next,
+    pub wait_semaphores: Slice<'a, Ref<'a, VkSemaphore>>,
+    // Safety: Must be same length as wait_semaphores
+    pub wait_stage_masks: Option<Array<'a, PipelineStageFlags>>,
+    pub command_buffers: Slice<'a, Mut<'a, VkCommandBuffer>>,
+    pub signal_semaphores: Slice<'a, Ref<'a, VkSemaphore>>,
+}
+structure_type!(SubmitInfoType, 4);
+
+#[repr(C)]
+#[derive(Debug, Default)]
 pub struct FenceCreateInfo<Next = Null> {
     pub stype: FenceCreateInfoType,
     pub next: Next,

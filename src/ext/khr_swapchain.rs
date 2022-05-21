@@ -72,13 +72,21 @@ impl<'a> Default for SwapchainCreateInfoKHR<'a> {
 }
 
 impl KHRSwapchain {
+    /// If create_from is OldSwapchain(), images in that swapchain that aren't
+    /// acquired by the application are deleted. If any references remain to
+    /// those images, returns SynchronizationError.
     pub fn create(
         &self,
         create_from: CreateSwapchainFrom,
         info: SwapchainCreateInfoKHR,
     ) -> Result<SwapchainKHR> {
         let (mut surface, mut old_swapchain) = match create_from {
-            CreateSwapchainFrom::OldSwapchain(old) => {
+            CreateSwapchainFrom::OldSwapchain(mut old) => {
+                for (img, acquired) in &mut old.images {
+                    if !*acquired && Arc::get_mut(img).is_none() {
+                        return Err(Error::SynchronizationError);
+                    }
+                }
                 (old.surface, Some(old.res))
             }
             CreateSwapchainFrom::Surface(surf) => (surf, None),
@@ -143,10 +151,13 @@ impl KHRSwapchain {
         let images = images
             .into_iter()
             .map(|h| {
-                Arc::new(Image::new(
-                    h,
-                    ImageOwner::Swapchain(Subobject::new(&res)),
-                ))
+                (
+                    Arc::new(Image::new(
+                        h,
+                        ImageOwner::Swapchain(Subobject::new(&res)),
+                    )),
+                    false,
+                )
             })
             .collect();
 
@@ -183,7 +194,7 @@ impl std::fmt::Debug for SwapchainImages {
 
 #[derive(Debug)]
 pub struct SwapchainKHR {
-    images: Vec<Arc<Image>>,
+    images: Vec<(Arc<Image>, bool)>,
     res: Owner<SwapchainImages>,
     surface: SurfaceKHR,
 }
@@ -219,7 +230,9 @@ impl SwapchainKHR {
                 &mut index,
             )
         };
-        let image = self.images[index as usize].clone();
+        let (image, acquired) = &mut self.images[index as usize];
+        *acquired = true;
+        let image = image.clone();
         match res {
             Ok(()) => Ok((image, ImageOptimality::Optimal)),
             Err(e) => match e.into() {
@@ -240,10 +253,10 @@ impl SwapchainKHR {
         let index = self
             .images
             .iter()
-            .position(|h| h.borrow() == image.borrow())
-            .ok_or(Error::InvalidArgument)?
-            .try_into()
-            .unwrap();
+            .position(|h| h.0.borrow() == image.borrow())
+            .ok_or(Error::InvalidArgument)?;
+        let acquired = &mut self.images[index].1;
+        *acquired = false;
 
         let res = unsafe {
             (self.res.fun.queue_present_khr)(
@@ -252,8 +265,8 @@ impl SwapchainKHR {
                     stype: Default::default(),
                     next: Default::default(),
                     wait: (&[wait.borrow_mut()]).into(),
-                    swapchains: (&[self.borrow_mut()]).into(),
-                    indices: (&[index]).into(),
+                    swapchains: (&[self.res.handle.borrow_mut()]).into(),
+                    indices: (&[index as u32]).into(),
                     results: None,
                 },
             )
@@ -262,7 +275,10 @@ impl SwapchainKHR {
             Ok(()) => Ok(ImageOptimality::Optimal),
             Err(e) => match e.into() {
                 Error::SuboptimalHKR => Ok(ImageOptimality::Suboptimal),
-                other => Err(other),
+                other => {
+                    *acquired = true;
+                    Err(other)
+                }
             },
         }
     }

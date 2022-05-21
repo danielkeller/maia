@@ -1,6 +1,6 @@
 use crate::device::Device;
 use crate::error::Result;
-use crate::types::*;
+use crate::{queue, types::*};
 
 #[derive(Debug)]
 struct FenceRAII {
@@ -13,7 +13,13 @@ struct FenceRAII {
 pub struct Fence(FenceRAII);
 
 #[derive(Debug)]
-pub struct PendingFence(FenceRAII);
+struct PendingFenceRAII {
+    fence: FenceRAII,
+    _resources: queue::PendingResources,
+}
+
+#[derive(Debug)]
+pub struct PendingFence(Option<PendingFenceRAII>);
 
 impl Device {
     pub fn create_fence(self: &Arc<Self>) -> Result<Fence> {
@@ -43,28 +49,57 @@ impl Drop for FenceRAII {
 }
 
 impl Fence {
-    pub fn fence_mut(&mut self) -> Mut<VkFence> {
+    pub fn borrow_mut(&mut self) -> Mut<VkFence> {
         self.0.handle.borrow_mut()
     }
-    pub(crate) fn to_pending(self) -> PendingFence {
-        PendingFence(self.0)
+    pub(crate) fn to_pending(
+        self,
+        resources: queue::PendingResources,
+    ) -> PendingFence {
+        PendingFence(Some(PendingFenceRAII {
+            fence: self.0,
+            _resources: resources,
+        }))
     }
 }
 
 impl PendingFence {
     pub fn borrow(&self) -> Ref<VkFence> {
-        self.0.handle.borrow()
+        self.0.as_ref().unwrap().fence.handle.borrow()
     }
-    pub fn wait(self) -> Result<Fence> {
+    pub fn wait(mut self) -> Result<Fence> {
+        let inner = self.0.take().unwrap();
+        inner.wait_impl()?;
+        Ok(Fence(inner.fence))
+    }
+}
+impl PendingFenceRAII {
+    fn wait_impl(&self) -> Result<()> {
         unsafe {
-            (self.0.device.fun.wait_for_fences)(
-                self.0.device.borrow(),
+            (self.fence.device.fun.wait_for_fences)(
+                self.fence.device.borrow(),
                 1,
-                &self.borrow(),
+                &self.fence.handle.borrow(),
                 true.into(),
                 u64::MAX,
             )?;
         }
-        Ok(Fence(self.0))
+        Ok(())
+    }
+}
+
+/// Dropping a pending fence is incorrect. Doesn't panic, because that can
+/// obscure other errors.
+impl Drop for PendingFence {
+    fn drop(&mut self) {
+        if let Some(inner) = &mut self.0 {
+            if let Err(err) = inner.wait_impl() {
+                // No possible safe way to continue
+                eprintln!("Bug: Dropped pending fence.");
+                eprintln!("Couldn't wait for fence: {}", err);
+                std::process::abort()
+            }
+            eprintln!("Bug: Dropped pending fence.");
+        }
     }
 }

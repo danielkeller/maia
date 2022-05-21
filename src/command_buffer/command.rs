@@ -31,7 +31,7 @@ impl ClearColor {
 impl<'a> CommandRecording<'a> {
     pub fn clear_color_image(
         &mut self,
-        image: Arc<Image>,
+        image: &Arc<Image>,
         layout: ImageLayout,
         color: ClearColor,
         ranges: &[ImageSubresourceRange],
@@ -39,7 +39,7 @@ impl<'a> CommandRecording<'a> {
         let array = Array::from_slice(ranges).ok_or(Error::InvalidArgument)?;
         unsafe {
             (self.pool.res.device.fun.cmd_clear_color_image)(
-                self.buffer.borrow_mut(),
+                self.buffer.handle.borrow_mut(),
                 image.borrow(),
                 layout,
                 color.as_union(),
@@ -48,7 +48,7 @@ impl<'a> CommandRecording<'a> {
             )
         }
 
-        self.add_resource(image);
+        self.add_resource(image.clone());
 
         Ok(())
     }
