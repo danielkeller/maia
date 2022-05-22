@@ -4,7 +4,7 @@ use crate::types::*;
 
 pub struct RenderPass {
     handle: Handle<VkRenderPass>,
-    device: Arc<Device>,
+    pub(crate) device: Arc<Device>,
 }
 
 fn att_bounds(attachments: &[AttachmentReference], len: u32) -> Result<()> {

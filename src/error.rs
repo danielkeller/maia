@@ -1,6 +1,6 @@
 use crate::types::VkError;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Error {
     Other,
     InvalidArgument,

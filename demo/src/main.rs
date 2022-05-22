@@ -1,4 +1,4 @@
-use std::time::Instant;
+use std::{collections::HashMap, time::Instant};
 
 use ember::vk;
 
@@ -135,6 +135,8 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     })?;
 
+    let mut framebuffers = HashMap::new();
+
     let mut cmd_pool = device.create_command_pool(queue_family)?;
 
     let mut acquire_sem = device.create_semaphore()?;
@@ -146,6 +148,21 @@ fn main() -> anyhow::Result<()> {
     let mut redraw = move || -> anyhow::Result<()> {
         let (img, _subopt) =
             swapchain.acquire_next_image(&mut acquire_sem, u64::MAX)?;
+
+        let framebuffer = framebuffers
+            .entry(img.clone())
+            .or_insert_with(|| {
+                let img_view = img.create_view(&vk::ImageViewCreateInfo {
+                    format: vk::Format::B8G8R8A8_SRGB,
+                    ..Default::default()
+                })?;
+                render_pass.create_framebuffer(
+                    Default::default(),
+                    vec![img_view],
+                    vk::Extent3D { width: 3840, height: 2160, depth: 1 },
+                )
+            })
+            .clone()?;
 
         cmd_pool.reset(Default::default())?;
         let mut buf = cmd_pool.allocate()?;

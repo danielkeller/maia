@@ -21,6 +21,18 @@ impl std::fmt::Debug for Device {
     }
 }
 
+impl PartialEq for Device {
+    fn eq(&self, other: &Self) -> bool {
+        self.handle == other.handle
+    }
+}
+impl Eq for Device {}
+impl std::hash::Hash for Device {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.handle.hash(state)
+    }
+}
+
 impl Drop for Device {
     fn drop(&mut self) {
         unsafe { (self.fun.destroy_device)(self.handle.borrow_mut(), None) }

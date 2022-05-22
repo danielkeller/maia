@@ -115,12 +115,12 @@ impl From<bool> for Bool {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct InstanceCreateFlags(pub u32);
+pub struct InstanceCreateFlags(u32);
 flags!(InstanceCreateFlags, []);
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq)]
-pub struct PhysicalDeviceType(pub u32);
+pub struct PhysicalDeviceType(u32);
 impl PhysicalDeviceType {
     pub const OTHER: Self = Self(0);
     pub const INTEGRATED_GPU: Self = Self(1);
@@ -131,7 +131,7 @@ impl PhysicalDeviceType {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SampleCount(pub u32);
+pub struct SampleCount(u32);
 impl SampleCount {
     pub const _1: SampleCount = SampleCount(0x01);
     pub const _2: SampleCount = SampleCount(0x02);
@@ -144,7 +144,7 @@ impl SampleCount {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SampleCountFlags(pub u32);
+pub struct SampleCountFlags(u32);
 impl SampleCountFlags {
     pub const _1: SampleCountFlags = SampleCountFlags(0x01);
     pub const _2: SampleCountFlags = SampleCountFlags(0x02);
@@ -174,7 +174,7 @@ impl From<SampleCount> for SampleCountFlags {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct QueueFlags(pub u32);
+pub struct QueueFlags(u32);
 impl QueueFlags {
     pub const GRAPHICS: QueueFlags = QueueFlags(0x01);
     pub const COMPUTE: QueueFlags = QueueFlags(0x02);
@@ -186,12 +186,12 @@ flags!(QueueFlags, [GRAPHICS, COMPUTE, TRANSFER, SPARSE_BINDING, PROTECTED]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DeviceCreateFlags(pub u32);
+pub struct DeviceCreateFlags(u32);
 flags!(DeviceCreateFlags, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DeviceQueueCreateFlags(pub u32);
+pub struct DeviceQueueCreateFlags(u32);
 impl DeviceQueueCreateFlags {
     pub const PROTECTED: DeviceQueueCreateFlags = DeviceQueueCreateFlags(0x1);
 }
@@ -199,7 +199,7 @@ flags!(DeviceQueueCreateFlags, [PROTECTED]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PipelineStageFlags(pub u32);
+pub struct PipelineStageFlags(u32);
 impl PipelineStageFlags {
     pub const NONE: Self = Self(0);
     pub const TOP_OF_PIPE: Self = Self(0x00000001);
@@ -257,7 +257,7 @@ flags!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DependencyFlags(pub u32);
+pub struct DependencyFlags(u32);
 impl DependencyFlags {
     pub const BY_REGION: Self = Self(0x1);
     pub const DEVICE_GROUP: Self = Self(0x4);
@@ -267,7 +267,7 @@ flags!(DependencyFlags, [BY_REGION, DEVICE_GROUP, VIEW_LOCAL]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct AccessFlags(pub u32);
+pub struct AccessFlags(u32);
 impl AccessFlags {
     pub const INDIRECT_COMMAND_READ: Self = Self(0x00001);
     pub const INDEX_READ: Self = Self(0x00002);
@@ -312,7 +312,7 @@ flags!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct AttachmentDescriptionFlags(pub u32);
+pub struct AttachmentDescriptionFlags(u32);
 impl AttachmentDescriptionFlags {
     pub const MAY_ALIAS: Self = Self(0x1);
 }
@@ -320,7 +320,7 @@ flags!(AttachmentDescriptionFlags, [MAY_ALIAS]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct FenceCreateFlags(pub u32);
+pub struct FenceCreateFlags(u32);
 impl FenceCreateFlags {
     pub const SIGNALLED: FenceCreateFlags = FenceCreateFlags(0x1);
 }
@@ -328,17 +328,53 @@ flags!(FenceCreateFlags, [SIGNALLED]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SemaphoreCreateFlags(pub u32);
+pub struct SemaphoreCreateFlags(u32);
 flags!(SemaphoreCreateFlags, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct MetalSurfaceCreateFlagsEXT(pub u32);
+pub struct ImageViewCreateFlags(u32);
+flags!(ImageViewCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct ImageViewType(u32);
+impl ImageViewType {
+    pub const _1D: Self = Self(0);
+    pub const _2D: Self = Self(1);
+    pub const _3D: Self = Self(2);
+    pub const CUBE: Self = Self(3);
+    pub const _1D_ARRAY: Self = Self(4);
+    pub const _2D_ARRAY: Self = Self(5);
+    pub const CUBE_ARRAY: Self = Self(6);
+}
+impl Default for ImageViewType {
+    fn default() -> Self {
+        Self::_2D
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct ComponentSwizzle(u32);
+impl ComponentSwizzle {
+    pub const IDENTITY: Self = Self(0);
+    pub const ZERO: Self = Self(1);
+    pub const ONE: Self = Self(2);
+    pub const R: Self = Self(3);
+    pub const G: Self = Self(4);
+    pub const B: Self = Self(5);
+    pub const A: Self = Self(6);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MetalSurfaceCreateFlagsEXT(u32);
 flags!(MetalSurfaceCreateFlagsEXT, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SurfaceTransformKHR(pub u32);
+pub struct SurfaceTransformKHR(u32);
 impl SurfaceTransformKHR {
     pub const IDENTITY: Self = Self(0x01);
     pub const ROTATE_90: Self = Self(0x002);
@@ -363,7 +399,7 @@ impl Default for SurfaceTransformKHR {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SurfaceTransformFlagsKHR(pub u32);
+pub struct SurfaceTransformFlagsKHR(u32);
 impl SurfaceTransformFlagsKHR {
     pub const IDENTITY: Self = Self(0x01);
     pub const ROTATE_90: Self = Self(0x002);
@@ -397,7 +433,7 @@ impl From<SurfaceTransformKHR> for SurfaceTransformFlagsKHR {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CompositeAlphaKHR(pub u32);
+pub struct CompositeAlphaKHR(u32);
 impl CompositeAlphaKHR {
     pub const OPAQUE: Self = Self(0x1);
     pub const PRE_MULTIPLIED: Self = Self(0x2);
@@ -417,7 +453,7 @@ impl Default for CompositeAlphaKHR {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CompositeAlphaFlagsKHR(pub u32);
+pub struct CompositeAlphaFlagsKHR(u32);
 impl CompositeAlphaFlagsKHR {
     pub const OPAQUE: Self = Self(0x1);
     pub const PRE_MULTIPLIED: Self = Self(0x2);
@@ -436,7 +472,7 @@ impl From<CompositeAlphaKHR> for CompositeAlphaFlagsKHR {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ImageUsageFlags(pub u32);
+pub struct ImageUsageFlags(u32);
 impl ImageUsageFlags {
     pub const TRANSFER_SRC: Self = Self(0x01);
     pub const TRANSFER_DST: Self = Self(0x02);
@@ -463,7 +499,7 @@ flags!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
-pub struct Format(pub u32);
+pub struct Format(u32);
 impl Format {
     pub const UNDEFINED: Self = Self(0);
     pub const R4G4_UNORM_PACK8: Self = Self(1);
@@ -720,7 +756,7 @@ impl Format {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
-pub struct ImageLayout(pub u32);
+pub struct ImageLayout(u32);
 impl ImageLayout {
     pub const UNDEFINED: Self = Self(0);
     pub const GENERAL: Self = Self(1);
@@ -746,7 +782,7 @@ impl ImageLayout {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ImageAspectFlags(pub u32);
+pub struct ImageAspectFlags(u32);
 impl ImageAspectFlags {
     pub const COLOR: Self = Self(0x01);
     pub const DEPTH: Self = Self(0x02);
@@ -764,7 +800,7 @@ flags!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CommandPoolCreateFlags(pub u32);
+pub struct CommandPoolCreateFlags(u32);
 impl CommandPoolCreateFlags {
     pub const TRANSIENT: Self = Self(0x1);
     pub const RESET_COMMAND_BUFFER: Self = Self(0x2);
@@ -774,7 +810,7 @@ flags!(CommandPoolCreateFlags, [TRANSIENT, RESET_COMMAND_BUFFER, PROTECTED]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CommandPoolResetFlags(pub u32);
+pub struct CommandPoolResetFlags(u32);
 impl CommandPoolResetFlags {
     pub const RELEASE_RESOURCES: Self = Self(0x1);
 }
@@ -782,7 +818,7 @@ flags!(CommandPoolResetFlags, [RELEASE_RESOURCES]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct CommandBufferLevel(pub u32);
+pub struct CommandBufferLevel(u32);
 impl CommandBufferLevel {
     pub const PRIMARY: Self = Self(0);
     pub const SECONDARY: Self = Self(1);
@@ -790,7 +826,7 @@ impl CommandBufferLevel {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct CommandBufferUsageFlags(pub u32);
+pub struct CommandBufferUsageFlags(u32);
 impl CommandBufferUsageFlags {
     pub const ONE_TIME_SUBMIT: Self = Self(0x1);
     pub const RENDER_PASS_CONTINUE: Self = Self(0x2);
@@ -803,7 +839,7 @@ flags!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct AttachmentLoadOp(pub u32);
+pub struct AttachmentLoadOp(u32);
 impl AttachmentLoadOp {
     pub const LOAD: Self = Self(0);
     pub const CLEAR: Self = Self(1);
@@ -819,7 +855,7 @@ impl Default for AttachmentLoadOp {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct AttachmentStoreOp(pub u32);
+pub struct AttachmentStoreOp(u32);
 impl AttachmentStoreOp {
     pub const STORE: Self = Self(0);
     pub const DONT_CARE: Self = Self(1);
@@ -834,12 +870,12 @@ impl Default for AttachmentStoreOp {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SubpassDescriptionFlags(pub u32);
+pub struct SubpassDescriptionFlags(u32);
 flags!(SubpassDescriptionFlags, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
-pub struct PipelineBindPoint(pub u32);
+pub struct PipelineBindPoint(u32);
 impl PipelineBindPoint {
     pub const GRAPHICS: Self = Self(0);
     pub const COMPUTE: Self = Self(1);
@@ -847,19 +883,27 @@ impl PipelineBindPoint {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RenderPassCreateFlags(pub u32);
+pub struct FramebufferCreateFlags(u32);
+impl FramebufferCreateFlags {
+    pub const IMAGELESS: Self = Self(0);
+}
+flags!(FramebufferCreateFlags, [IMAGELESS]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RenderPassCreateFlags(u32);
 flags!(RenderPassCreateFlags, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
-pub struct ColorSpaceKHR(pub u32);
+pub struct ColorSpaceKHR(u32);
 impl ColorSpaceKHR {
     pub const SRGB_NONLINEAR_KHR: Self = Self(0);
 }
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SwapchainCreateFlagsKHR(pub u32);
+pub struct SwapchainCreateFlagsKHR(u32);
 impl SwapchainCreateFlagsKHR {
     pub const SPLIT_INSTANCE_BIND_REGIONS: Self = Self(0x1);
     pub const PROTECTED: Self = Self(0x2);
@@ -872,7 +916,7 @@ flags!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
-pub struct SharingMode(pub u32);
+pub struct SharingMode(u32);
 impl SharingMode {
     pub const EXCLUSIVE: Self = Self(0);
     pub const CONCURRENT: Self = Self(1);
@@ -880,7 +924,7 @@ impl SharingMode {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub struct PresentModeKHR(pub u32);
+pub struct PresentModeKHR(u32);
 impl PresentModeKHR {
     pub const IMMEDIATE: Self = Self(0);
     pub const MAILBOX: Self = Self(1);

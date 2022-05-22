@@ -165,6 +165,28 @@ pub struct DeviceFn {
         Mut<VkSemaphore>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_image_view: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &VkImageViewCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkImageView>>,
+    ) -> VkResult,
+    pub destroy_image_view: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkImageView>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+    pub create_framebuffer: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &VkFramebufferCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkFramebuffer>>,
+    ) -> VkResult,
+    pub destroy_framebuffer: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkFramebuffer>,
+        Option<&'_ AllocationCallbacks>,
+    ),
     pub create_render_pass: unsafe extern "system" fn(
         Ref<VkDevice>,
         &RenderPassCreateInfo,
@@ -256,6 +278,18 @@ impl DeviceFn {
                 ),
                 destroy_semaphore: transmute(
                     inst.load(device, "vkDestroySemaphore\0"),
+                ),
+                create_image_view: transmute(
+                    inst.load(device, "vkCreateImageView\0"),
+                ),
+                destroy_image_view: transmute(
+                    inst.load(device, "vkDestroyImageView\0"),
+                ),
+                create_framebuffer: transmute(
+                    inst.load(device, "vkCreateFramebuffer\0"),
+                ),
+                destroy_framebuffer: transmute(
+                    inst.load(device, "vkDestroyFramebuffer\0"),
                 ),
                 create_render_pass: transmute(
                     inst.load(device, "vkCreateRenderPass\0"),

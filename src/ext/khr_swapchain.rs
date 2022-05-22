@@ -154,6 +154,7 @@ impl KHRSwapchain {
                 (
                     Arc::new(Image::new(
                         h,
+                        self.device.clone(),
                         ImageOwner::Swapchain(Subobject::new(&res)),
                     )),
                     false,

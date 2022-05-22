@@ -37,10 +37,10 @@ const _: () = assert!(matches!(
 ));
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct NonNullDispatchableHandle(NonNull<c_void>);
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
 
 impl Debug for NonNullDispatchableHandle {
@@ -61,6 +61,7 @@ unsafe impl Sync for NonNullDispatchableHandle {}
 
 /// Owned Vulkan handle
 #[repr(transparent)]
+#[derive(PartialEq, Eq, Hash)]
 pub struct Handle<T> {
     _value: T,
 }
@@ -119,56 +120,60 @@ impl<'a, T: Copy> Mut<'a, T> {
 }
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkInstance(NonNullDispatchableHandle);
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkPhysicalDevice(NonNullDispatchableHandle);
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkDevice(NonNullDispatchableHandle);
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkQueue(NonNullDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkSemaphore(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkFence(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkBuffer(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkImage(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VkImageView(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkFramebuffer(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkRenderPass(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkCommandPool(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkCommandBuffer(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkSurfaceKHR(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkSwapchainKHR(NonNullNonDispatchableHandle);
 
 /// u32 with only one allowed value
@@ -231,6 +236,15 @@ impl Default for ImageSubresourceRange {
             layer_count: u32::MAX,
         }
     }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ComponentMapping {
+    pub r: ComponentSwizzle,
+    pub g: ComponentSwizzle,
+    pub b: ComponentSwizzle,
+    pub a: ComponentSwizzle,
 }
 
 pub enum AllocationCallbacks {}
@@ -533,6 +547,20 @@ pub struct SemaphoreCreateInfo<Next = Null> {
 structure_type!(SemaphoreCreateInfoType, 9);
 
 #[repr(C)]
+#[derive(Debug)]
+pub struct VkImageViewCreateInfo<'a, Next = Null> {
+    pub stype: ImageViewCreateInfoType,
+    pub next: Next,
+    pub flags: ImageViewCreateFlags,
+    pub image: Ref<'a, VkImage>,
+    pub view_type: ImageViewType,
+    pub format: Format,
+    pub components: ComponentMapping,
+    pub subresource_range: ImageSubresourceRange,
+}
+structure_type!(ImageViewCreateInfoType, 15);
+
+#[repr(C)]
 #[derive(Debug, Default)]
 pub struct AttachmentDescription {
     pub flags: AttachmentDescriptionFlags,
@@ -619,6 +647,20 @@ pub struct SubpassDependency {
     pub dst_access_mask: AccessFlags,
     pub dependency_flags: DependencyFlags,
 }
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VkFramebufferCreateInfo<'a, Next = Null> {
+    pub stype: FramebufferCreateInfoType,
+    pub next: Next,
+    pub flags: FramebufferCreateFlags,
+    pub render_pass: Ref<'a, VkRenderPass>,
+    pub attachments: Slice<'a, Ref<'a, VkImageView>>,
+    pub width: u32,
+    pub height: u32,
+    pub layers: u32,
+}
+structure_type!(FramebufferCreateInfoType, 37);
 
 #[repr(C)]
 #[derive(Debug, Default)]
