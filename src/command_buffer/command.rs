@@ -28,19 +28,6 @@ impl ClearColor {
     }
 }
 
-// TODO
-// pub struct BufferMemoryBarrier {}
-pub struct ImageMemoryBarrier {
-    pub src_access_mask: AccessFlags,
-    pub dst_access_mask: AccessFlags,
-    pub old_layout: ImageLayout,
-    pub new_layout: ImageLayout,
-    pub src_queue_family_index: u32,
-    pub dst_queue_family_index: u32,
-    pub image: Arc<Image>,
-    pub subresource_range: ImageSubresourceRange,
-}
-
 impl<'a> CommandRecording<'a> {
     pub fn clear_color_image(
         &mut self,
@@ -65,7 +52,22 @@ impl<'a> CommandRecording<'a> {
 
         Ok(())
     }
+}
 
+// TODO
+// pub struct BufferMemoryBarrier {}
+pub struct ImageMemoryBarrier {
+    pub src_access_mask: AccessFlags,
+    pub dst_access_mask: AccessFlags,
+    pub old_layout: ImageLayout,
+    pub new_layout: ImageLayout,
+    pub src_queue_family_index: u32,
+    pub dst_queue_family_index: u32,
+    pub image: Arc<Image>,
+    pub subresource_range: ImageSubresourceRange,
+}
+
+impl<'a> CommandRecording<'a> {
     pub fn pipeline_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,

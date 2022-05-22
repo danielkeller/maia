@@ -121,11 +121,18 @@ pub struct UUID([u8; 16]);
 /// An immutably borrowed contiguous sequence of T. Represented as a u32
 /// followed by a pointer.
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug)]
 pub struct Slice<'a, T> {
     count: u32,
     ptr: *const T,
     _lt: PhantomData<&'a T>,
+}
+
+impl<'a, T> Copy for Slice<'a, T> {}
+impl<'a, T> Clone for Slice<'a, T> {
+    fn clone(&self) -> Self {
+        Self { count: self.count, ptr: self.ptr, _lt: self._lt }
+    }
 }
 
 impl<'a, T> Slice<'a, T> {
@@ -134,6 +141,13 @@ impl<'a, T> Slice<'a, T> {
     }
     pub fn len(&self) -> u32 {
         self.count
+    }
+    /// Convert back into a normal rust slice
+    pub fn as_slice(&self) -> &'a [T] {
+        unsafe {
+            let len = self.count as usize;
+            std::slice::from_raw_parts(self.ptr, len)
+        }
     }
 }
 
@@ -172,6 +186,14 @@ impl<'a, T, const N: usize> From<&'a [T; N]> for Slice<'a, T> {
             ptr: ts.as_ptr(),
             _lt: PhantomData,
         }
+    }
+}
+
+impl<'a, T> std::iter::IntoIterator for Slice<'a, T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().into_iter()
     }
 }
 
@@ -244,6 +266,14 @@ impl<'a, T, const N: usize> From<&'a [T; N]> for Slice_<'a, T> {
     }
 }
 
+impl<'a, T> std::iter::IntoIterator for Slice_<'a, T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().into_iter()
+    }
+}
+
 /// An immutably borrowed contiguous nonempty sequence of T. Represented as a
 /// non-null pointer.
 #[repr(transparent)]
@@ -251,6 +281,13 @@ impl<'a, T, const N: usize> From<&'a [T; N]> for Slice_<'a, T> {
 pub struct Array<'a, T> {
     _ptr: NonNull<T>,
     _lt: PhantomData<&'a T>,
+}
+
+impl<'a, T> Copy for Array<'a, T> {}
+impl<'a, T> Clone for Array<'a, T> {
+    fn clone(&self) -> Self {
+        Self { _ptr: self._ptr, _lt: self._lt }
+    }
 }
 
 impl<'a, T, const N: usize> From<&'a [T; N]> for Array<'a, T> {
@@ -275,6 +312,10 @@ impl<'a, T> Array<'a, T> {
                 _lt: PhantomData,
             })
         }
+    }
+    /// Convert back into a normal rust slice
+    pub unsafe fn as_slice(self, len: u32) -> &'a [T] {
+        std::slice::from_raw_parts(self._ptr.as_ptr(), len as usize)
     }
 }
 

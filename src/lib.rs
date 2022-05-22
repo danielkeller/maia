@@ -10,6 +10,7 @@ mod instance;
 mod load;
 mod physical_device;
 mod queue;
+mod render_pass;
 mod semaphore;
 mod subobject;
 mod types;

@@ -1,4 +1,5 @@
 use crate::enums::*;
+use crate::error::Error;
 use crate::ffi::*;
 use std::fmt::Debug;
 pub use std::sync::Arc;
@@ -149,6 +150,10 @@ pub struct VkImage(NonNullNonDispatchableHandle);
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct VkFramebuffer(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct VkRenderPass(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -439,61 +444,61 @@ structure_type!(DeviceQueueCreateInfoType, 2);
 #[repr(C)]
 #[derive(Default, Debug)]
 pub struct PhysicalDeviceFeatures {
-    robust_buffer_access: Bool,
-    full_draw_index_uint32: Bool,
-    image_cube_array: Bool,
-    independent_blend: Bool,
-    geometry_shader: Bool,
-    tessellation_shader: Bool,
-    sample_rate_shading: Bool,
-    dual_src_blend: Bool,
-    logic_op: Bool,
-    multi_draw_indirect: Bool,
-    draw_indirect_first_instance: Bool,
-    depth_clamp: Bool,
-    depth_bias_clamp: Bool,
-    fill_mode_non_solid: Bool,
-    depth_bounds: Bool,
-    wide_lines: Bool,
-    large_points: Bool,
-    alpha_to_one: Bool,
-    multi_viewport: Bool,
-    sampler_anisotropy: Bool,
-    texture_compression_etc2: Bool,
-    texture_compression_astc_ldr: Bool,
-    texture_compression_bc: Bool,
-    occlusion_query_precise: Bool,
-    pipeline_statistics_query: Bool,
-    vertex_pipeline_stores_and_atomics: Bool,
-    fragment_stores_and_atomics: Bool,
-    shader_tessellation_and_geometry_point_size: Bool,
-    shader_image_gather_extended: Bool,
-    shader_storage_image_extended_formats: Bool,
-    shader_storage_image_multisample: Bool,
-    shader_storage_image_read_without_format: Bool,
-    shader_storage_image_write_without_format: Bool,
-    shader_uniform_buffer_array_dynamic_indexing: Bool,
-    shader_sampled_image_array_dynamic_indexing: Bool,
-    shader_storage_buffer_array_dynamic_indexing: Bool,
-    shader_storage_image_array_dynamic_indexing: Bool,
-    shader_clip_distance: Bool,
-    shader_cull_distance: Bool,
-    shader_float64: Bool,
-    shader_int64: Bool,
-    shader_int16: Bool,
-    shader_resource_residency: Bool,
-    shader_resource_min_lod: Bool,
-    sparse_binding: Bool,
-    sparse_residency_buffer: Bool,
-    sparse_residency_image_2d: Bool,
-    sparse_residency_image_3d: Bool,
-    sparse_residency2_samples: Bool,
-    sparse_residency4_samples: Bool,
-    sparse_residency8_samples: Bool,
-    sparse_residency16_samples: Bool,
-    sparse_residency_aliased: Bool,
-    variable_multisample_rate: Bool,
-    inherited_queries: Bool,
+    pub robust_buffer_access: Bool,
+    pub full_draw_index_uint32: Bool,
+    pub image_cube_array: Bool,
+    pub independent_blend: Bool,
+    pub geometry_shader: Bool,
+    pub tessellation_shader: Bool,
+    pub sample_rate_shading: Bool,
+    pub dual_src_blend: Bool,
+    pub logic_op: Bool,
+    pub multi_draw_indirect: Bool,
+    pub draw_indirect_first_instance: Bool,
+    pub depth_clamp: Bool,
+    pub depth_bias_clamp: Bool,
+    pub fill_mode_non_solid: Bool,
+    pub depth_bounds: Bool,
+    pub wide_lines: Bool,
+    pub large_points: Bool,
+    pub alpha_to_one: Bool,
+    pub multi_viewport: Bool,
+    pub sampler_anisotropy: Bool,
+    pub texture_compression_etc2: Bool,
+    pub texture_compression_astc_ldr: Bool,
+    pub texture_compression_bc: Bool,
+    pub occlusion_query_precise: Bool,
+    pub pipeline_statistics_query: Bool,
+    pub vertex_pipeline_stores_and_atomics: Bool,
+    pub fragment_stores_and_atomics: Bool,
+    pub shader_tessellation_and_geometry_point_size: Bool,
+    pub shader_image_gather_extended: Bool,
+    pub shader_storage_image_extended_formats: Bool,
+    pub shader_storage_image_multisample: Bool,
+    pub shader_storage_image_read_without_format: Bool,
+    pub shader_storage_image_write_without_format: Bool,
+    pub shader_uniform_buffer_array_dynamic_indexing: Bool,
+    pub shader_sampled_image_array_dynamic_indexing: Bool,
+    pub shader_storage_buffer_array_dynamic_indexing: Bool,
+    pub shader_storage_image_array_dynamic_indexing: Bool,
+    pub shader_clip_distance: Bool,
+    pub shader_cull_distance: Bool,
+    pub shader_float64: Bool,
+    pub shader_int64: Bool,
+    pub shader_int16: Bool,
+    pub shader_resource_residency: Bool,
+    pub shader_resource_min_lod: Bool,
+    pub sparse_binding: Bool,
+    pub sparse_residency_buffer: Bool,
+    pub sparse_residency_image_2d: Bool,
+    pub sparse_residency_image_3d: Bool,
+    pub sparse_residency2_samples: Bool,
+    pub sparse_residency4_samples: Bool,
+    pub sparse_residency8_samples: Bool,
+    pub sparse_residency16_samples: Bool,
+    pub sparse_residency_aliased: Bool,
+    pub variable_multisample_rate: Bool,
+    pub inherited_queries: Bool,
 }
 
 #[repr(C)]
@@ -526,6 +531,106 @@ pub struct SemaphoreCreateInfo<Next = Null> {
     pub flags: SemaphoreCreateFlags,
 }
 structure_type!(SemaphoreCreateInfoType, 9);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct AttachmentDescription {
+    pub flags: AttachmentDescriptionFlags,
+    pub format: Format,
+    pub samples: SampleCount,
+    pub load_op: AttachmentLoadOp,
+    pub store_op: AttachmentStoreOp,
+    pub stencil_load_op: AttachmentLoadOp,
+    pub stencil_store_op: AttachmentStoreOp,
+    pub initial_layout: ImageLayout,
+    pub final_layout: ImageLayout,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct AttachmentReference {
+    pub attachment: u32,
+    pub layout: ImageLayout,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VkSubpassDescription<'a> {
+    flags: SubpassDescriptionFlags,
+    pipeline_bind_point: PipelineBindPoint,
+    pub(crate) input_attachments: Slice<'a, AttachmentReference>,
+    pub(crate) color_attachments: Slice<'a, AttachmentReference>,
+    /// Safety: Must be the same length as color_attachments
+    pub(crate) resolve_attachments: Option<Array<'a, AttachmentReference>>,
+    pub(crate) depth_stencil_attachments:
+        Option<Array<'a, AttachmentReference>>,
+    pub(crate) preserve_attachments: Slice<'a, AttachmentReference>,
+}
+
+#[derive(Default)]
+pub struct SubpassDescription<'a> {
+    pub flags: SubpassDescriptionFlags,
+    pub pipeline_bind_point: PipelineBindPoint,
+    pub input_attachments: &'a [AttachmentReference],
+    pub color_attachments: &'a [AttachmentReference],
+    /// Must be either empty or the same length as color_attachments
+    pub resolve_attachments: &'a [AttachmentReference],
+    /// Must be either empty or the same length as color_attachments
+    pub depth_stencil_attachments: &'a [AttachmentReference],
+    pub preserve_attachments: &'a [AttachmentReference],
+}
+impl<'a> TryFrom<SubpassDescription<'a>> for VkSubpassDescription<'a> {
+    type Error = Error;
+    #[inline]
+    fn try_from(value: SubpassDescription<'a>) -> Result<Self, Self::Error> {
+        if !value.resolve_attachments.is_empty()
+            && value.resolve_attachments.len() != value.color_attachments.len()
+        {
+            return Err(Error::InvalidArgument);
+        }
+        if !value.depth_stencil_attachments.is_empty()
+            && value.depth_stencil_attachments.len()
+                != value.color_attachments.len()
+        {
+            return Err(Error::InvalidArgument);
+        }
+        Ok(Self {
+            flags: value.flags,
+            pipeline_bind_point: value.pipeline_bind_point,
+            input_attachments: value.input_attachments.into(),
+            color_attachments: value.color_attachments.into(),
+            resolve_attachments: Array::from_slice(value.resolve_attachments),
+            depth_stencil_attachments: Array::from_slice(
+                value.depth_stencil_attachments,
+            ),
+            preserve_attachments: value.preserve_attachments.into(),
+        })
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct SubpassDependency {
+    pub src_subpass: u32,
+    pub dst_subpass: u32,
+    pub src_stage_mask: PipelineStageFlags,
+    pub dst_stage_mask: PipelineStageFlags,
+    pub src_access_mask: AccessFlags,
+    pub dst_access_mask: AccessFlags,
+    pub dependency_flags: DependencyFlags,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct RenderPassCreateInfo<'a, Next = Null> {
+    pub stype: RenderPassCreateInfoType,
+    pub next: Next,
+    pub flags: RenderPassCreateFlags,
+    pub attachments: Slice_<'a, AttachmentDescription>,
+    pub subpasses: Slice<'a, VkSubpassDescription<'a>>,
+    pub dependencies: Slice<'a, SubpassDependency>,
+}
+structure_type!(RenderPassCreateInfoType, 38);
 
 #[repr(C)]
 #[derive(Debug, Default)]
@@ -594,8 +699,8 @@ structure_type!(ImageMemoryBarrierType, 45);
 pub struct MemoryBarrier<Next = Null> {
     pub stype: MemoryBarrierType,
     pub next: Next,
-    src_access_mask: AccessFlags,
-    dst_access_mask: AccessFlags,
+    pub src_access_mask: AccessFlags,
+    pub dst_access_mask: AccessFlags,
 }
 structure_type!(MemoryBarrierType, 46);
 

@@ -165,6 +165,17 @@ pub struct DeviceFn {
         Mut<VkSemaphore>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_render_pass: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &RenderPassCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkRenderPass>>,
+    ) -> VkResult,
+    pub destroy_render_pass: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkRenderPass>,
+        Option<&'_ AllocationCallbacks>,
+    ),
     pub create_command_pool: unsafe extern "system" fn(
         Ref<VkDevice>,
         &CommandPoolCreateInfo,
@@ -245,6 +256,12 @@ impl DeviceFn {
                 ),
                 destroy_semaphore: transmute(
                     inst.load(device, "vkDestroySemaphore\0"),
+                ),
+                create_render_pass: transmute(
+                    inst.load(device, "vkCreateRenderPass\0"),
+                ),
+                destroy_render_pass: transmute(
+                    inst.load(device, "vkDestroyRenderPass\0"),
                 ),
                 create_command_pool: transmute(
                     inst.load(device, "vkCreateCommandPool\0"),

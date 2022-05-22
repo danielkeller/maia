@@ -113,6 +113,28 @@ fn main() -> anyhow::Result<()> {
         },
     )?;
 
+    let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
+        attachments: (&[vk::AttachmentDescription {
+            format: vk::Format::B8G8R8A8_SRGB,
+            load_op: vk::AttachmentLoadOp::CLEAR,
+            store_op: vk::AttachmentStoreOp::STORE,
+            initial_layout: vk::ImageLayout::UNDEFINED,
+            final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+            ..Default::default()
+        }])
+            .into(),
+        subpasses: (&[vk::SubpassDescription {
+            color_attachments: &[vk::AttachmentReference {
+                attachment: 0,
+                layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+            }],
+            ..Default::default()
+        }
+        .try_into()?])
+            .into(),
+        ..Default::default()
+    })?;
+
     let mut cmd_pool = device.create_command_pool(queue_family)?;
 
     let mut acquire_sem = device.create_semaphore()?;
