@@ -13,6 +13,7 @@ mod physical_device;
 mod queue;
 mod render_pass;
 mod semaphore;
+mod shader;
 mod subobject;
 mod types;
 #[cfg(feature = "window")]

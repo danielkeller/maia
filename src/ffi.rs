@@ -274,6 +274,72 @@ impl<'a, T> std::iter::IntoIterator for Slice_<'a, T> {
     }
 }
 
+/// An immutably borrowed contiguous sequence of bytes. Represented as a usize
+/// followed by a pointer.
+#[repr(C)]
+#[derive(Debug)]
+pub struct Bytes<'a> {
+    len: usize,
+    ptr: *const u8,
+    _lt: PhantomData<&'a u8>,
+}
+
+impl<'a> Copy for Bytes<'a> {}
+impl<'a> Clone for Bytes<'a> {
+    fn clone(&self) -> Self {
+        Self { len: self.len, ptr: self.ptr, _lt: self._lt }
+    }
+}
+
+impl<'a> Bytes<'a> {
+    pub fn from(arr: &'a [u8]) -> Self {
+        arr.into()
+    }
+    pub fn len(&self) -> usize {
+        self.len
+    }
+    /// Convert back into a normal rust slice
+    pub fn as_slice(&self) -> &'a [u8] {
+        unsafe { std::slice::from_raw_parts(self.ptr, self.len) }
+    }
+}
+
+impl<'a> Default for Bytes<'a> {
+    fn default() -> Self {
+        Self::from(&[])
+    }
+}
+
+impl<'a> From<&'a [u8]> for Bytes<'a> {
+    fn from(slice: &'a [u8]) -> Self {
+        Bytes {
+            len: slice.len(),
+            ptr: slice.as_ptr(),
+            _lt: PhantomData,
+        }
+    }
+}
+
+impl<'a> From<&'a [u32]> for Bytes<'a> {
+    fn from(slice: &'a [u32]) -> Self {
+        Bytes {
+            len: slice.len() * 4,
+            ptr: slice.as_ptr() as *const u8,
+            _lt: PhantomData,
+        }
+    }
+}
+
+impl<'a> From<&'a Vec<u8>> for Bytes<'a> {
+    fn from(vec: &'a Vec<u8>) -> Self {
+        Bytes {
+            len: vec.len(),
+            ptr: vec.as_ptr(),
+            _lt: PhantomData,
+        }
+    }
+}
+
 /// An immutably borrowed contiguous nonempty sequence of T. Represented as a
 /// non-null pointer.
 #[repr(transparent)]

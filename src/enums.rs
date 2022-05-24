@@ -256,6 +256,18 @@ flags!(
 );
 
 #[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct ShaderStage(u32);
+impl ShaderStage {
+    pub const VERTEX: Self = Self(0x01);
+    pub const TESSELLATION_CONTROL: Self = Self(0x02);
+    pub const TESSELLATION_EVALUATION: Self = Self(0x04);
+    pub const GEOMETRY: Self = Self(0x08);
+    pub const FRAGMENT: Self = Self(0x10);
+    pub const COMPUTE: Self = Self(0x20);
+}
+
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DependencyFlags(u32);
 impl DependencyFlags {
@@ -888,6 +900,212 @@ impl FramebufferCreateFlags {
     pub const IMAGELESS: Self = Self(0);
 }
 flags!(FramebufferCreateFlags, [IMAGELESS]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ShaderModuleCreateFlags(u32);
+flags!(ShaderModuleCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineShaderStageCreateFlags(u32);
+impl PipelineShaderStageCreateFlags {
+    pub const ALLOW_VARYING_SUBGROUP_SIZE: Self = Self(0x1);
+    pub const REQUIRE_FULL_SUBGROUPS: Self = Self(0x2);
+}
+flags!(PipelineShaderStageCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineVertexInputStateCreateFlags(u32);
+flags!(PipelineVertexInputStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct VertexInputRate(u32);
+impl VertexInputRate {
+    pub const VERTEX: Self = Self(0);
+    pub const INSTANCE: Self = Self(1);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineInputAssemblyStateCreateFlags(u32);
+flags!(PipelineInputAssemblyStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct PrimitiveTopology(u32);
+impl PrimitiveTopology {
+    pub const POINT_LIST: Self = Self(0);
+    pub const LINE_LIST: Self = Self(1);
+    pub const LINE_STRIP: Self = Self(2);
+    pub const TRIANGLE_LIST: Self = Self(3);
+    pub const TRIANGLE_STRIP: Self = Self(4);
+    pub const TRIANGLE_FAN: Self = Self(5);
+    pub const LINE_LIST_WITH_ADJACENCY: Self = Self(6);
+    pub const LINE_STRIP_WITH_ADJACENCY: Self = Self(7);
+    pub const TRIANGLE_LIST_WITH_ADJACENCY: Self = Self(8);
+    pub const TRIANGLE_STRIP_WITH_ADJACENCY: Self = Self(9);
+    pub const PATCH_LIST: Self = Self(10);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineViewportStateCreateFlags(u32);
+flags!(PipelineViewportStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineRasterizationStateCreateFlags(u32);
+flags!(PipelineRasterizationStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct PolygonMode(u32);
+impl PolygonMode {
+    pub const FILL: Self = Self(0);
+    pub const LINE: Self = Self(1);
+    pub const POINT: Self = Self(2);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CullModeFlags(u32);
+flags!(CullModeFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct FrontFace(u32);
+impl FrontFace {
+    pub const COUNTER_CLOCKWISE: Self = Self(0);
+    pub const CLOCKWISE: Self = Self(1);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineMultisampleStateCreateFlags(u32);
+flags!(PipelineMultisampleStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct BlendFactor(u32);
+impl BlendFactor {
+    pub const ZERO: Self = Self(0);
+    pub const ONE: Self = Self(1);
+    pub const SRC_COLOR: Self = Self(2);
+    pub const ONE_MINUS_SRC_COLOR: Self = Self(3);
+    pub const DST_COLOR: Self = Self(4);
+    pub const ONE_MINUS_DST_COLOR: Self = Self(5);
+    pub const SRC_ALPHA: Self = Self(6);
+    pub const ONE_MINUS_SRC_ALPHA: Self = Self(7);
+    pub const DST_ALPHA: Self = Self(8);
+    pub const ONE_MINUS_DST_ALPHA: Self = Self(9);
+    pub const CONSTANT_COLOR: Self = Self(10);
+    pub const ONE_MINUS_CONSTANT_COLOR: Self = Self(11);
+    pub const CONSTANT_ALPHA: Self = Self(12);
+    pub const ONE_MINUS_CONSTANT_ALPHA: Self = Self(13);
+    pub const SRC_ALPHA_SATURATE: Self = Self(14);
+    pub const SRC1_COLOR: Self = Self(15);
+    pub const ONE_MINUS_SRC1_COLOR: Self = Self(16);
+    pub const SRC1_ALPHA: Self = Self(17);
+    pub const ONE_MINUS_SRC1_ALPHA: Self = Self(18);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct BlendOp(u32);
+impl BlendOp {
+    pub const ADD: Self = Self(0);
+    pub const SUBTRACT: Self = Self(1);
+    pub const REVERSE_SUBTRACT: Self = Self(2);
+    pub const MIN: Self = Self(3);
+    pub const MAX: Self = Self(4);
+    pub const ZERO_EXT: Self = Self(1000148000);
+    pub const SRC_EXT: Self = Self(1000148001);
+    pub const DST_EXT: Self = Self(1000148002);
+    pub const SRC_OVER_EXT: Self = Self(1000148003);
+    pub const DST_OVER_EXT: Self = Self(1000148004);
+    pub const SRC_IN_EXT: Self = Self(1000148005);
+    pub const DST_IN_EXT: Self = Self(1000148006);
+    pub const SRC_OUT_EXT: Self = Self(1000148007);
+    pub const DST_OUT_EXT: Self = Self(1000148008);
+    pub const SRC_ATOP_EXT: Self = Self(1000148009);
+    pub const DST_ATOP_EXT: Self = Self(1000148010);
+    pub const XOR_EXT: Self = Self(1000148011);
+    pub const MULTIPLY_EXT: Self = Self(1000148012);
+    pub const SCREEN_EXT: Self = Self(1000148013);
+    pub const OVERLAY_EXT: Self = Self(1000148014);
+    pub const DARKEN_EXT: Self = Self(1000148015);
+    pub const LIGHTEN_EXT: Self = Self(1000148016);
+    pub const COLORDODGE_EXT: Self = Self(1000148017);
+    pub const COLORBURN_EXT: Self = Self(1000148018);
+    pub const HARDLIGHT_EXT: Self = Self(1000148019);
+    pub const SOFTLIGHT_EXT: Self = Self(1000148020);
+    pub const DIFFERENCE_EXT: Self = Self(1000148021);
+    pub const EXCLUSION_EXT: Self = Self(1000148022);
+    pub const INVERT_EXT: Self = Self(1000148023);
+    pub const INVERT_RGB_EXT: Self = Self(1000148024);
+    pub const LINEARDODGE_EXT: Self = Self(1000148025);
+    pub const LINEARBURN_EXT: Self = Self(1000148026);
+    pub const VIVIDLIGHT_EXT: Self = Self(1000148027);
+    pub const LINEARLIGHT_EXT: Self = Self(1000148028);
+    pub const PINLIGHT_EXT: Self = Self(1000148029);
+    pub const HARDMIX_EXT: Self = Self(1000148030);
+    pub const HSL_HUE_EXT: Self = Self(1000148031);
+    pub const HSL_SATURATION_EXT: Self = Self(1000148032);
+    pub const HSL_COLOR_EXT: Self = Self(1000148033);
+    pub const HSL_LUMINOSITY_EXT: Self = Self(1000148034);
+    pub const PLUS_EXT: Self = Self(1000148035);
+    pub const PLUS_CLAMPED_EXT: Self = Self(1000148036);
+    pub const PLUS_CLAMPED_ALPHA_EXT: Self = Self(1000148037);
+    pub const PLUS_DARKER_EXT: Self = Self(1000148038);
+    pub const MINUS_EXT: Self = Self(1000148039);
+    pub const MINUS_CLAMPED_EXT: Self = Self(1000148040);
+    pub const CONTRAST_EXT: Self = Self(1000148041);
+    pub const INVERT_OVG_EXT: Self = Self(1000148042);
+    pub const RED_EXT: Self = Self(1000148043);
+    pub const GREEN_EXT: Self = Self(1000148044);
+    pub const BLUE_EXT: Self = Self(1000148045);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ColorComponentFlags(u32);
+impl ColorComponentFlags {
+    pub const R: Self = Self(0x1);
+    pub const G: Self = Self(0x2);
+    pub const B: Self = Self(0x4);
+    pub const A: Self = Self(0x8);
+}
+flags!(ColorComponentFlags, [R, G, B, A]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineColorBlendStateCreateFlags(u32);
+flags!(PipelineColorBlendStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct LogicOp(u32);
+impl LogicOp {
+    pub const CLEAR: Self = Self(0);
+    pub const AND: Self = Self(1);
+    pub const AND_REVERSE: Self = Self(2);
+    pub const COPY: Self = Self(3);
+    pub const AND_INVERTED: Self = Self(4);
+    pub const NO_OP: Self = Self(5);
+    pub const XOR: Self = Self(6);
+    pub const OR: Self = Self(7);
+    pub const NOR: Self = Self(8);
+    pub const EQUIVALENT: Self = Self(9);
+    pub const INVERT: Self = Self(10);
+    pub const OR_REVERSE: Self = Self(11);
+    pub const COPY_INVERTED: Self = Self(12);
+    pub const OR_INVERTED: Self = Self(13);
+    pub const NAND: Self = Self(14);
+    pub const SET: Self = Self(15);
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

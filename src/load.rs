@@ -7,6 +7,7 @@ use std::ffi::c_void;
 use std::mem::transmute;
 use std::mem::MaybeUninit;
 
+#[link(name = "vulkan")]
 extern "system" {
     fn vkGetInstanceProcAddr(
         instance: Option<Ref<VkInstance>>,
@@ -176,6 +177,17 @@ pub struct DeviceFn {
         Mut<VkImageView>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_shader_module: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &VkShaderModuleCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkShaderModule>>,
+    ) -> VkResult,
+    pub destroy_shader_module: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkShaderModule>,
+        Option<&'_ AllocationCallbacks>,
+    ),
     pub create_framebuffer: unsafe extern "system" fn(
         Ref<VkDevice>,
         &VkFramebufferCreateInfo,
@@ -284,6 +296,12 @@ impl DeviceFn {
                 ),
                 destroy_image_view: transmute(
                     inst.load(device, "vkDestroyImageView\0"),
+                ),
+                create_shader_module: transmute(
+                    inst.load(device, "vkCreateShaderModule\0"),
+                ),
+                destroy_shader_module: transmute(
+                    inst.load(device, "vkDestroyShaderModule\0"),
                 ),
                 create_framebuffer: transmute(
                     inst.load(device, "vkCreateFramebuffer\0"),

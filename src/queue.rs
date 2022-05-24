@@ -1,12 +1,11 @@
-use crate::command_buffer::{
-    CommandBuffer, CommandBufferLifetime, RecordedCommands,
-};
+use std::fmt::Debug;
+
+use crate::command_buffer::CommandBuffer;
 use crate::device::Device;
 use crate::error::{Error, Result};
 use crate::fence::{Fence, PendingFence};
 use crate::ffi::Array;
 use crate::semaphore::Semaphore;
-use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::PipelineStageFlags;
 
@@ -19,8 +18,7 @@ pub struct Queue {
 
 #[derive(Default, Debug)]
 pub(crate) struct PendingResources {
-    pub commands: Vec<Arc<CommandBufferLifetime>>,
-    pub recordings: Vec<Subobject<RecordedCommands>>,
+    pub resources: Vec<Arc<dyn Send + Sync + Debug>>,
 }
 
 impl Queue {
@@ -61,7 +59,8 @@ impl Queue {
             .map(|i| {
                 for c in i.commands.iter() {
                     recordings.push(
-                        c.lock_resources().ok_or(Error::InvalidArgument)?,
+                        c.lock_resources().ok_or(Error::InvalidArgument)?
+                            as Arc<_>,
                     );
                 }
                 Ok((
@@ -99,13 +98,13 @@ impl Queue {
         let mut commands = vec![];
         for info in infos {
             for command in info.commands.iter() {
-                commands.push(command.0.clone());
+                commands.push(command.0.clone() as Arc<_>);
             }
         }
 
         let mut resources = std::mem::take(&mut self.resources);
-        resources.commands.extend(commands.into_iter());
-        resources.recordings.extend(recordings.into_iter());
+        resources.resources.extend(commands.into_iter());
+        resources.resources.extend(recordings.into_iter());
 
         Ok(fence.to_pending(resources))
     }

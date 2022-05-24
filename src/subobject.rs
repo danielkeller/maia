@@ -33,6 +33,9 @@ impl<T> Owner<T> {
     pub fn try_unwrap(this: Self) -> std::result::Result<T, Self> {
         Arc::try_unwrap(this.0).map(UnsafeCell::into_inner).map_err(Owner)
     }
+    pub fn ptr_eq(this: &Self, other: &Subobject<T>) -> bool {
+        Arc::ptr_eq(&this.0, &other.0)
+    }
 }
 
 impl<T> Subobject<T> {

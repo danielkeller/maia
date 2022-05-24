@@ -162,6 +162,10 @@ pub struct VkRenderPass(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VkShaderModule(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkCommandPool(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
@@ -208,6 +212,20 @@ pub struct Extent3D {
 }
 
 #[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Offset2D {
+    pub x: i32,
+    pub y: i32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Rect2D {
+    pub offset: Offset2D,
+    pub extent: Extent2D,
+}
+
+#[repr(C)]
 #[derive(Clone, Copy)]
 pub union ClearColorValue {
     f: [f32; 4],
@@ -245,6 +263,17 @@ pub struct ComponentMapping {
     pub g: ComponentSwizzle,
     pub b: ComponentSwizzle,
     pub a: ComponentSwizzle,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Viewport {
+    x: f32,
+    y: f32,
+    width: f32,
+    height: f32,
+    min_depth: f32,
+    max_depth: f32,
 }
 
 pub enum AllocationCallbacks {}
@@ -559,6 +588,174 @@ pub struct VkImageViewCreateInfo<'a, Next = Null> {
     pub subresource_range: ImageSubresourceRange,
 }
 structure_type!(ImageViewCreateInfoType, 15);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VkShaderModuleCreateInfo<'a, Next = Null> {
+    pub stype: ShaderModuleCreateInfoType,
+    pub next: Next,
+    pub flags: ShaderModuleCreateFlags,
+    pub code: Bytes<'a>,
+}
+structure_type!(ShaderModuleCreateInfoType, 16);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct SpecializationMapEntry {
+    pub constant_id: u32,
+    pub offset: u32,
+    pub size: usize,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct SpecializationInfo<'a> {
+    pub map_entries: Slice<'a, SpecializationMapEntry>,
+    pub data: Bytes<'a>,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct PipelineShaderStageCreateInfo<'a, Next = Null> {
+    pub stype: PipelineShaderStageCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineShaderStageCreateFlags,
+    pub stage: ShaderStage,
+    pub module: Ref<'a, VkShaderModule>,
+    pub name: Str<'a>,
+    pub specialization_info: Option<&'a SpecializationInfo<'a>>,
+}
+structure_type!(PipelineShaderStageCreateInfoType, 18);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VertexInputBindingDescription {
+    pub binding: u32,
+    pub stride: u32,
+    pub input_rate: VertexInputRate,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VertexInputAttributeDescription {
+    pub location: u32,
+    pub binding: u32,
+    pub format: Format,
+    pub offset: u32,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct PipelineVertexInputStateCreateInfo<'a, Next = Null> {
+    pub stype: PipelineVertexInputStateCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineVertexInputStateCreateFlags,
+    pub vertex_binding_descriptions: Slice_<'a, VertexInputBindingDescription>,
+    pub vertex_attribute_descriptions:
+        Slice<'a, VertexInputAttributeDescription>,
+}
+structure_type!(PipelineVertexInputStateCreateInfoType, 19);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct PipelineInputAssemblyStateCreateInfo<Next = Null> {
+    pub stype: PipelineInputAssemblyStateCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineInputAssemblyStateCreateFlags,
+    pub topology: PrimitiveTopology,
+    pub primitive_restart_enable: Bool,
+}
+structure_type!(PipelineInputAssemblyStateCreateInfoType, 20);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct PipelineViewportStateCreateInfo<'a, Next = Null> {
+    pub stype: PipelineViewportStateCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineViewportStateCreateFlags,
+    pub viewports: Slice_<'a, Viewport>,
+    pub scissors: Slice<'a, Rect2D>,
+}
+structure_type!(PipelineViewportStateCreateInfoType, 22);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct PipelineRasterizationStateCreateInfo<Next = Null> {
+    pub stype: PipelineRasterizationStateCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineRasterizationStateCreateFlags,
+    pub depth_clamp_enable: Bool,
+    pub rasterizer_discard_enable: Bool,
+    pub polygon_mode: PolygonMode,
+    pub cull_mode: CullModeFlags,
+    pub front_face: FrontFace,
+    pub depth_bias_enable: Bool,
+    pub depth_bias_constant_factor: f32,
+    pub depth_bias_clamp: f32,
+    pub depth_bias_slope_factor: f32,
+    pub line_width: f32,
+}
+structure_type!(PipelineRasterizationStateCreateInfoType, 23);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct PipelineMultisampleStateCreateInfo<'a, Next = Null> {
+    pub stype: PipelineMultisampleStateCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineMultisampleStateCreateFlags,
+    pub rasterization_samples: SampleCount,
+    pub sample_shading_enable: Bool,
+    pub min_sample_shading: f32,
+    pub sample_mask: Option<&'a u64>,
+    pub alpha_to_coverage_enable: Bool,
+    pub alpha_to_one_enable: Bool,
+}
+structure_type!(PipelineMultisampleStateCreateInfoType, 24);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct PipelineColorBlendAttachmentState {
+    pub blend_enable: Bool,
+    pub src_color_blend_factor: BlendFactor,
+    pub dst_color_blend_factor: BlendFactor,
+    pub color_blend_op: BlendOp,
+    pub src_alpha_blend_factor: BlendFactor,
+    pub dst_alpha_blend_factor: BlendFactor,
+    pub alpha_blend_op: BlendOp,
+    pub color_write_mask: ColorComponentFlags,
+}
+
+impl Default for PipelineColorBlendAttachmentState {
+    /// Blending disabled, and premultiplied alpha blending parameters.
+    fn default() -> Self {
+        Self {
+            blend_enable: false.into(),
+            src_color_blend_factor: BlendFactor::ONE,
+            dst_color_blend_factor: BlendFactor::ONE_MINUS_SRC_ALPHA,
+            color_blend_op: BlendOp::ADD,
+            src_alpha_blend_factor: BlendFactor::ONE,
+            dst_alpha_blend_factor: BlendFactor::ONE_MINUS_SRC_ALPHA,
+            alpha_blend_op: BlendOp::ADD,
+            color_write_mask: ColorComponentFlags::R
+                | ColorComponentFlags::G
+                | ColorComponentFlags::B
+                | ColorComponentFlags::A,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct PipelineColorBlendStateCreateInfo<'a, Next = Null> {
+    pub stype: PipelineColorBlendStateCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineColorBlendStateCreateFlags,
+    pub logic_op_enable: Bool,
+    pub logic_op: LogicOp,
+    pub attachments: Slice_<'a, PipelineColorBlendAttachmentState>,
+    pub blend_constants: [f32; 4],
+}
+structure_type!(PipelineColorBlendStateCreateInfoType, 26);
 
 #[repr(C)]
 #[derive(Debug, Default)]

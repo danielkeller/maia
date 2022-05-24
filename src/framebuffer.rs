@@ -1,6 +1,6 @@
 use crate::device::Device;
 use crate::enums::*;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::image::ImageView;
 use crate::render_pass::RenderPass;
 use crate::types::*;
@@ -18,6 +18,9 @@ impl RenderPass {
         attachments: Vec<Arc<ImageView>>,
         size: Extent3D,
     ) -> Result<Arc<Framebuffer>> {
+        if attachments.iter().any(|iv| iv.image.device != self.device) {
+            return Err(Error::InvalidArgument);
+        }
         let vk_attachments: Vec<_> =
             attachments.iter().map(|iv| iv.borrow()).collect();
         let vk_create_info = VkFramebufferCreateInfo {

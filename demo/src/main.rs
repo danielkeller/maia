@@ -1,6 +1,7 @@
 use std::{collections::HashMap, time::Instant};
 
 use ember::vk;
+use inline_spirv::include_spirv;
 
 fn required_instance_extensions() -> anyhow::Result<&'static [vk::Str<'static>]>
 {
@@ -134,6 +135,11 @@ fn main() -> anyhow::Result<()> {
             .into(),
         ..Default::default()
     })?;
+
+    let vertex_shader = device
+        .create_shader_module(include_spirv!("shaders/triangle.vert", vert))?;
+    let fragment_shader = device
+        .create_shader_module(include_spirv!("shaders/triangle.frag", frag))?;
 
     let mut framebuffers = HashMap::new();
 

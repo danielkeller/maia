@@ -16,7 +16,7 @@ pub(crate) enum ImageOwner {
 #[derive(Debug)]
 pub struct Image {
     handle: Handle<VkImage>,
-    device: Arc<Device>,
+    pub(crate) device: Arc<Device>,
     _res: ImageOwner,
 }
 
@@ -50,7 +50,7 @@ impl Image {
 #[derive(Debug)]
 pub struct ImageView {
     handle: Handle<VkImageView>,
-    image: Arc<Image>,
+    pub(crate) image: Arc<Image>,
 }
 
 impl PartialEq for ImageView {
