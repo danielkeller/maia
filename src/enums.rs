@@ -1121,6 +1121,57 @@ impl ColorSpaceKHR {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DescriptorSetLayoutCreateFlags(u32);
+impl DescriptorSetLayoutCreateFlags {
+    pub const UPDATE_AFTER_BIND_POOL: Self = Self(0x2);
+}
+flags!(DescriptorSetLayoutCreateFlags, [UPDATE_AFTER_BIND_POOL]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct DescriptorType(u32);
+impl DescriptorType {
+    pub const SAMPLER: Self = Self(0);
+    pub const COMBINED_IMAGE_SAMPLER: Self = Self(1);
+    pub const SAMPLED_IMAGE: Self = Self(2);
+    pub const STORAGE_IMAGE: Self = Self(3);
+    pub const UNIFORM_TEXEL_BUFFER: Self = Self(4);
+    pub const STORAGE_TEXEL_BUFFER: Self = Self(5);
+    pub const UNIFORM_BUFFER: Self = Self(6);
+    pub const STORAGE_BUFFER: Self = Self(7);
+    pub const UNIFORM_BUFFER_DYNAMIC: Self = Self(8);
+    pub const STORAGE_BUFFER_DYNAMIC: Self = Self(9);
+    pub const INPUT_ATTACHMENT: Self = Self(10);
+    pub const INLINE_UNIFORM_BLOCK: Self = Self(1000138000);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ShaderStageFlags(u32);
+impl ShaderStageFlags {
+    pub const VERTEX: Self = Self(0x01);
+    pub const TESSELLATION_CONTROL: Self = Self(0x02);
+    pub const TESSELLATION_EVALUATION: Self = Self(0x04);
+    pub const GEOMETRY: Self = Self(0x08);
+    pub const FRAGMENT: Self = Self(0x10);
+    pub const COMPUTE: Self = Self(0x20);
+    pub const ALL_GRAPHICS: Self = Self(0x1F);
+    pub const ALL: Self = Self(0x7FFFFFFF);
+}
+flags!(
+    ShaderStageFlags,
+    [
+        VERTEX,
+        TESSELLATION_CONTROL,
+        TESSELLATION_EVALUATION,
+        GEOMETRY,
+        FRAGMENT,
+        COMPUTE
+    ]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SwapchainCreateFlagsKHR(u32);
 impl SwapchainCreateFlagsKHR {
     pub const SPLIT_INSTANCE_BIND_REGIONS: Self = Self(0x1);
