@@ -210,6 +210,29 @@ pub struct DeviceFn {
         Mut<VkRenderPass>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_descriptor_set_layout: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &VkDescriptorSetLayoutCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkDescriptorSetLayout>>,
+    )
+        -> VkResult,
+    pub destroy_descriptor_set_layout: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkDescriptorSetLayout>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+    pub create_pipeline_layout: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &PipelineLayoutCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkPipelineLayout>>,
+    ) -> VkResult,
+    pub destroy_pipeline_layout: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkPipelineLayout>,
+        Option<&'_ AllocationCallbacks>,
+    ),
     pub create_command_pool: unsafe extern "system" fn(
         Ref<VkDevice>,
         &CommandPoolCreateInfo,
@@ -314,6 +337,18 @@ impl DeviceFn {
                 ),
                 destroy_render_pass: transmute(
                     inst.load(device, "vkDestroyRenderPass\0"),
+                ),
+                create_descriptor_set_layout: transmute(
+                    inst.load(device, "vkCreateDescriptorSetLayout\0"),
+                ),
+                destroy_descriptor_set_layout: transmute(
+                    inst.load(device, "vkDestroyDescriptorSetLayout\0"),
+                ),
+                create_pipeline_layout: transmute(
+                    inst.load(device, "vkCreatePipelineLayout\0"),
+                ),
+                destroy_pipeline_layout: transmute(
+                    inst.load(device, "vkDestroyPipelineLayout\0"),
                 ),
                 create_command_pool: transmute(
                     inst.load(device, "vkCreateCommandPool\0"),

@@ -202,7 +202,7 @@ impl<'a, T> std::iter::IntoIterator for Slice<'a, T> {
 /// aligned to a 4-byte boundary, for cases where the structure alignment of
 /// Slice puts the count member in the wrong place on 64 bit systems. This type
 /// does not use unaligned loads or stores and has no special alignment
-/// requirement.
+/// requirement itself.
 #[repr(C)]
 #[derive(Debug)]
 pub struct Slice_<'a, T> {

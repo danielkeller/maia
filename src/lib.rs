@@ -1,5 +1,6 @@
 mod cleanup_queue;
 mod command_buffer;
+mod descriptor_set;
 mod device;
 mod enums;
 mod error;
@@ -11,6 +12,7 @@ mod image;
 mod instance;
 mod load;
 mod physical_device;
+mod pipeline;
 mod queue;
 mod render_pass;
 mod semaphore;

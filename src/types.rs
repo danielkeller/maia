@@ -771,6 +771,25 @@ structure_type!(PipelineColorBlendStateCreateInfoType, 26);
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct PushConstantRange {
+    pub stage_flags: ShaderStageFlags,
+    pub offset: u32,
+    pub size: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct PipelineLayoutCreateInfo<'a, Next = Null> {
+    pub stype: PipelineLayoutCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineLayoutCreateFlags,
+    pub set_layouts: Slice_<'a, Ref<'a, VkDescriptorSetLayout>>,
+    pub push_constant_ranges: Slice<'a, PushConstantRange>,
+}
+structure_type!(PipelineLayoutCreateInfoType, 30);
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct VkDescriptorSetLayoutBinding<'a> {
     pub binding: u32,
     pub descriptor_type: DescriptorType,
@@ -779,38 +798,10 @@ pub struct VkDescriptorSetLayoutBinding<'a> {
     // Safety: Must be descriptor_count long
     pub immutable_samplers: Option<Array<'a, VkSampler>>,
 }
-pub struct DescriptorSetLayoutBinding<'a> {
-    pub binding: u32,
-    pub descriptor_type: DescriptorType,
-    pub descriptor_count: u32,
-    pub stage_flags: ShaderStageFlags,
-    pub immutable_samplers: &'a [VkSampler],
-}
-impl<'a> TryFrom<DescriptorSetLayoutBinding<'a>>
-    for VkDescriptorSetLayoutBinding<'a>
-{
-    type Error = Error;
-    fn try_from(
-        value: DescriptorSetLayoutBinding<'a>,
-    ) -> Result<Self, Self::Error> {
-        if !value.immutable_samplers.is_empty()
-            && value.immutable_samplers.len() as u32 != value.descriptor_count
-        {
-            return Err(Error::InvalidArgument);
-        }
-        Ok(Self {
-            binding: value.binding,
-            descriptor_type: value.descriptor_type,
-            descriptor_count: value.descriptor_count,
-            stage_flags: value.stage_flags,
-            immutable_samplers: Array::from_slice(value.immutable_samplers),
-        })
-    }
-}
 
 #[repr(C)]
-#[derive(Debug)]
-pub struct DescriptorSetLayoutCreateInfo<'a, Next = Null> {
+#[derive(Debug, Default)]
+pub struct VkDescriptorSetLayoutCreateInfo<'a, Next = Null> {
     pub stype: DescriptorSetLayoutCreateInfoType,
     pub next: Next,
     pub flags: DescriptorSetLayoutCreateFlags,

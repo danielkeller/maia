@@ -1128,6 +1128,14 @@ impl DescriptorSetLayoutCreateFlags {
 flags!(DescriptorSetLayoutCreateFlags, [UPDATE_AFTER_BIND_POOL]);
 
 #[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineLayoutCreateFlags(u32);
+impl PipelineLayoutCreateFlags {
+    pub const INDEPENDENT_SETS_EXT: Self = Self(0x2);
+}
+flags!(PipelineLayoutCreateFlags, [INDEPENDENT_SETS_EXT]);
+
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct DescriptorType(u32);
 impl DescriptorType {
