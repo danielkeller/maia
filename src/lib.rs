@@ -1,3 +1,4 @@
+mod cleanup_queue;
 mod command_buffer;
 mod device;
 mod enums;

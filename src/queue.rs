@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use crate::cleanup_queue::CleanupQueue;
 use crate::command_buffer::CommandBuffer;
 use crate::device::Device;
 use crate::error::{Error, Result};
@@ -13,17 +14,12 @@ use crate::vk::PipelineStageFlags;
 pub struct Queue {
     handle: Handle<VkQueue>,
     device: Arc<Device>,
-    resources: PendingResources,
-}
-
-#[derive(Default, Debug)]
-pub(crate) struct PendingResources {
-    pub resources: Vec<Arc<dyn Send + Sync + Debug>>,
+    resources: CleanupQueue,
 }
 
 impl Queue {
     pub(crate) fn new(handle: Handle<VkQueue>, device: Arc<Device>) -> Self {
-        Self { handle, device, resources: Default::default() }
+        Self { handle, device, resources: CleanupQueue::new(100) }
     }
     pub fn borrow(&self) -> Ref<VkQueue> {
         self.handle.borrow()
@@ -59,8 +55,7 @@ impl Queue {
             .map(|i| {
                 for c in i.commands.iter() {
                     recordings.push(
-                        c.lock_resources().ok_or(Error::InvalidArgument)?
-                            as Arc<_>,
+                        c.lock_resources().ok_or(Error::InvalidArgument)?,
                     );
                 }
                 Ok((
@@ -94,18 +89,13 @@ impl Queue {
             )?;
         }
 
-        // This will work because we could borrow the command buffers mutably.
-        let mut commands = vec![];
         for info in infos {
             for command in info.commands.iter() {
-                commands.push(command.0.clone() as Arc<_>);
+                self.resources.push(command.0.clone());
             }
         }
+        self.resources.extend(recordings.into_iter());
 
-        let mut resources = std::mem::take(&mut self.resources);
-        resources.resources.extend(commands.into_iter());
-        resources.resources.extend(recordings.into_iter());
-
-        Ok(fence.to_pending(resources))
+        Ok(fence.to_pending(self.resources.new_cleanup()))
     }
 }

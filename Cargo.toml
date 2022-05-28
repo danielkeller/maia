@@ -15,5 +15,8 @@ raw-window-metal = { version = "0.2", optional = true }
 [features]
 window = ["dep:raw-window-handle", "dep:raw-window-metal"]
 
+[dev-dependencies]
+rand = "0.8"
+
 [workspace]
 members = ["demo"]
