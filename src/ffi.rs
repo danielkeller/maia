@@ -26,6 +26,7 @@ pub struct Str<'a> {
 }
 
 impl<'a> Str<'a> {
+    /// Fails if not null terminated
     pub fn from(s: &'a str) -> Result<Self, <Self as TryFrom<&str>>::Error> {
         s.try_into()
     }

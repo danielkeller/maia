@@ -934,7 +934,7 @@ pub struct PipelineInputAssemblyStateCreateFlags(u32);
 flags!(PipelineInputAssemblyStateCreateFlags, []);
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct PrimitiveTopology(u32);
 impl PrimitiveTopology {
     pub const POINT_LIST: Self = Self(0);
@@ -949,6 +949,11 @@ impl PrimitiveTopology {
     pub const TRIANGLE_STRIP_WITH_ADJACENCY: Self = Self(9);
     pub const PATCH_LIST: Self = Self(10);
 }
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineTesselationStateCreateFlags(u32);
+flags!(PipelineTesselationStateCreateFlags, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -972,7 +977,13 @@ impl PolygonMode {
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CullModeFlags(u32);
-flags!(CullModeFlags, []);
+impl CullModeFlags {
+    pub const NONE: Self = Self(0);
+    pub const FRONT: Self = Self(0x1);
+    pub const BACK: Self = Self(0x2);
+    pub const FRONT_AND_BACK: Self = Self(0x3);
+}
+flags!(CullModeFlags, [FRONT, BACK]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -986,6 +997,39 @@ impl FrontFace {
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PipelineMultisampleStateCreateFlags(u32);
 flags!(PipelineMultisampleStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineDepthStencilStateCreateFlags(u32);
+flags!(PipelineDepthStencilStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct CompareOp(u32);
+impl CompareOp {
+    pub const NEVER: Self = Self(0);
+    pub const LESS: Self = Self(1);
+    pub const EQUAL: Self = Self(2);
+    pub const LESS_OR_EQUAL: Self = Self(3);
+    pub const GREATER: Self = Self(4);
+    pub const NOT_EQUAL: Self = Self(5);
+    pub const GREATER_OR_EQUAL: Self = Self(6);
+    pub const ALWAYS: Self = Self(7);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct StencilOp(u32);
+impl StencilOp {
+    pub const KEEP: Self = Self(0);
+    pub const ZERO: Self = Self(1);
+    pub const REPLACE: Self = Self(2);
+    pub const INCREMENT_AND_CLAMP: Self = Self(3);
+    pub const DECREMENT_AND_CLAMP: Self = Self(4);
+    pub const INVERT: Self = Self(5);
+    pub const INCREMENT_AND_WRAP: Self = Self(6);
+    pub const DECREMENT_AND_WRAP: Self = Self(7);
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1077,6 +1121,7 @@ impl ColorComponentFlags {
     pub const G: Self = Self(0x2);
     pub const B: Self = Self(0x4);
     pub const A: Self = Self(0x8);
+    pub const RGBA: Self = Self(0xF);
 }
 flags!(ColorComponentFlags, [R, G, B, A]);
 
@@ -1084,6 +1129,20 @@ flags!(ColorComponentFlags, [R, G, B, A]);
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PipelineColorBlendStateCreateFlags(u32);
 flags!(PipelineColorBlendStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineCreateFlags(u32);
+impl PipelineCreateFlags {
+    pub const DISABLE_OPTIMIZATION: Self = Self(0x00000001);
+    pub const ALLOW_DERIVATIVES: Self = Self(0x00000002);
+    pub const DERIVATIVE: Self = Self(0x00000004);
+    pub const VIEW_INDEX_FROM_DEVICE_INDEX: Self = Self(0x00000008);
+    pub const DISPATCH_BASE: Self = Self(0x00000010);
+    pub const FAIL_ON_PIPELINE_COMPILE_REQUIRED: Self = Self(0x00000100);
+    pub const EARLY_RETURN_ON_FAILURE: Self = Self(0x00000200);
+}
+flags!(PipelineCreateFlags, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1105,6 +1164,41 @@ impl LogicOp {
     pub const OR_INVERTED: Self = Self(13);
     pub const NAND: Self = Self(14);
     pub const SET: Self = Self(15);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DynamicStateCreateFlags(u32);
+flags!(DynamicStateCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct DynamicState(u32);
+impl DynamicState {
+    pub const VIEWPORT: Self = Self(0);
+    pub const SCISSOR: Self = Self(1);
+    pub const LINE_WIDTH: Self = Self(2);
+    pub const DEPTH_BIAS: Self = Self(3);
+    pub const BLEND_CONSTANTS: Self = Self(4);
+    pub const DEPTH_BOUNDS: Self = Self(5);
+    pub const STENCIL_COMPARE_MASK: Self = Self(6);
+    pub const STENCIL_WRITE_MASK: Self = Self(7);
+    pub const STENCIL_REFERENCE: Self = Self(8);
+    pub const CULL_MODE: Self = Self(1000267000);
+    pub const FRONT_FACE: Self = Self(1000267001);
+    pub const PRIMITIVE_TOPOLOGY: Self = Self(1000267002);
+    pub const VIEWPORT_WITH_COUNT: Self = Self(1000267003);
+    pub const SCISSOR_WITH_COUNT: Self = Self(1000267004);
+    pub const VERTEX_INPUT_BINDING_STRIDE: Self = Self(1000267005);
+    pub const DEPTH_TEST_ENABLE: Self = Self(1000267006);
+    pub const DEPTH_WRITE_ENABLE: Self = Self(1000267007);
+    pub const DEPTH_COMPARE_OP: Self = Self(1000267008);
+    pub const DEPTH_BOUNDS_TEST_ENABLE: Self = Self(1000267009);
+    pub const STENCIL_TEST_ENABLE: Self = Self(1000267010);
+    pub const STENCIL_OP: Self = Self(1000267011);
+    pub const RASTERIZER_DISCARD_ENABLE: Self = Self(1000377001);
+    pub const DEPTH_BIAS_ENABLE: Self = Self(1000377002);
+    pub const PRIMITIVE_RESTART_ENABLE: Self = Self(1000377004);
 }
 
 #[repr(transparent)]

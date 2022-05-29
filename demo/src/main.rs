@@ -91,12 +91,11 @@ fn main() -> anyhow::Result<()> {
 
     let device_extensions = required_device_extensions(&phy)?;
     let device = phy.create_device(&vk::DeviceCreateInfo {
-        queue_create_infos: (&[vk::DeviceQueueCreateInfo {
+        queue_create_infos: vk::Slice_::from(&[vk::DeviceQueueCreateInfo {
             queue_family_index: queue_family,
             queue_priorities: (&[1.0]).into(),
             ..Default::default()
-        }])
-            .into(),
+        }]),
         enabled_extension_names: device_extensions.into(),
         ..Default::default()
     })?;
@@ -115,24 +114,22 @@ fn main() -> anyhow::Result<()> {
     )?;
 
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
-        attachments: (&[vk::AttachmentDescription {
+        attachments: vk::Slice_::from(&[vk::AttachmentDescription {
             format: vk::Format::B8G8R8A8_SRGB,
             load_op: vk::AttachmentLoadOp::CLEAR,
             store_op: vk::AttachmentStoreOp::STORE,
             initial_layout: vk::ImageLayout::UNDEFINED,
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
             ..Default::default()
-        }])
-            .into(),
-        subpasses: (&[vk::SubpassDescription {
+        }]),
+        subpasses: vk::Slice::from(&[vk::SubpassDescription {
             color_attachments: &[vk::AttachmentReference {
                 attachment: 0,
                 layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
             }],
             ..Default::default()
         }
-        .try_into()?])
-            .into(),
+        .try_into()?]),
         ..Default::default()
     })?;
 
@@ -140,6 +137,45 @@ fn main() -> anyhow::Result<()> {
         .create_shader_module(include_spirv!("shaders/triangle.vert", vert))?;
     let fragment_shader = device
         .create_shader_module(include_spirv!("shaders/triangle.frag", frag))?;
+
+    let pipeline_layout = device.create_pipeline_layout(&Default::default())?;
+    let _pipeline =
+        device.create_graphics_pipeline(&vk::GraphicsPipelineCreateInfo {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            stages: vk::Slice_::from(&[
+                vk::PipelineShaderStageCreateInfo::vertex(&vertex_shader),
+                vk::PipelineShaderStageCreateInfo::fragment(&fragment_shader),
+            ]),
+            vertex_input_state: &Default::default(),
+            input_assembly_state: &vk::PipelineInputAssemblyStateCreateInfo {
+                topology: vk::PrimitiveTopology::TRIANGLE_STRIP,
+                ..Default::default()
+            },
+            tessellation_state: None,
+            viewport_state: &vk::PipelineViewportStateCreateInfo {
+                viewports: vk::Slice_::from(&[Default::default()]),
+                scissors: vk::Slice::from(&[vk::Rect2D {
+                    offset: Default::default(),
+                    extent: vk::Extent2D { width: 3840, height: 2160 },
+                }]),
+                ..Default::default()
+            },
+            rasterization_state: &Default::default(),
+            multisample_state: &Default::default(),
+            depth_stencil_state: None,
+            color_blend_state: &Default::default(),
+            dynamic_state: Some(&vk::PipelineDynamicStateCreateInfo {
+                dynamic_states: vk::Slice_::from(&[vk::DynamicState::VIEWPORT]),
+                ..Default::default()
+            }),
+            layout: pipeline_layout.borrow(),
+            render_pass: render_pass.borrow(),
+            subpass: 0,
+            base_pipeline_handle: None,
+            base_pipeline_index: 0,
+        })?;
 
     let mut framebuffers = HashMap::new();
 
@@ -155,7 +191,7 @@ fn main() -> anyhow::Result<()> {
         let (img, _subopt) =
             swapchain.acquire_next_image(&mut acquire_sem, u64::MAX)?;
 
-        let framebuffer = framebuffers
+        let _framebuffer = framebuffers
             .entry(img.clone())
             .or_insert_with(|| {
                 let img_view = img.create_view(&vk::ImageViewCreateInfo {

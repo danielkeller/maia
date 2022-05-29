@@ -154,6 +154,14 @@ pub struct VkPipelineLayout(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VkPipelineCache(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VkPipeline(NonNullNonDispatchableHandle);
+
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkBuffer(NonNullNonDispatchableHandle);
 
 #[repr(transparent)]
@@ -639,6 +647,34 @@ pub struct PipelineShaderStageCreateInfo<'a, Next = Null> {
 }
 structure_type!(PipelineShaderStageCreateInfoType, 18);
 
+impl<'a> PipelineShaderStageCreateInfo<'a> {
+    const MAIN: Str<'static> = unsafe { Str::new_unchecked(b"main\0") };
+    /// Create a vertex shader with entry point "main"
+    pub fn vertex(module: &'a crate::shader::ShaderModule) -> Self {
+        Self {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            stage: ShaderStage::VERTEX,
+            module: module.borrow(),
+            name: Self::MAIN,
+            specialization_info: None,
+        }
+    }
+    /// Create a fragment shader with entry point "main"
+    pub fn fragment(module: &'a crate::shader::ShaderModule) -> Self {
+        Self {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            stage: ShaderStage::FRAGMENT,
+            module: module.borrow(),
+            name: Self::MAIN,
+            specialization_info: None,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug)]
 pub struct VertexInputBindingDescription {
@@ -657,7 +693,7 @@ pub struct VertexInputAttributeDescription {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PipelineVertexInputStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineVertexInputStateCreateInfoType,
     pub next: Next,
@@ -669,7 +705,7 @@ pub struct PipelineVertexInputStateCreateInfo<'a, Next = Null> {
 structure_type!(PipelineVertexInputStateCreateInfoType, 19);
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct PipelineInputAssemblyStateCreateInfo<Next = Null> {
     pub stype: PipelineInputAssemblyStateCreateInfoType,
     pub next: Next,
@@ -680,7 +716,17 @@ pub struct PipelineInputAssemblyStateCreateInfo<Next = Null> {
 structure_type!(PipelineInputAssemblyStateCreateInfoType, 20);
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
+pub struct PipelineTessellationStateCreateInfo<Next = Null> {
+    pub stype: PipelineTesselationStateCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineTesselationStateCreateFlags,
+    pub patch_control_points: u32,
+}
+structure_type!(PipelineTesselationStateCreateInfoType, 21);
+
+#[repr(C)]
+#[derive(Debug, Default)]
 pub struct PipelineViewportStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineViewportStateCreateInfoType,
     pub next: Next,
@@ -691,7 +737,7 @@ pub struct PipelineViewportStateCreateInfo<'a, Next = Null> {
 structure_type!(PipelineViewportStateCreateInfoType, 22);
 
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PipelineRasterizationStateCreateInfo<Next = Null> {
     pub stype: PipelineRasterizationStateCreateInfoType,
     pub next: Next,
@@ -709,6 +755,26 @@ pub struct PipelineRasterizationStateCreateInfo<Next = Null> {
 }
 structure_type!(PipelineRasterizationStateCreateInfoType, 23);
 
+impl Default for PipelineRasterizationStateCreateInfo {
+    fn default() -> Self {
+        PipelineRasterizationStateCreateInfo {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            depth_clamp_enable: Bool::False,
+            rasterizer_discard_enable: Bool::False,
+            polygon_mode: PolygonMode::FILL,
+            cull_mode: CullModeFlags::NONE,
+            front_face: FrontFace::COUNTER_CLOCKWISE,
+            depth_bias_enable: Bool::False,
+            depth_bias_constant_factor: 0.0,
+            depth_bias_clamp: 0.0,
+            depth_bias_slope_factor: 0.0,
+            line_width: 1.0,
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Default)]
 pub struct PipelineMultisampleStateCreateInfo<'a, Next = Null> {
@@ -725,6 +791,36 @@ pub struct PipelineMultisampleStateCreateInfo<'a, Next = Null> {
 structure_type!(PipelineMultisampleStateCreateInfoType, 24);
 
 #[repr(C)]
+#[derive(Debug, Default)]
+pub struct StencilOpState {
+    pub fail_op: StencilOp,
+    pub pass_op: StencilOp,
+    pub depth_fail_op: StencilOp,
+    pub compare_op: CompareOp,
+    pub compare_mask: u32,
+    pub write_mask: u32,
+    pub reference: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct PipelineDepthStencilStateCreateInfo<Next = Null> {
+    pub stype: PipelineDepthStencilStateCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineDepthStencilStateCreateFlags,
+    pub depth_test_enable: Bool,
+    pub depth_write_enable: Bool,
+    pub depth_compare_op: CompareOp,
+    pub depth_bounds_test_enable: Bool,
+    pub stencil_test_enable: Bool,
+    pub front: StencilOpState,
+    pub back: StencilOpState,
+    pub min_depth_bounds: f32,
+    pub max_depth_bounds: f32,
+}
+structure_type!(PipelineDepthStencilStateCreateInfoType, 25);
+
+#[repr(C)]
 #[derive(Debug)]
 pub struct PipelineColorBlendAttachmentState {
     pub blend_enable: Bool,
@@ -737,27 +833,27 @@ pub struct PipelineColorBlendAttachmentState {
     pub color_write_mask: ColorComponentFlags,
 }
 
+const DEFAULT_BLEND: PipelineColorBlendAttachmentState =
+    PipelineColorBlendAttachmentState {
+        blend_enable: Bool::False,
+        src_color_blend_factor: BlendFactor::ONE,
+        dst_color_blend_factor: BlendFactor::ONE_MINUS_SRC_ALPHA,
+        color_blend_op: BlendOp::ADD,
+        src_alpha_blend_factor: BlendFactor::ONE,
+        dst_alpha_blend_factor: BlendFactor::ONE_MINUS_SRC_ALPHA,
+        alpha_blend_op: BlendOp::ADD,
+        color_write_mask: ColorComponentFlags::RGBA,
+    };
+
 impl Default for PipelineColorBlendAttachmentState {
     /// Blending disabled, and premultiplied alpha blending parameters.
     fn default() -> Self {
-        Self {
-            blend_enable: false.into(),
-            src_color_blend_factor: BlendFactor::ONE,
-            dst_color_blend_factor: BlendFactor::ONE_MINUS_SRC_ALPHA,
-            color_blend_op: BlendOp::ADD,
-            src_alpha_blend_factor: BlendFactor::ONE,
-            dst_alpha_blend_factor: BlendFactor::ONE_MINUS_SRC_ALPHA,
-            alpha_blend_op: BlendOp::ADD,
-            color_write_mask: ColorComponentFlags::R
-                | ColorComponentFlags::G
-                | ColorComponentFlags::B
-                | ColorComponentFlags::A,
-        }
+        DEFAULT_BLEND
     }
 }
 
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PipelineColorBlendStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineColorBlendStateCreateInfoType,
     pub next: Next,
@@ -768,6 +864,55 @@ pub struct PipelineColorBlendStateCreateInfo<'a, Next = Null> {
     pub blend_constants: [f32; 4],
 }
 structure_type!(PipelineColorBlendStateCreateInfoType, 26);
+
+impl Default for PipelineColorBlendStateCreateInfo<'static> {
+    /// One color attachment with blending disabled
+    fn default() -> Self {
+        Self {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            logic_op_enable: Bool::False,
+            logic_op: LogicOp::CLEAR,
+            attachments: std::slice::from_ref(&DEFAULT_BLEND).into(),
+            blend_constants: Default::default(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct PipelineDynamicStateCreateInfo<'a, Next = Null> {
+    pub stype: PipelineDynamicStateCreateInfoType,
+    pub next: Next,
+    pub flags: DynamicStateCreateFlags,
+    pub dynamic_states: Slice_<'a, DynamicState>,
+}
+structure_type!(PipelineDynamicStateCreateInfoType, 27);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct GraphicsPipelineCreateInfo<'a, Next = Null> {
+    pub stype: GraphicsPipelineCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineCreateFlags,
+    pub stages: Slice_<'a, PipelineShaderStageCreateInfo<'a>>,
+    pub vertex_input_state: &'a PipelineVertexInputStateCreateInfo<'a>,
+    pub input_assembly_state: &'a PipelineInputAssemblyStateCreateInfo,
+    pub tessellation_state: Option<&'a PipelineTessellationStateCreateInfo>,
+    pub viewport_state: &'a PipelineViewportStateCreateInfo<'a>,
+    pub rasterization_state: &'a PipelineRasterizationStateCreateInfo,
+    pub multisample_state: &'a PipelineMultisampleStateCreateInfo<'a>,
+    pub depth_stencil_state: Option<&'a PipelineDepthStencilStateCreateInfo>,
+    pub color_blend_state: &'a PipelineColorBlendStateCreateInfo<'a>,
+    pub dynamic_state: Option<&'a PipelineDynamicStateCreateInfo<'a>>,
+    pub layout: Ref<'a, VkPipelineLayout>,
+    pub render_pass: Ref<'a, VkRenderPass>,
+    pub subpass: u32,
+    pub base_pipeline_handle: Option<Ref<'a, VkPipeline>>,
+    pub base_pipeline_index: u32,
+}
+structure_type!(GraphicsPipelineCreateInfoType, 28);
 
 #[repr(C)]
 #[derive(Debug)]

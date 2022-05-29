@@ -233,6 +233,19 @@ pub struct DeviceFn {
         Mut<VkPipelineLayout>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_graphics_pipelines: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Option<Mut<VkPipelineCache>>,
+        u32,
+        Array<GraphicsPipelineCreateInfo>,
+        Option<&'_ AllocationCallbacks>,
+        ArrayMut<MaybeUninit<Handle<VkPipeline>>>,
+    ) -> VkResult,
+    pub destroy_pipeline: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkPipeline>,
+        Option<&'_ AllocationCallbacks>,
+    ),
     pub create_command_pool: unsafe extern "system" fn(
         Ref<VkDevice>,
         &CommandPoolCreateInfo,
@@ -349,6 +362,12 @@ impl DeviceFn {
                 ),
                 destroy_pipeline_layout: transmute(
                     inst.load(device, "vkDestroyPipelineLayout\0"),
+                ),
+                create_graphics_pipelines: transmute(
+                    inst.load(device, "vkCreateGraphicsPipelines\0"),
+                ),
+                destroy_pipeline: transmute(
+                    inst.load(device, "vkDestroyPipeline\0"),
                 ),
                 create_command_pool: transmute(
                     inst.load(device, "vkCreateCommandPool\0"),
