@@ -139,7 +139,7 @@ fn main() -> anyhow::Result<()> {
         .create_shader_module(include_spirv!("shaders/triangle.frag", frag))?;
 
     let pipeline_layout = device.create_pipeline_layout(&Default::default())?;
-    let _pipeline =
+    let pipeline =
         device.create_graphics_pipeline(&vk::GraphicsPipelineCreateInfo {
             stype: Default::default(),
             next: Default::default(),
@@ -167,7 +167,10 @@ fn main() -> anyhow::Result<()> {
             depth_stencil_state: None,
             color_blend_state: &Default::default(),
             dynamic_state: Some(&vk::PipelineDynamicStateCreateInfo {
-                dynamic_states: vk::Slice_::from(&[vk::DynamicState::VIEWPORT]),
+                dynamic_states: vk::Slice_::from(&[
+                    vk::DynamicState::VIEWPORT,
+                    vk::DynamicState::SCISSOR,
+                ]),
                 ..Default::default()
             }),
             layout: pipeline_layout.borrow(),
@@ -187,11 +190,12 @@ fn main() -> anyhow::Result<()> {
 
     let begin = Instant::now();
 
-    let mut redraw = move || -> anyhow::Result<()> {
+    type DrawSize = winit::dpi::PhysicalSize<u32>;
+    let mut redraw = move |draw_size: DrawSize| -> anyhow::Result<()> {
         let (img, _subopt) =
             swapchain.acquire_next_image(&mut acquire_sem, u64::MAX)?;
 
-        let _framebuffer = framebuffers
+        let framebuffer = framebuffers
             .entry(img.clone())
             .or_insert_with(|| {
                 let img_view = img.create_view(&vk::ImageViewCreateInfo {
@@ -211,46 +215,33 @@ fn main() -> anyhow::Result<()> {
         let mut rec = cmd_pool.begin(&mut buf)?;
         let blue =
             Instant::now().duration_since(begin).subsec_micros() as f32 / 1e6;
-        rec.pipeline_barrier(
-            vk::PipelineStageFlags::TOP_OF_PIPE,
-            vk::PipelineStageFlags::TRANSFER,
-            Default::default(),
-            &[],
-            &[],
-            &[vk::ImageMemoryBarrier {
-                src_access_mask: Default::default(),
-                dst_access_mask: vk::AccessFlags::TRANSFER_WRITE,
-                old_layout: vk::ImageLayout::UNDEFINED,
-                new_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                src_queue_family_index: 0,
-                dst_queue_family_index: 0,
-                image: img.clone(),
-                subresource_range: Default::default(),
+
+        let mut pass = rec.begin_render_pass(
+            &render_pass,
+            &framebuffer,
+            vk::Rect2D {
+                offset: Default::default(),
+                extent: vk::Extent2D {
+                    width: 3840,  //draw_size.width,
+                    height: 2160, // draw_size.height,
+                },
+            },
+            &[vk::ClearValue {
+                color: vk::ClearColorValue { f32: [0.1, 0.2, blue, 1.0] },
             }],
         );
-        rec.clear_color_image(
-            &img,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            vk::ClearColor::F32([0.1, 0.2, blue, 1.0]),
-            &[Default::default()],
-        )?;
-        rec.pipeline_barrier(
-            vk::PipelineStageFlags::TRANSFER,
-            vk::PipelineStageFlags::BOTTOM_OF_PIPE,
-            Default::default(),
-            &[],
-            &[],
-            &[vk::ImageMemoryBarrier {
-                src_access_mask: vk::AccessFlags::TRANSFER_WRITE,
-                dst_access_mask: Default::default(),
-                old_layout: vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                new_layout: vk::ImageLayout::PRESENT_SRC_KHR,
-                src_queue_family_index: 0,
-                dst_queue_family_index: 0,
-                image: img.clone(),
-                subresource_range: Default::default(),
-            }],
-        );
+        pass.set_viewport(&vk::Viewport {
+            x: 0.0,
+            y: 0.0,
+            width: 3840.,  //draw_size.width as f32,
+            height: 2160., // draw_size.height as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
+        });
+        pass.bind_pipeline(vk::PipelineBindPoint::GRAPHICS, &pipeline);
+        pass.draw(3, 1, 0, 0);
+        pass.end();
+
         rec.end()?;
         let pending_fence = queue.submit(
             &mut [vk::SubmitInfo {
@@ -265,7 +256,6 @@ fn main() -> anyhow::Result<()> {
         Ok(())
     };
 
-    // Ok(())
     event_loop.run(move |event, _, control_flow| {
         use winit::event::{Event, WindowEvent};
         use winit::event_loop::ControlFlow;
@@ -275,7 +265,7 @@ fn main() -> anyhow::Result<()> {
                 event: WindowEvent::CloseRequested, ..
             } => *control_flow = ControlFlow::Exit,
             Event::RedrawRequested(_) => {
-                if let Err(e) = redraw() {
+                if let Err(e) = redraw(window.inner_size()) {
                     println!("{:?}", e);
                     *control_flow = ControlFlow::Exit;
                 }

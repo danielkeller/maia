@@ -323,6 +323,14 @@ flags!(
 );
 
 #[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct SubpassContents(u32);
+impl SubpassContents {
+    pub const INLINE: Self = Self(0);
+    pub const SECONDARY_COMMAND_BUFFERS: Self = Self(1);
+}
+
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct AttachmentDescriptionFlags(u32);
 impl AttachmentDescriptionFlags {

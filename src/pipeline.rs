@@ -48,6 +48,7 @@ impl PipelineLayout {
     }
 }
 
+#[derive(Debug)]
 pub struct Pipeline {
     handle: Handle<VkPipeline>,
     device: Arc<Device>,
@@ -74,6 +75,12 @@ impl Device {
             handle: unsafe { handle.assume_init() },
             device: self.clone(),
         }))
+    }
+}
+
+impl Pipeline {
+    pub fn borrow(&self) -> Ref<VkPipeline> {
+        self.handle.borrow()
     }
 }
 

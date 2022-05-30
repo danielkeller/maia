@@ -1,39 +1,18 @@
-use crate::command_buffer::CommandRecording;
 use crate::enums::*;
 use crate::error::{Error, Result};
 use crate::ffi::Array;
 use crate::image::Image;
+use crate::pipeline::Pipeline;
 use crate::types::*;
 
-#[derive(Clone, Copy, Debug)]
-pub enum ClearColor {
-    F32([f32; 4]),
-    I32([i32; 4]),
-    U32([u32; 4]),
-}
-impl Default for ClearColor {
-    /// Black for any format
-    fn default() -> Self {
-        Self::U32([0, 0, 0, 0])
-    }
-}
-
-impl ClearColor {
-    pub fn as_union(&self) -> &ClearColorValue {
-        match self {
-            ClearColor::F32(arr) => unsafe { std::mem::transmute(arr) },
-            ClearColor::I32(arr) => unsafe { std::mem::transmute(arr) },
-            ClearColor::U32(arr) => unsafe { std::mem::transmute(arr) },
-        }
-    }
-}
+use super::{CommandRecording, RenderPassRecording};
 
 impl<'a> CommandRecording<'a> {
     pub fn clear_color_image(
         &mut self,
         image: &Arc<Image>,
         layout: ImageLayout,
-        color: ClearColor,
+        color: ClearColorValue,
         ranges: &[ImageSubresourceRange],
     ) -> Result<()> {
         let array = Array::from_slice(ranges).ok_or(Error::InvalidArgument)?;
@@ -42,7 +21,7 @@ impl<'a> CommandRecording<'a> {
                 self.buffer.handle.borrow_mut(),
                 image.borrow(),
                 layout,
-                color.as_union(),
+                &color,
                 ranges.len() as u32,
                 array,
             )
@@ -65,6 +44,27 @@ pub struct ImageMemoryBarrier {
     pub dst_queue_family_index: u32,
     pub image: Arc<Image>,
     pub subresource_range: ImageSubresourceRange,
+}
+
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn pipeline_barrier(
+        &mut self,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        dependency_flags: DependencyFlags,
+        memory_barriers: &[MemoryBarrier],
+        buffer_memory_barriers: &[()],
+        image_memory_barriers: &[ImageMemoryBarrier],
+    ) {
+        self.0.pipeline_barrier(
+            src_stage_mask,
+            dst_stage_mask,
+            dependency_flags,
+            memory_barriers,
+            buffer_memory_barriers,
+            image_memory_barriers,
+        )
+    }
 }
 
 impl<'a> CommandRecording<'a> {
@@ -110,6 +110,87 @@ impl<'a> CommandRecording<'a> {
                 Array::from_slice(&vk_buffer_barriers),
                 vk_image_barriers.len() as u32,
                 Array::from_slice(&vk_image_barriers),
+            )
+        }
+    }
+}
+
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn bind_pipeline(
+        &mut self,
+        bind_point: PipelineBindPoint,
+        pipeline: &Arc<Pipeline>,
+    ) {
+        self.0.bind_pipeline(bind_point, pipeline)
+    }
+}
+
+impl<'a> CommandRecording<'a> {
+    pub fn bind_pipeline(
+        &mut self,
+        bind_point: PipelineBindPoint,
+        pipeline: &Arc<Pipeline>,
+    ) {
+        self.add_resource(pipeline.clone());
+        unsafe {
+            (self.pool.res.device.fun.cmd_bind_pipeline)(
+                self.buffer.handle.borrow_mut(),
+                bind_point,
+                pipeline.borrow(),
+            )
+        }
+    }
+}
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn set_viewport(&mut self, viewport: &Viewport) {
+        self.0.set_viewport(viewport)
+    }
+}
+impl<'a> CommandRecording<'a> {
+    pub fn set_viewport(&mut self, viewport: &Viewport) {
+        unsafe {
+            (self.pool.res.device.fun.cmd_set_viewport)(
+                self.buffer.handle.borrow_mut(),
+                0,
+                1,
+                std::array::from_ref(viewport).into(),
+            )
+        }
+    }
+}
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn set_scissor(&mut self, scissor: &Rect2D) {
+        self.0.set_scissor(scissor)
+    }
+}
+impl<'a> CommandRecording<'a> {
+    pub fn set_scissor(&mut self, scissor: &Rect2D) {
+        unsafe {
+            (self.pool.res.device.fun.cmd_set_scissor)(
+                self.buffer.handle.borrow_mut(),
+                0,
+                1,
+                std::array::from_ref(scissor).into(),
+            )
+        }
+    }
+}
+
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn draw(
+        &mut self,
+        vertex_count: u32,
+        instance_count: u32,
+        first_vertex: u32,
+        first_instance: u32,
+    ) {
+        unsafe {
+            (self.0.pool.res.device.fun.cmd_draw)(
+                self.0.buffer.handle.borrow_mut(),
+                vertex_count,
+                instance_count,
+                first_vertex,
+                first_instance,
             )
         }
     }

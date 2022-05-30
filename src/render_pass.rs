@@ -2,6 +2,7 @@ use crate::device::Device;
 use crate::error::{Error, Result};
 use crate::types::*;
 
+#[derive(Debug)]
 pub struct RenderPass {
     handle: Handle<VkRenderPass>,
     pub(crate) device: Arc<Device>,

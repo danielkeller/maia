@@ -299,105 +299,88 @@ pub struct DeviceFn {
         u32,
         Option<Array<VkImageMemoryBarrier>>,
     ),
+    pub cmd_begin_render_pass: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        &RenderPassBeginInfo,
+        SubpassContents,
+    ),
+    pub cmd_end_render_pass: unsafe extern "system" fn(Mut<VkCommandBuffer>),
+    pub cmd_bind_pipeline: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        PipelineBindPoint,
+        Ref<VkPipeline>,
+    ),
+    pub cmd_draw:
+        unsafe extern "system" fn(Mut<VkCommandBuffer>, u32, u32, u32, u32),
+    pub cmd_set_viewport: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        u32,
+        u32,
+        Array<Viewport>,
+    ),
+    pub cmd_set_scissor: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        u32,
+        u32,
+        Array<Rect2D>,
+    ),
+}
+
+// Reduce indent
+unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
+    let load = |name| inst.load(device, name);
+    DeviceFn {
+        destroy_device: transmute(load("vkDestroyDevice\0")),
+        get_device_queue: transmute(load("vkGetDeviceQueue\0")),
+        queue_submit: transmute(load("vkQueueSubmit\0")),
+        queue_wait_idle: transmute(load("vkQueueWaitIdle\0")),
+        create_fence: transmute(load("vkCreateFence\0")),
+        destroy_fence: transmute(load("vkDestroyFence\0")),
+        wait_for_fences: transmute(load("vkWaitForFences\0")),
+        reset_fences: transmute(load("vkResetFences\0")),
+        create_semaphore: transmute(load("vkCreateSemaphore\0")),
+        destroy_semaphore: transmute(load("vkDestroySemaphore\0")),
+        create_image_view: transmute(load("vkCreateImageView\0")),
+        destroy_image_view: transmute(load("vkDestroyImageView\0")),
+        create_shader_module: transmute(load("vkCreateShaderModule\0")),
+        destroy_shader_module: transmute(load("vkDestroyShaderModule\0")),
+        create_framebuffer: transmute(load("vkCreateFramebuffer\0")),
+        destroy_framebuffer: transmute(load("vkDestroyFramebuffer\0")),
+        create_render_pass: transmute(load("vkCreateRenderPass\0")),
+        destroy_render_pass: transmute(load("vkDestroyRenderPass\0")),
+        create_descriptor_set_layout: transmute(load(
+            "vkCreateDescriptorSetLayout\0",
+        )),
+        destroy_descriptor_set_layout: transmute(load(
+            "vkDestroyDescriptorSetLayout\0",
+        )),
+        create_pipeline_layout: transmute(load("vkCreatePipelineLayout\0")),
+        destroy_pipeline_layout: transmute(load("vkDestroyPipelineLayout\0")),
+        create_graphics_pipelines: transmute(load(
+            "vkCreateGraphicsPipelines\0",
+        )),
+        destroy_pipeline: transmute(load("vkDestroyPipeline\0")),
+        create_command_pool: transmute(load("vkCreateCommandPool\0")),
+        destroy_command_pool: transmute(load("vkDestroyCommandPool\0")),
+        reset_command_pool: transmute(load("vkResetCommandPool\0")),
+        allocate_command_buffers: transmute(load("vkAllocateCommandBuffers\0")),
+        free_command_buffers: transmute(load("vkFreeCommandBuffers\0")),
+        begin_command_buffer: transmute(load("vkBeginCommandBuffer\0")),
+        end_command_buffer: transmute(load("vkEndCommandBuffer\0")),
+        cmd_clear_color_image: transmute(load("vkCmdClearColorImage\0")),
+        cmd_pipeline_barrier: transmute(load("vkCmdPipelineBarrier\0")),
+        cmd_begin_render_pass: transmute(load("vkCmdBeginRenderPass\0")),
+        cmd_end_render_pass: transmute(load("vkCmdEndRenderPass\0")),
+        cmd_bind_pipeline: transmute(load("vkCmdBindPipeline\0")),
+        cmd_draw: transmute(load("vkCmdDraw\0")),
+        cmd_set_viewport: transmute(load("vkCmdSetViewport\0")),
+        cmd_set_scissor: transmute(load("vkCmdSetScissor\0")),
+    }
 }
 
 impl DeviceFn {
     pub fn new(inst: &Instance, device: Ref<VkDevice>) -> Self {
-        unsafe {
-            Self {
-                destroy_device: {
-                    transmute(inst.load(device, "vkDestroyDevice\0"))
-                },
-                get_device_queue: transmute(
-                    inst.load(device, "vkGetDeviceQueue\0"),
-                ),
-                queue_submit: transmute(inst.load(device, "vkQueueSubmit\0")),
-                queue_wait_idle: transmute(
-                    inst.load(device, "vkQueueWaitIdle\0"),
-                ),
-                create_fence: transmute(inst.load(device, "vkCreateFence\0")),
-                destroy_fence: transmute(inst.load(device, "vkDestroyFence\0")),
-                wait_for_fences: transmute(
-                    inst.load(device, "vkWaitForFences\0"),
-                ),
-                reset_fences: transmute(inst.load(device, "vkResetFences\0")),
-                create_semaphore: transmute(
-                    inst.load(device, "vkCreateSemaphore\0"),
-                ),
-                destroy_semaphore: transmute(
-                    inst.load(device, "vkDestroySemaphore\0"),
-                ),
-                create_image_view: transmute(
-                    inst.load(device, "vkCreateImageView\0"),
-                ),
-                destroy_image_view: transmute(
-                    inst.load(device, "vkDestroyImageView\0"),
-                ),
-                create_shader_module: transmute(
-                    inst.load(device, "vkCreateShaderModule\0"),
-                ),
-                destroy_shader_module: transmute(
-                    inst.load(device, "vkDestroyShaderModule\0"),
-                ),
-                create_framebuffer: transmute(
-                    inst.load(device, "vkCreateFramebuffer\0"),
-                ),
-                destroy_framebuffer: transmute(
-                    inst.load(device, "vkDestroyFramebuffer\0"),
-                ),
-                create_render_pass: transmute(
-                    inst.load(device, "vkCreateRenderPass\0"),
-                ),
-                destroy_render_pass: transmute(
-                    inst.load(device, "vkDestroyRenderPass\0"),
-                ),
-                create_descriptor_set_layout: transmute(
-                    inst.load(device, "vkCreateDescriptorSetLayout\0"),
-                ),
-                destroy_descriptor_set_layout: transmute(
-                    inst.load(device, "vkDestroyDescriptorSetLayout\0"),
-                ),
-                create_pipeline_layout: transmute(
-                    inst.load(device, "vkCreatePipelineLayout\0"),
-                ),
-                destroy_pipeline_layout: transmute(
-                    inst.load(device, "vkDestroyPipelineLayout\0"),
-                ),
-                create_graphics_pipelines: transmute(
-                    inst.load(device, "vkCreateGraphicsPipelines\0"),
-                ),
-                destroy_pipeline: transmute(
-                    inst.load(device, "vkDestroyPipeline\0"),
-                ),
-                create_command_pool: transmute(
-                    inst.load(device, "vkCreateCommandPool\0"),
-                ),
-                destroy_command_pool: transmute(
-                    inst.load(device, "vkDestroyCommandPool\0"),
-                ),
-                reset_command_pool: transmute(
-                    inst.load(device, "vkResetCommandPool\0"),
-                ),
-                allocate_command_buffers: transmute(
-                    inst.load(device, "vkAllocateCommandBuffers\0"),
-                ),
-                free_command_buffers: transmute(
-                    inst.load(device, "vkFreeCommandBuffers\0"),
-                ),
-                begin_command_buffer: transmute(
-                    inst.load(device, "vkBeginCommandBuffer\0"),
-                ),
-                end_command_buffer: transmute(
-                    inst.load(device, "vkEndCommandBuffer\0"),
-                ),
-                cmd_clear_color_image: transmute(
-                    inst.load(device, "vkCmdClearColorImage\0"),
-                ),
-                cmd_pipeline_barrier: transmute(
-                    inst.load(device, "vkCmdPipelineBarrier\0"),
-                ),
-            }
-        }
+        unsafe { new_device_fn(inst, device) }
     }
 }
 

@@ -5,6 +5,7 @@ use crate::image::ImageView;
 use crate::render_pass::RenderPass;
 use crate::types::*;
 
+#[derive(Debug)]
 pub struct Framebuffer {
     handle: Handle<VkFramebuffer>,
     _attachments: Vec<Arc<ImageView>>,
@@ -47,6 +48,12 @@ impl RenderPass {
             _attachments: attachments,
             device: self.device.clone(),
         }))
+    }
+}
+
+impl Framebuffer {
+    pub fn borrow(&self) -> Ref<VkFramebuffer> {
+        self.handle.borrow()
     }
 }
 

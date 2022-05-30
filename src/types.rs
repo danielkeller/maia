@@ -248,9 +248,40 @@ pub struct Rect2D {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub union ClearColorValue {
-    f: [f32; 4],
-    i: [i32; 4],
-    u: [u32; 4],
+    pub f32: [f32; 4],
+    pub i32: [i32; 4],
+    pub u32: [u32; 4],
+}
+impl Default for ClearColorValue {
+    /// Black for any format
+    fn default() -> Self {
+        Self { u32: [0, 0, 0, 0] }
+    }
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct ClearDepthStencilValue {
+    pub depth: f32,
+    pub stencil: u32,
+}
+
+// Safety: If the user initializes the wrong member, leaving the struct partly
+// uninitialized, the uninitialized value is never read by *rust*, only passed
+// over the ffi.
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union ClearValue {
+    pub color: ClearColorValue,
+    pub depth_stencil: ClearDepthStencilValue,
+}
+
+impl Default for ClearValue {
+    /// Black for color, zero for depth/stencil
+    fn default() -> Self {
+        Self { color: Default::default() }
+    }
 }
 
 #[repr(C)]
@@ -288,12 +319,12 @@ pub struct ComponentMapping {
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Viewport {
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-    min_depth: f32,
-    max_depth: f32,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    pub min_depth: f32,
+    pub max_depth: f32,
 }
 
 pub enum AllocationCallbacks {}
@@ -1098,6 +1129,17 @@ pub struct CommandBufferBeginInfo<Next = Null> {
     pub inheritance_info: Null, //TODO
 }
 structure_type!(CommandBufferBeginInfoType, 42);
+
+#[repr(C)]
+pub struct RenderPassBeginInfo<'a, Next = Null> {
+    pub stype: RenderPassBeginInfoType,
+    pub next: Next,
+    pub render_pass: Ref<'a, VkRenderPass>,
+    pub framebuffer: Ref<'a, VkFramebuffer>,
+    pub render_area: Rect2D,
+    pub clear_values: Slice<'a, ClearValue>,
+}
+structure_type!(RenderPassBeginInfoType, 43);
 
 #[repr(C)]
 #[derive(Debug)]

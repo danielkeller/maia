@@ -5,6 +5,8 @@ use std::sync::Weak;
 use crate::device::Device;
 use crate::enums::*;
 use crate::error::{Error, Result};
+use crate::framebuffer::Framebuffer;
+use crate::render_pass::RenderPass;
 use crate::subobject::{Owner, Subobject};
 use crate::types::*;
 
@@ -28,6 +30,8 @@ pub struct CommandRecording<'a> {
     buffer: &'a mut CommandBufferLifetime,
     ended: bool,
 }
+
+pub struct RenderPassRecording<'a, 'rec>(&'a mut CommandRecording<'rec>);
 
 #[derive(Debug)]
 pub(crate) struct CommandBufferLifetime {
@@ -222,7 +226,7 @@ impl CommandBuffer {
 }
 
 impl<'a> CommandRecording<'a> {
-    pub(crate) fn add_resource(&mut self, value: Arc<dyn Send + Sync + Debug>) {
+    fn add_resource(&mut self, value: Arc<dyn Send + Sync + Debug>) {
         self.pool.res.resources.push(value);
     }
     pub fn end(mut self) -> Result<()> {
@@ -241,6 +245,50 @@ impl<'a> Drop for CommandRecording<'a> {
     fn drop(&mut self) {
         if !self.ended {
             panic!("Command recording not ended")
+        }
+    }
+}
+
+impl<'rec> CommandRecording<'rec> {
+    #[must_use = "Record render pass commands on this object"]
+    pub fn begin_render_pass(
+        &mut self,
+        render_pass: &Arc<RenderPass>,
+        framebuffer: &Arc<Framebuffer>,
+        render_area: Rect2D,
+        clear_values: &[ClearValue],
+    ) -> RenderPassRecording<'_, 'rec> {
+        self.add_resource(render_pass.clone());
+        self.add_resource(framebuffer.clone());
+        let info = RenderPassBeginInfo {
+            stype: Default::default(),
+            next: Default::default(),
+            render_pass: render_pass.borrow(),
+            framebuffer: framebuffer.borrow(),
+            render_area,
+            clear_values: clear_values.into(),
+        };
+        unsafe {
+            (self.pool.res.device.fun.cmd_begin_render_pass)(
+                self.buffer.handle.borrow_mut(),
+                &info,
+                SubpassContents::INLINE,
+            );
+        }
+        RenderPassRecording(self)
+    }
+}
+
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn end(self) {}
+}
+
+impl<'a, 'rec> Drop for RenderPassRecording<'a, 'rec> {
+    fn drop(&mut self) {
+        unsafe {
+            (self.0.pool.res.device.fun.cmd_end_render_pass)(
+                self.0.buffer.handle.borrow_mut(),
+            )
         }
     }
 }
