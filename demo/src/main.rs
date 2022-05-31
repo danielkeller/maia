@@ -101,17 +101,21 @@ fn main() -> anyhow::Result<()> {
     })?;
     let mut queue = device.queue(0, 0)?;
 
-    let mut swapchain = device.khr_swapchain().create(
+    let mut swapchain_size = window.inner_size();
+    let mut swapchain = Some(device.khr_swapchain().create(
         vk::CreateSwapchainFrom::Surface(surf),
         vk::SwapchainCreateInfoKHR {
             min_image_count: 3,
             image_format: vk::Format::B8G8R8A8_SRGB,
-            image_extent: vk::Extent2D { width: 3840, height: 2160 },
+            image_extent: vk::Extent2D {
+                width: swapchain_size.width,
+                height: swapchain_size.height,
+            },
             image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT
                 | vk::ImageUsageFlags::TRANSFER_DST,
             ..Default::default()
         },
-    )?;
+    )?);
 
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
         attachments: vk::Slice_::from(&[vk::AttachmentDescription {
@@ -192,8 +196,31 @@ fn main() -> anyhow::Result<()> {
 
     type DrawSize = winit::dpi::PhysicalSize<u32>;
     let mut redraw = move |draw_size: DrawSize| -> anyhow::Result<()> {
-        let (img, _subopt) =
-            swapchain.acquire_next_image(&mut acquire_sem, u64::MAX)?;
+        if draw_size != swapchain_size {
+            swapchain_size = draw_size;
+            framebuffers.clear();
+            swapchain = Some(device.khr_swapchain().create(
+                vk::CreateSwapchainFrom::OldSwapchain(
+                    swapchain.take().unwrap(),
+                ),
+                vk::SwapchainCreateInfoKHR {
+                    min_image_count: 3,
+                    image_format: vk::Format::B8G8R8A8_SRGB,
+                    image_extent: vk::Extent2D {
+                        width: swapchain_size.width,
+                        height: swapchain_size.height,
+                    },
+                    image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT
+                        | vk::ImageUsageFlags::TRANSFER_DST,
+                    ..Default::default()
+                },
+            )?);
+        }
+
+        let (img, _subopt) = swapchain
+            .as_mut()
+            .unwrap()
+            .acquire_next_image(&mut acquire_sem, u64::MAX)?;
 
         let framebuffer = framebuffers
             .entry(img.clone())
@@ -210,7 +237,6 @@ fn main() -> anyhow::Result<()> {
             })
             .clone()?;
 
-        cmd_pool.reset(Default::default())?;
         let mut buf = cmd_pool.allocate()?;
         let mut rec = cmd_pool.begin(&mut buf)?;
         let blue =
@@ -222,8 +248,8 @@ fn main() -> anyhow::Result<()> {
             vk::Rect2D {
                 offset: Default::default(),
                 extent: vk::Extent2D {
-                    width: 3840,  //draw_size.width,
-                    height: 2160, // draw_size.height,
+                    width: draw_size.width,
+                    height: draw_size.height,
                 },
             },
             &[vk::ClearValue {
@@ -233,8 +259,8 @@ fn main() -> anyhow::Result<()> {
         pass.set_viewport(&vk::Viewport {
             x: 0.0,
             y: 0.0,
-            width: 3840.,  //draw_size.width as f32,
-            height: 2160., // draw_size.height as f32,
+            width: draw_size.width as f32,
+            height: draw_size.height as f32,
             min_depth: 0.0,
             max_depth: 1.0,
         });
@@ -251,8 +277,14 @@ fn main() -> anyhow::Result<()> {
             }],
             fence.take().unwrap(),
         )?;
-        swapchain.present(&mut queue, &img, &mut present_sem)?;
+        swapchain.as_mut().unwrap().present(
+            &mut queue,
+            &img,
+            &mut present_sem,
+        )?;
         fence = Some(pending_fence.wait()?);
+        drop(buf);
+        cmd_pool.reset(Default::default())?;
         Ok(())
     };
 
