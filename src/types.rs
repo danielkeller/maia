@@ -9,12 +9,6 @@ use std::num::NonZeroI32;
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq)]
 pub struct VkError(pub NonZeroI32);
-const fn _err(code: i32) -> VkError {
-    match NonZeroI32::new(code) {
-        Some(i) => VkError(i),
-        None => panic!("VkError code cannot be 0"),
-    }
-}
 
 impl std::fmt::Display for VkError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -30,7 +24,8 @@ pub type VkResult = std::result::Result<(), VkError>;
 const _: () = assert!(std::mem::size_of::<VkResult>() == 4);
 const _: () =
     assert!(unsafe { std::mem::transmute::<i32, VkResult>(0).is_ok() });
-const _EXPECTED: VkResult = Err(_err(-1));
+const _EXPECTED: VkResult =
+    Err(VkError(unsafe { NonZeroI32::new_unchecked(-1) }));
 const _: () = assert!(matches!(
     unsafe { std::mem::transmute::<i32, VkResult>(-1) },
     _EXPECTED
@@ -77,8 +72,8 @@ impl<T: Copy> Handle<T> {
     pub fn borrow_mut(&mut self) -> Mut<'_, T> {
         Mut { _value: self._value, _lt: PhantomData }
     }
-    /// It is not UB to clone this type, the clones just can't be used at the
-    /// same time.
+    /// The caller must ensure that uses of the result are externally
+    /// synchronized as defined by Vulkan.
     pub unsafe fn clone(&self) -> Self {
         Self { ..*self }
     }
