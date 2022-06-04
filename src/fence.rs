@@ -4,19 +4,16 @@ use crate::error::Result;
 use crate::types::*;
 
 #[derive(Debug)]
-struct FenceRAII {
-    handle: Handle<VkFence>,
-    #[allow(dead_code)]
+pub struct Fence {
+    handle: Option<Handle<VkFence>>,
     device: Arc<Device>,
 }
 
 #[derive(Debug)]
-pub struct Fence(FenceRAII);
-
-#[derive(Debug)]
-#[must_use = "Dropping a pending fence does not wait on it."]
+#[must_use = "Dropping a pending fence leaks it."]
 pub struct PendingFence {
-    fence: FenceRAII,
+    handle: Handle<VkFence>,
+    device: Arc<Device>,
     resources: Cleanup,
 }
 
@@ -31,53 +28,60 @@ impl Device {
                 &mut handle,
             )?;
         }
-        Ok(Fence(FenceRAII { handle: handle.unwrap(), device: self.clone() }))
+        Ok(Fence { handle, device: self.clone() })
     }
 }
 
-impl Drop for FenceRAII {
+impl Drop for Fence {
     fn drop(&mut self) {
-        unsafe {
-            (self.device.fun.destroy_fence)(
-                self.device.borrow(),
-                self.handle.borrow_mut(),
-                None,
-            )
+        if let Some(handle) = &mut self.handle {
+            unsafe {
+                (self.device.fun.destroy_fence)(
+                    self.device.borrow(),
+                    handle.borrow_mut(),
+                    None,
+                )
+            }
         }
     }
 }
 
 impl Fence {
     pub fn borrow_mut(&mut self) -> Mut<VkFence> {
-        self.0.handle.borrow_mut()
+        self.handle.as_mut().unwrap().borrow_mut()
     }
-    pub(crate) fn to_pending(self, resources: Cleanup) -> PendingFence {
-        PendingFence { fence: self.0, resources }
+    pub(crate) fn to_pending(mut self, resources: Cleanup) -> PendingFence {
+        PendingFence {
+            handle: self.handle.take().unwrap(),
+            device: self.device.clone(),
+            resources,
+        }
     }
 }
 
 impl PendingFence {
     pub fn borrow(&self) -> Ref<VkFence> {
-        self.fence.handle.borrow()
+        self.handle.borrow()
     }
-    pub fn wait(mut self) -> Result<Fence> {
+    pub fn wait(self) -> Result<Fence> {
         unsafe {
-            (self.fence.device.fun.wait_for_fences)(
-                self.fence.device.borrow(),
+            (self.device.fun.wait_for_fences)(
+                self.device.borrow(),
                 1,
-                (&[self.fence.handle.borrow()]).into(),
+                (&[self.handle.borrow()]).into(),
                 true.into(),
                 u64::MAX,
             )?;
         }
         self.resources.cleanup();
         unsafe {
-            (self.fence.device.fun.reset_fences)(
-                self.fence.device.borrow(),
+            (self.device.fun.reset_fences)(
+                self.device.borrow(),
                 1,
-                (&[self.fence.handle.borrow_mut()]).into(),
+                // Safe because the the outer structure is owned here
+                (&[self.handle.borrow_mut_unchecked()]).into(),
             )?;
         }
-        Ok(Fence(self.fence))
+        Ok(Fence { handle: Some(self.handle), device: self.device })
     }
 }

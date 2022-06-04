@@ -119,6 +119,11 @@ pub struct DeviceFn {
         Mut<VkDevice>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub device_wait_idle: unsafe extern "system" fn(
+        // Technically not ext. sync. on the device, but on the queues. But
+        // this is safer because the queues borrow the device.
+        Mut<VkDevice>,
+    ) -> VkResult,
     pub get_device_queue: unsafe extern "system" fn(
         Ref<VkDevice>,
         u32,
@@ -331,6 +336,7 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
     let load = |name| inst.load(device, name);
     DeviceFn {
         destroy_device: transmute(load("vkDestroyDevice\0")),
+        device_wait_idle: transmute(load("vkDeviceWaitIdle\0")),
         get_device_queue: transmute(load("vkGetDeviceQueue\0")),
         queue_submit: transmute(load("vkQueueSubmit\0")),
         queue_wait_idle: transmute(load("vkQueueWaitIdle\0")),

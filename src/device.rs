@@ -35,7 +35,10 @@ impl std::hash::Hash for Device {
 
 impl Drop for Device {
     fn drop(&mut self) {
-        unsafe { (self.fun.destroy_device)(self.handle.borrow_mut(), None) }
+        unsafe {
+            (self.fun.device_wait_idle)(self.handle.borrow_mut()).unwrap();
+            (self.fun.destroy_device)(self.handle.borrow_mut(), None);
+        }
     }
 }
 

@@ -7,6 +7,7 @@ use crate::image::Image;
 use crate::image::ImageOwner;
 use crate::queue::Queue;
 use crate::semaphore::Semaphore;
+use crate::semaphore::SemaphoreSignaller;
 use crate::subobject::Owner;
 use crate::subobject::Subobject;
 use crate::types::*;
@@ -231,18 +232,18 @@ impl SwapchainKHR {
                 &mut index,
             )
         };
+        let is_optimal = match res {
+            Ok(()) => ImageOptimality::Optimal,
+            Err(e) => match e.into() {
+                Error::SuboptimalHKR => ImageOptimality::Suboptimal,
+                other => return Err(other),
+            },
+        };
         let (image, acquired) = &mut self.images[index as usize];
         *acquired = true;
         let image = image.clone();
-        match res {
-            Ok(()) => Ok((image, ImageOptimality::Optimal)),
-            Err(e) => match e.into() {
-                Error::SuboptimalHKR => {
-                    Ok((image, ImageOptimality::Suboptimal))
-                }
-                other => Err(other),
-            },
-        }
+        signal.signaller = Some(SemaphoreSignaller::Swapchain(image.clone()));
+        Ok((image, is_optimal))
     }
 
     pub fn present(
@@ -256,8 +257,10 @@ impl SwapchainKHR {
             .iter()
             .position(|h| h.0.borrow() == image.borrow())
             .ok_or(Error::InvalidArgument)?;
+        if wait.signaller.is_none() {
+            return Err(Error::InvalidArgument);
+        }
         let acquired = &mut self.images[index].1;
-        *acquired = false;
 
         let res = unsafe {
             (self.res.fun.queue_present_khr)(
@@ -272,15 +275,16 @@ impl SwapchainKHR {
                 },
             )
         };
-        match res {
-            Ok(()) => Ok(ImageOptimality::Optimal),
+        let is_optimal = match res {
+            Ok(()) => ImageOptimality::Optimal,
             Err(e) => match e.into() {
-                Error::SuboptimalHKR => Ok(ImageOptimality::Suboptimal),
-                other => {
-                    *acquired = true;
-                    Err(other)
-                }
+                Error::SuboptimalHKR => ImageOptimality::Suboptimal,
+                other => return Err(other),
             },
-        }
+        };
+        *acquired = false;
+        queue.resources.push(wait.take_signaller());
+        queue.resources.push(wait.inner.clone());
+        Ok(is_optimal)
     }
 }

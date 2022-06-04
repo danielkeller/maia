@@ -6,7 +6,7 @@ use crate::device::Device;
 use crate::error::{Error, Result};
 use crate::fence::{Fence, PendingFence};
 use crate::ffi::Array;
-use crate::semaphore::Semaphore;
+use crate::semaphore::{Semaphore, SemaphoreSignaller};
 use crate::types::*;
 use crate::vk::PipelineStageFlags;
 
@@ -14,7 +14,7 @@ use crate::vk::PipelineStageFlags;
 pub struct Queue {
     handle: Handle<VkQueue>,
     device: Arc<Device>,
-    resources: CleanupQueue,
+    pub(crate) resources: CleanupQueue,
 }
 
 impl Queue {
@@ -30,17 +30,23 @@ impl Queue {
 }
 
 impl Drop for Queue {
+    /// Waits for the queue to be idle before dropping resources
     fn drop(&mut self) {
         unsafe {
-            let _ = (self.device.fun.queue_wait_idle)(self.handle.borrow_mut());
+            if let Err(err) =
+                (self.device.fun.queue_wait_idle)(self.handle.borrow_mut())
+            {
+                self.resources.leak();
+                panic!("vkQueueWaitIdle failed: {}", err);
+            }
         }
     }
 }
 
 pub struct SubmitInfo<'a> {
-    pub wait: &'a [(&'a Semaphore, PipelineStageFlags)],
+    pub wait: &'a mut [(&'a mut Semaphore, PipelineStageFlags)],
     pub commands: &'a mut [&'a mut CommandBuffer],
-    pub signal: &'a [&'a Semaphore],
+    pub signal: &'a mut [&'a mut Semaphore],
 }
 
 impl Queue {
@@ -49,6 +55,19 @@ impl Queue {
         infos: &mut [SubmitInfo<'_>],
         mut fence: Fence,
     ) -> Result<PendingFence> {
+        for info in infos.iter() {
+            for (sem, _) in info.wait.iter() {
+                if sem.signaller.is_none() {
+                    return Err(Error::InvalidArgument);
+                }
+            }
+            for sem in info.signal.iter() {
+                if sem.signaller.is_some() {
+                    return Err(Error::InvalidArgument);
+                }
+            }
+        }
+
         let mut recordings = vec![];
         let handles = infos
             .iter_mut()
@@ -90,8 +109,18 @@ impl Queue {
         }
 
         for info in infos {
+            for (sem, _) in info.wait.iter_mut() {
+                self.resources.push(sem.take_signaller());
+                self.resources.push(sem.inner.clone());
+            }
             for command in info.commands.iter() {
                 self.resources.push(command.0.clone());
+            }
+            for sem in info.signal.iter_mut() {
+                sem.signaller = Some(SemaphoreSignaller::Queue(
+                    self.resources.new_cleanup(),
+                ));
+                self.resources.push(sem.inner.clone());
             }
         }
         self.resources.extend(recordings.into_iter());

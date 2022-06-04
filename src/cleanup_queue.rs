@@ -17,6 +17,10 @@ pub struct Cleanup {
     array: Arc<Box<[QueueEntry]>>,
 }
 
+/// Cleans up on drop
+#[derive(Debug)]
+pub struct CleanupRAII(Cleanup);
+
 #[derive(Debug)]
 struct QueueEntry {
     guard: AtomicU64,
@@ -83,6 +87,12 @@ impl CleanupQueue {
         self.level += 1;
         result
     }
+    /// Prevent any resources from being freed when the CleanupQueue is dropped.
+    /// cleanup() can still be called on any outstanding Cleanup, freeing the
+    /// corresponding resources.
+    pub fn leak(&self) {
+        std::mem::forget(self.array.clone())
+    }
 }
 
 impl<T: Send + Sync + 'static> std::iter::Extend<Arc<T>> for CleanupQueue {
@@ -124,6 +134,16 @@ impl Cleanup {
             cursor =
                 if cursor == 0 { self.array.len() - 1 } else { cursor - 1 };
         }
+    }
+
+    pub fn raii(self) -> CleanupRAII {
+        CleanupRAII(self)
+    }
+}
+
+impl Drop for CleanupRAII {
+    fn drop(&mut self) {
+        self.0.cleanup()
     }
 }
 

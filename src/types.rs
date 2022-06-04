@@ -82,6 +82,11 @@ impl<T: Copy> Handle<T> {
     pub unsafe fn clone(&self) -> Self {
         Self { ..*self }
     }
+    /// The caller must ensure that uses of the result are externally
+    /// synchronized as defined by Vulkan.
+    pub unsafe fn borrow_mut_unchecked(&self) -> Mut<'_, T> {
+        Mut { _value: self._value, _lt: PhantomData }
+    }
 }
 
 /// Borrowed Vulkan handle

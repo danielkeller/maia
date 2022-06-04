@@ -173,7 +173,7 @@ fn main() -> anyhow::Result<()> {
             dynamic_state: Some(&vk::PipelineDynamicStateCreateInfo {
                 dynamic_states: vk::Slice_::from(&[
                     vk::DynamicState::VIEWPORT,
-                    vk::DynamicState::SCISSOR,
+                    //vk::DynamicState::SCISSOR,
                 ]),
                 ..Default::default()
             }),
@@ -232,7 +232,11 @@ fn main() -> anyhow::Result<()> {
                 render_pass.create_framebuffer(
                     Default::default(),
                     vec![img_view],
-                    vk::Extent3D { width: 3840, height: 2160, depth: 1 },
+                    vk::Extent3D {
+                        width: swapchain_size.width,
+                        height: swapchain_size.height,
+                        depth: 1,
+                    },
                 )
             })
             .clone()?;
@@ -271,9 +275,12 @@ fn main() -> anyhow::Result<()> {
         rec.end()?;
         let pending_fence = queue.submit(
             &mut [vk::SubmitInfo {
-                wait: &[(&acquire_sem, vk::PipelineStageFlags::TOP_OF_PIPE)],
+                wait: &mut [(
+                    &mut acquire_sem,
+                    vk::PipelineStageFlags::TOP_OF_PIPE,
+                )],
                 commands: &mut [&mut buf],
-                signal: &[&present_sem],
+                signal: &mut [&mut present_sem],
             }],
             fence.take().unwrap(),
         )?;
