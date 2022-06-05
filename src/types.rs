@@ -134,68 +134,55 @@ pub struct VkQueue(NonNullDispatchableHandle);
 
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VkDeviceMemory(NonNullNonDispatchableHandle);
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkSemaphore(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkFence(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkSampler(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkDescriptorSetLayout(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkPipelineLayout(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkPipelineCache(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkPipeline(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkBuffer(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkImage(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkImageView(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkFramebuffer(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkRenderPass(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkShaderModule(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkCommandPool(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkCommandBuffer(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkSurfaceKHR(NonNullNonDispatchableHandle);
-
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkSwapchainKHR(NonNullNonDispatchableHandle);
@@ -325,6 +312,35 @@ pub struct Viewport {
     pub height: f32,
     pub min_depth: f32,
     pub max_depth: f32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct MemoryType {
+    pub property_flags: MemoryPropertyFlags,
+    pub heap_index: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct MemoryHeap {
+    pub size: u64,
+    pub flags: MemoryHeapFlags,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct PhysicalDeviceMemoryProperties {
+    pub memory_types: InlineSlice<MemoryType, 32>,
+    pub memory_heaps: InlineSlice<MemoryHeap, 16>,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct MemoryRequirements {
+    pub size: u64,
+    pub alignment: u64,
+    pub memory_type_bits: u32,
 }
 
 pub enum AllocationCallbacks {}
@@ -610,6 +626,16 @@ structure_type!(SubmitInfoType, 4);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+pub struct MemoryAllocateInfo<Next = Null> {
+    pub stype: MemoryAllocateInfoType,
+    pub next: Next,
+    pub allocation_size: u64,
+    pub memory_type_index: u32,
+}
+structure_type!(MemoryAllocateInfoType, 5);
+
+#[repr(C)]
+#[derive(Debug, Default)]
 pub struct FenceCreateInfo<Next = Null> {
     pub stype: FenceCreateInfoType,
     pub next: Next,
@@ -625,6 +651,39 @@ pub struct SemaphoreCreateInfo<Next = Null> {
     pub flags: SemaphoreCreateFlags,
 }
 structure_type!(SemaphoreCreateInfoType, 9);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct BufferCreateInfo<'a, Next = Null> {
+    pub stype: BufferCreateInfoType,
+    pub next: Next,
+    pub flags: BufferCreateFlags,
+    pub size: u64,
+    pub usage: BufferUsageFlags,
+    pub sharing_mode: SharingMode,
+    pub queue_family_indices: Slice<'a, u32>,
+}
+structure_type!(BufferCreateInfoType, 12);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct ImageCreateInfo<'a, Next = Null> {
+    pub stype: ImageCreateInfoType,
+    pub next: Next,
+    pub flags: ImageCreateFlags,
+    pub image_type: ImageType,
+    pub format: Format,
+    pub extent: Extent3D,
+    pub mip_levels: u32,
+    pub array_layers: u32,
+    pub samples: SampleCount,
+    pub tiling: ImageTiling,
+    pub usage: ImageUsageFlags,
+    pub sharing_mode: SharingMode,
+    pub queue_family_indices: Slice<'a, u32>,
+    pub initial_layout: ImageLayout,
+}
+structure_type!(ImageCreateInfoType, 14);
 
 #[repr(C)]
 #[derive(Debug)]

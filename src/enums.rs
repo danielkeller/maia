@@ -353,6 +353,104 @@ flags!(SemaphoreCreateFlags, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BufferCreateFlags(u32);
+impl BufferCreateFlags {
+    pub const SPARSE_BINDING: Self = Self(0x1);
+    pub const SPARSE_RESIDENCY: Self = Self(0x2);
+    pub const SPARSE_ALIASED: Self = Self(0x4);
+}
+flags!(BufferCreateFlags, [SPARSE_BINDING, SPARSE_RESIDENCY, SPARSE_ALIASED]);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct BufferUsageFlags(u32);
+impl BufferUsageFlags {
+    pub const TRANSFER_SRC: Self = Self(0x00001);
+    pub const TRANSFER_DST: Self = Self(0x00002);
+    pub const UNIFORM_TEXEL_BUFFER: Self = Self(0x00004);
+    pub const STORAGE_TEXEL_BUFFER: Self = Self(0x00008);
+    pub const UNIFORM_BUFFER: Self = Self(0x00010);
+    pub const STORAGE_BUFFER: Self = Self(0x00020);
+    pub const INDEX_BUFFER: Self = Self(0x00040);
+    pub const VERTEX_BUFFER: Self = Self(0x00080);
+    pub const INDIRECT_BUFFER: Self = Self(0x00100);
+    pub const SHADER_DEVICE_ADDRESS: Self = Self(0x20000);
+}
+flags!(
+    BufferUsageFlags,
+    [
+        TRANSFER_SRC,
+        TRANSFER_DST,
+        UNIFORM_TEXEL_BUFFER,
+        STORAGE_TEXEL_BUFFER,
+        UNIFORM_BUFFER,
+        STORAGE_BUFFER,
+        INDEX_BUFFER,
+        VERTEX_BUFFER,
+        INDIRECT_BUFFER,
+        SHADER_DEVICE_ADDRESS
+    ]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ImageCreateFlags(u32);
+impl ImageCreateFlags {
+    pub const SPARSE_BINDING: Self = Self(0x001);
+    pub const SPARSE_RESIDENCY: Self = Self(0x002);
+    pub const SPARSE_ALIASED: Self = Self(0x004);
+    pub const MUTABLE_FORMAT: Self = Self(0x008);
+    pub const CUBE_COMPATIBLE: Self = Self(0x010);
+    pub const ALIAS: Self = Self(0x400);
+    pub const SPLIT_INSTANCE_BIND_REGIONS: Self = Self(0x040);
+    pub const _2D_ARRAY_COMPATIBLE: Self = Self(0x020);
+    pub const BLOCK_TEXEL_VIEW_COMPATIBLE: Self = Self(0x080);
+    pub const EXTENDED_USAGE: Self = Self(0x100);
+    pub const PROTECTED: Self = Self(0x800);
+    pub const DISJOINT: Self = Self(0x200);
+}
+flags!(
+    ImageCreateFlags,
+    [
+        SPARSE_BINDING,
+        SPARSE_RESIDENCY,
+        SPARSE_ALIASED,
+        MUTABLE_FORMAT,
+        CUBE_COMPATIBLE,
+        ALIAS,
+        SPLIT_INSTANCE_BIND_REGIONS,
+        _2D_ARRAY_COMPATIBLE,
+        BLOCK_TEXEL_VIEW_COMPATIBLE,
+        EXTENDED_USAGE,
+        PROTECTED,
+        DISJOINT
+    ]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub struct ImageType(u32);
+impl ImageType {
+    pub const _1D: Self = Self(0);
+    pub const _2D: Self = Self(1);
+    pub const _3D: Self = Self(2);
+}
+impl Default for ImageType {
+    fn default() -> Self {
+        Self::_2D
+    }
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct ImageTiling(u32);
+impl ImageTiling {
+    pub const OPTIMAL: Self = Self(0);
+    pub const LINEAR: Self = Self(1);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ImageViewCreateFlags(u32);
 flags!(ImageViewCreateFlags, []);
 
@@ -1279,6 +1377,38 @@ flags!(
         COMPUTE
     ]
 );
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MemoryPropertyFlags(u32);
+impl MemoryPropertyFlags {
+    pub const DEVICE_LOCAL: Self = Self(0x01);
+    pub const HOST_VISIBLE: Self = Self(0x02);
+    pub const HOST_COHERENT: Self = Self(0x04);
+    pub const HOST_CACHED: Self = Self(0x08);
+    pub const LAZILY_ALLOCATED: Self = Self(0x10);
+    pub const PROTECTED: Self = Self(0x20);
+}
+flags!(
+    MemoryPropertyFlags,
+    [
+        DEVICE_LOCAL,
+        HOST_VISIBLE,
+        HOST_COHERENT,
+        HOST_CACHED,
+        LAZILY_ALLOCATED,
+        PROTECTED
+    ]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MemoryHeapFlags(u32);
+impl MemoryHeapFlags {
+    pub const DEVICE_LOCAL: Self = Self(0x1);
+    pub const MULTI_INSTANCE: Self = Self(0x2);
+}
+flags!(MemoryHeapFlags, [DEVICE_LOCAL, MULTI_INSTANCE]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

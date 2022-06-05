@@ -1,6 +1,7 @@
 use crate::enums::*;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::ext::khr_swapchain::SwapchainImages;
+use crate::memory::DeviceMemory;
 use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::Device;
@@ -10,14 +11,21 @@ use std::fmt::Debug;
 #[derive(Debug)]
 pub(crate) enum ImageOwner {
     Swapchain(Subobject<SwapchainImages>),
-    Application, // TODO: Check for this on drop
+    Application(Arc<DeviceMemory>),
+}
+
+#[must_use = "Image is leaked if it is not bound to memory"]
+#[derive(Debug)]
+pub struct ImageWithoutMemory {
+    handle: Handle<VkImage>,
+    device: Arc<Device>,
 }
 
 #[derive(Debug)]
 pub struct Image {
     handle: Handle<VkImage>,
     pub(crate) device: Arc<Device>,
-    _res: ImageOwner,
+    res: ImageOwner,
 }
 
 impl PartialEq for Image {
@@ -33,13 +41,85 @@ impl std::hash::Hash for Image {
     }
 }
 
+impl Device {
+    pub fn create_image(
+        self: &Arc<Self>,
+        info: &ImageCreateInfo<'_>,
+    ) -> Result<ImageWithoutMemory> {
+        let mut handle = None;
+        unsafe {
+            (self.fun.create_image)(self.borrow(), info, None, &mut handle)?;
+        }
+        Ok(ImageWithoutMemory { handle: handle.unwrap(), device: self.clone() })
+    }
+}
+impl DeviceMemory {
+    pub fn bind_image_memory(
+        self: &Arc<Self>,
+        mut image: ImageWithoutMemory,
+        offset: u64,
+    ) -> Result<Arc<Image>> {
+        let mem_req = image.memory_requirements();
+        if !Arc::ptr_eq(&self.device, &image.device)
+            || 1 << self.type_index() & mem_req.memory_type_bits == 0
+            || offset & (mem_req.alignment - 1) != 0
+        {
+            return Err(Error::InvalidArgument);
+        }
+        unsafe {
+            (self.device.fun.bind_image_memory)(
+                self.device.borrow(),
+                image.borrow_mut(),
+                self.borrow(),
+                offset,
+            )?;
+        }
+        Ok(Arc::new(Image {
+            handle: image.handle,
+            device: image.device,
+            res: ImageOwner::Application(self.clone()),
+        }))
+    }
+}
+
+impl Drop for Image {
+    fn drop(&mut self) {
+        if let ImageOwner::Application(_) = &self.res {
+            unsafe {
+                (self.device.fun.destroy_image)(
+                    self.device.borrow(),
+                    self.handle.borrow_mut(),
+                    None,
+                )
+            }
+        }
+    }
+}
+
+impl ImageWithoutMemory {
+    pub fn borrow_mut(&mut self) -> Mut<VkImage> {
+        self.handle.borrow_mut()
+    }
+    pub fn memory_requirements(&self) -> MemoryRequirements {
+        let mut result = Default::default();
+        unsafe {
+            (self.device.fun.get_image_memory_requirements)(
+                self.device.borrow(),
+                self.handle.borrow(),
+                &mut result,
+            );
+        }
+        result
+    }
+}
+
 impl Image {
     pub(crate) fn new(
         handle: Handle<VkImage>,
         device: Arc<Device>,
-        _res: ImageOwner,
+        res: ImageOwner,
     ) -> Self {
-        Self { handle, device, _res }
+        Self { handle, device, res }
     }
 
     pub fn borrow(&self) -> Ref<VkImage> {

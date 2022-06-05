@@ -1,3 +1,4 @@
+mod buffer;
 mod cleanup_queue;
 mod command_buffer;
 mod descriptor_set;
@@ -11,6 +12,7 @@ mod framebuffer;
 mod image;
 mod instance;
 mod load;
+mod memory;
 mod physical_device;
 mod pipeline;
 mod queue;

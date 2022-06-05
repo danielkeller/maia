@@ -1,8 +1,8 @@
 pub use std::ffi::c_void;
-use std::ffi::CStr;
 pub use std::marker::PhantomData;
 use std::os::raw::c_char;
 pub use std::ptr::NonNull;
+use std::{ffi::CStr, mem::MaybeUninit};
 
 /// The null pointer
 #[repr(transparent)]
@@ -110,6 +110,40 @@ impl<const N: usize, const M: usize> PartialEq<CharArray<M>> for CharArray<N> {
 impl<'a, const N: usize> PartialEq<Str<'a>> for CharArray<N> {
     fn eq(&self, other: &Str<'a>) -> bool {
         self.as_str() == other.as_str()
+    }
+}
+
+/// An owned contiguous sequence of T, represented as a u32 and an inline array.
+#[repr(C)]
+#[derive(Debug)]
+pub struct InlineSlice<T, const N: usize> {
+    count: u32,
+    value: [MaybeUninit<T>; N],
+}
+
+impl<T, const N: usize> InlineSlice<T, N> {
+    pub fn len(&self) -> u32 {
+        self.count
+    }
+    /// Convert back into a normal rust slice
+    #[inline]
+    pub fn as_slice(&self) -> &[T] {
+        unsafe {
+            std::slice::from_raw_parts(
+                self.value.as_ptr() as *const T,
+                self.count as usize,
+            )
+        }
+    }
+}
+
+impl<T, const N: usize> Default for InlineSlice<T, N> {
+    fn default() -> Self {
+        Self {
+            count: 0,
+            // The MaybeUninit members are initialized when uninitialized
+            value: unsafe { MaybeUninit::uninit().assume_init() },
+        }
     }
 }
 

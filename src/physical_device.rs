@@ -24,6 +24,17 @@ impl PhysicalDevice {
     }
 }
 
+impl Clone for PhysicalDevice {
+    fn clone(&self) -> Self {
+        Self {
+            // Safety: phyiscal device has no externally synchronized functions
+            // and is not freed
+            handle: unsafe { self.handle.clone() },
+            instance: self.instance.clone(),
+        }
+    }
+}
+
 impl PhysicalDevice {
     pub fn properties(&self) -> PhysicalDeviceProperties {
         let mut result = MaybeUninit::uninit();
@@ -52,6 +63,17 @@ impl PhysicalDevice {
                 ArrayMut::from_slice(result.spare_capacity_mut()),
             );
             result.set_len(len as usize);
+        }
+        result
+    }
+
+    pub fn memory_properties(&self) -> PhysicalDeviceMemoryProperties {
+        let mut result = Default::default();
+        unsafe {
+            (self.instance.fun.get_physical_device_memory_properties)(
+                self.borrow(),
+                &mut result,
+            );
         }
         result
     }
@@ -105,6 +127,6 @@ impl PhysicalDevice {
                 &mut handle,
             )?;
         }
-        Ok(Device::new(handle.unwrap(), self.instance.clone(), queues))
+        Ok(Device::new(handle.unwrap(), self.clone(), queues))
     }
 }

@@ -2,16 +2,15 @@ use std::ffi::c_void;
 use std::ptr::NonNull;
 
 use crate::error::{Error, Result};
-use crate::instance::Instance;
 use crate::load::DeviceFn;
+use crate::physical_device::PhysicalDevice;
 use crate::queue::Queue;
 use crate::types::*;
 
 pub struct Device {
     handle: Handle<VkDevice>,
     pub(crate) fun: DeviceFn,
-    #[allow(dead_code)]
-    instance: Arc<Instance>,
+    physical_device: PhysicalDevice,
     pub(crate) queues: Vec<u32>,
 }
 
@@ -45,14 +44,17 @@ impl Drop for Device {
 impl Device {
     pub(crate) fn new(
         handle: Handle<VkDevice>,
-        instance: Arc<Instance>,
+        physical_device: PhysicalDevice,
         queues: Vec<u32>,
     ) -> Arc<Self> {
-        let fun = DeviceFn::new(&instance, handle.borrow());
-        Arc::new(Device { handle, fun, instance, queues })
+        let fun = DeviceFn::new(&physical_device.instance, handle.borrow());
+        Arc::new(Device { handle, fun, physical_device, queues })
     }
     pub fn borrow(&self) -> Ref<VkDevice> {
         self.handle.borrow()
+    }
+    pub fn physical_device(&self) -> &PhysicalDevice {
+        &self.physical_device
     }
 }
 
@@ -60,7 +62,7 @@ impl Device {
     /// Load device function. Panics if the string is not null-terminated or the
     /// function was not found.
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
-        self.instance.load(self.borrow(), name)
+        self.physical_device.instance.load(self.borrow(), name)
     }
 
     pub fn queue(
