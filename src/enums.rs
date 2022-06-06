@@ -1412,6 +1412,11 @@ flags!(MemoryHeapFlags, [DEVICE_LOCAL, MULTI_INSTANCE]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct MemoryMapFlags(u32);
+flags!(MemoryMapFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SwapchainCreateFlagsKHR(u32);
 impl SwapchainCreateFlagsKHR {
     pub const SPLIT_INSTANCE_BIND_REGIONS: Self = Self(0x1);

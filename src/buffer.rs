@@ -1,5 +1,6 @@
 use crate::error::{Error, Result};
-use crate::memory::DeviceMemory;
+use crate::memory::{DeviceMemory, MemoryPayload};
+use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::Device;
 
@@ -13,7 +14,8 @@ pub struct BufferWithoutMemory {
 #[derive(Debug)]
 pub struct Buffer {
     handle: Handle<VkBuffer>,
-    memory: Arc<DeviceMemory>,
+    memory: Subobject<MemoryPayload>,
+    device: Arc<Device>,
 }
 
 impl Device {
@@ -38,29 +40,33 @@ impl DeviceMemory {
         offset: u64,
     ) -> Result<Arc<Buffer>> {
         let mem_req = buffer.memory_requirements();
-        if !Arc::ptr_eq(&self.device, &buffer.device)
+        if !Arc::ptr_eq(&self.inner.device, &buffer.device)
             || 1 << self.type_index() & mem_req.memory_type_bits == 0
             || offset & (mem_req.alignment - 1) != 0
         {
             return Err(Error::InvalidArgument);
         }
         unsafe {
-            (self.device.fun.bind_buffer_memory)(
-                self.device.borrow(),
+            (self.inner.device.fun.bind_buffer_memory)(
+                self.inner.device.borrow(),
                 buffer.handle.borrow_mut(),
                 self.borrow(),
                 offset,
             )?;
         }
-        Ok(Arc::new(Buffer { handle: buffer.handle, memory: self.clone() }))
+        Ok(Arc::new(Buffer {
+            handle: buffer.handle,
+            memory: Subobject::new(&self.inner),
+            device: self.inner.device.clone(),
+        }))
     }
 }
 
 impl Drop for Buffer {
     fn drop(&mut self) {
         unsafe {
-            (self.memory.device.fun.destroy_buffer)(
-                self.memory.device.borrow(),
+            (self.device.fun.destroy_buffer)(
+                self.device.borrow(),
                 self.handle.borrow_mut(),
                 None,
             )

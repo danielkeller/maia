@@ -1,7 +1,7 @@
 use crate::enums::*;
 use crate::error::{Error, Result};
 use crate::ext::khr_swapchain::SwapchainImages;
-use crate::memory::DeviceMemory;
+use crate::memory::{DeviceMemory, MemoryPayload};
 use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::Device;
@@ -11,7 +11,7 @@ use std::fmt::Debug;
 #[derive(Debug)]
 pub(crate) enum ImageOwner {
     Swapchain(Subobject<SwapchainImages>),
-    Application(Arc<DeviceMemory>),
+    Application(Subobject<MemoryPayload>),
 }
 
 #[must_use = "Image is leaked if it is not bound to memory"]
@@ -55,20 +55,20 @@ impl Device {
 }
 impl DeviceMemory {
     pub fn bind_image_memory(
-        self: &Arc<Self>,
+        &self,
         mut image: ImageWithoutMemory,
         offset: u64,
     ) -> Result<Arc<Image>> {
         let mem_req = image.memory_requirements();
-        if !Arc::ptr_eq(&self.device, &image.device)
+        if !Arc::ptr_eq(&self.inner.device, &image.device)
             || 1 << self.type_index() & mem_req.memory_type_bits == 0
             || offset & (mem_req.alignment - 1) != 0
         {
             return Err(Error::InvalidArgument);
         }
         unsafe {
-            (self.device.fun.bind_image_memory)(
-                self.device.borrow(),
+            (self.inner.device.fun.bind_image_memory)(
+                self.inner.device.borrow(),
                 image.borrow_mut(),
                 self.borrow(),
                 offset,
@@ -77,7 +77,7 @@ impl DeviceMemory {
         Ok(Arc::new(Image {
             handle: image.handle,
             device: image.device,
-            res: ImageOwner::Application(self.clone()),
+            res: ImageOwner::Application(Subobject::new(&self.inner)),
         }))
     }
 }

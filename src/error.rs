@@ -43,3 +43,18 @@ impl From<VkError> for Error {
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
+
+pub struct ErrorAndSelf<T>(pub Error, pub T);
+
+impl<T> std::fmt::Debug for ErrorAndSelf<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, f)
+    }
+}
+impl<T> std::fmt::Display for ErrorAndSelf<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self.0, f)
+    }
+}
+impl<T> std::error::Error for ErrorAndSelf<T> {}
+pub type ResultAndSelf<T, S> = std::result::Result<T, ErrorAndSelf<S>>;

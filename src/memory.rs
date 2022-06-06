@@ -1,12 +1,19 @@
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
+use crate::subobject::Owner;
 use crate::types::*;
 use crate::vk::Device;
 
 #[derive(Debug)]
-pub struct DeviceMemory {
+pub(crate) struct MemoryPayload {
     handle: Handle<VkDeviceMemory>,
-    memory_type_index: u32,
     pub(crate) device: Arc<Device>,
+}
+
+#[derive(Debug)]
+pub struct DeviceMemory {
+    pub(crate) inner: Owner<MemoryPayload>,
+    allocation_size: u64,
+    memory_type_index: u32,
 }
 
 impl Device {
@@ -14,7 +21,7 @@ impl Device {
         self: &Arc<Self>,
         allocation_size: u64,
         memory_type_index: u32,
-    ) -> Result<Arc<DeviceMemory>> {
+    ) -> Result<DeviceMemory> {
         let mem_types = self.physical_device().memory_properties();
         if memory_type_index >= mem_types.memory_types.len() {
             return Err(Error::InvalidArgument);
@@ -33,15 +40,18 @@ impl Device {
                 &mut handle,
             )?;
         }
-        Ok(Arc::new(DeviceMemory {
-            handle: handle.unwrap(),
+        Ok(DeviceMemory {
+            allocation_size,
             memory_type_index,
-            device: self.clone(),
-        }))
+            inner: Owner::new(MemoryPayload {
+                handle: handle.unwrap(),
+                device: self.clone(),
+            }),
+        })
     }
 }
 
-impl Drop for DeviceMemory {
+impl Drop for MemoryPayload {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.free_memory)(
@@ -55,9 +65,72 @@ impl Drop for DeviceMemory {
 
 impl DeviceMemory {
     pub fn borrow(&self) -> Ref<VkDeviceMemory> {
-        self.handle.borrow()
+        self.inner.handle.borrow()
+    }
+    pub fn borrow_mut(&mut self) -> Mut<VkDeviceMemory> {
+        self.inner.handle.borrow_mut()
     }
     pub fn type_index(&self) -> u32 {
         self.memory_type_index
+    }
+}
+
+pub struct MappedMemory {
+    memory: DeviceMemory,
+    _offset: u64,
+    size: usize,
+    ptr: *mut u8,
+}
+
+impl DeviceMemory {
+    pub fn map(
+        mut self,
+        offset: u64,
+        size: usize,
+    ) -> ResultAndSelf<MappedMemory, Self> {
+        let (end, overflow) = offset.overflowing_add(size as u64);
+        if overflow || end > self.allocation_size {
+            return Err(ErrorAndSelf(Error::InvalidArgument, self));
+        }
+        let inner = &mut *self.inner;
+        let mut ptr = std::ptr::null_mut();
+        unsafe {
+            if let Err(err) = (inner.device.fun.map_memory)(
+                inner.device.borrow(),
+                inner.handle.borrow_mut(),
+                offset,
+                size as u64,
+                Default::default(),
+                &mut ptr,
+            ) {
+                return Err(ErrorAndSelf(err.into(), self));
+            }
+        }
+        Ok(MappedMemory { memory: self, _offset: offset, size, ptr })
+    }
+}
+
+impl MappedMemory {
+    pub fn unmap(mut self) -> DeviceMemory {
+        let inner = &mut *self.memory.inner;
+        unsafe {
+            (inner.device.fun.unmap_memory)(
+                inner.device.borrow(),
+                inner.handle.borrow_mut(),
+            )
+        }
+        self.memory
+    }
+
+    pub fn memory(&self) -> &DeviceMemory {
+        &self.memory
+    }
+
+    pub fn slice(&self) -> &[u8] {
+        unsafe { std::slice::from_raw_parts(self.ptr, self.size) }
+    }
+
+    pub fn slice_mut(&mut self) -> &mut [u8] {
+        unsafe { std::slice::from_raw_parts_mut(self.ptr, self.size) }
     }
 }

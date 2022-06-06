@@ -57,6 +57,7 @@ pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
 }
 
 pub mod vk {
+    pub use crate::buffer::{Buffer, BufferWithoutMemory};
     pub use crate::command_buffer::command::ImageMemoryBarrier;
     pub use crate::create_instance;
     pub use crate::device::Device;
@@ -66,9 +67,12 @@ pub mod vk {
         CreateSwapchainFrom, KHRSwapchain, SwapchainCreateInfoKHR,
     };
     pub use crate::ffi::*;
-    pub use crate::image::{Image, ImageView, ImageViewCreateInfo};
+    pub use crate::image::{
+        Image, ImageView, ImageViewCreateInfo, ImageWithoutMemory,
+    };
     pub use crate::instance::Instance;
     pub use crate::instance_extension_properties;
+    pub use crate::memory::DeviceMemory;
     pub use crate::physical_device::PhysicalDevice;
     pub use crate::queue::Queue;
     pub use crate::queue::SubmitInfo;

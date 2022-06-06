@@ -151,6 +151,16 @@ pub struct DeviceFn {
         Option<&'_ AllocationCallbacks>,
         &mut Option<Handle<VkDeviceMemory>>,
     ) -> VkResult,
+    pub map_memory: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkDeviceMemory>,
+        u64,
+        u64,
+        MemoryMapFlags,
+        &mut *mut u8,
+    ) -> VkResult,
+    pub unmap_memory:
+        unsafe extern "system" fn(Ref<VkDevice>, Mut<VkDeviceMemory>),
     pub free_memory: unsafe extern "system" fn(
         Ref<VkDevice>,
         Mut<VkDeviceMemory>,
@@ -404,6 +414,8 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         queue_submit: transmute(load("vkQueueSubmit\0")),
         queue_wait_idle: transmute(load("vkQueueWaitIdle\0")),
         allocate_memory: transmute(load("vkAllocateMemory\0")),
+        map_memory: transmute(load("vkMapMemory\0")),
+        unmap_memory: transmute(load("vkUnmapMemory\0")),
         free_memory: transmute(load("vkFreeMemory\0")),
         create_fence: transmute(load("vkCreateFence\0")),
         destroy_fence: transmute(load("vkDestroyFence\0")),
