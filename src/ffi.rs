@@ -215,6 +215,13 @@ impl<'a, T> From<&'a [T]> for Slice<'a, T> {
     }
 }
 
+/// Panics if the slice has 2^32 or more elements
+impl<'a, T> From<&'a mut [T]> for Slice<'a, T> {
+    fn from(ts: &'a mut [T]) -> Self {
+        (&*ts).into()
+    }
+}
+
 /// Panics if the Vec has 2^32 or more elements
 impl<'a, T> From<&'a Vec<T>> for Slice<'a, T> {
     fn from(ts: &'a Vec<T>) -> Self {
@@ -300,6 +307,13 @@ impl<'a, T> From<&'a [T]> for Slice_<'a, T> {
             ptr: unsafe { std::mem::transmute(ts.as_ptr()) },
             _lt: PhantomData,
         }
+    }
+}
+
+/// Panics if the slice has 2^32 or more elements
+impl<'a, T> From<&'a mut [T]> for Slice_<'a, T> {
+    fn from(ts: &'a mut [T]) -> Self {
+        (&*ts).into()
     }
 }
 

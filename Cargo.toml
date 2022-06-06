@@ -8,6 +8,7 @@ description = "Safe low-level Vulkan bindings"
 
 [dependencies]
 raw-window-handle = { version = "0.4", optional = true }
+bumpalo = { version = "3.10", features = ["collections"] }
 
 [target.'cfg(any(target_os = "macos", target_os = "ios"))'.dependencies]
 raw-window-metal = { version = "0.2", optional = true }

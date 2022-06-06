@@ -15,7 +15,11 @@ pub mod command;
 pub struct CommandPool {
     recording: Arc<RecordedCommands>,
     res: Owner<CommandPoolLifetime>,
+    scratch: bumpalo::Bump,
 }
+
+// Safety: 'scratch' is not accessed by any shared-ref methods
+unsafe impl Sync for CommandPool {}
 
 #[must_use = "Leaks pool resources if not freed"]
 #[derive(Debug)]
@@ -96,6 +100,7 @@ impl Device {
         Ok(CommandPool {
             res,
             recording: Arc::new(RecordedCommands { generation: 1, _res }),
+            scratch: bumpalo::Bump::new(),
         })
     }
 }

@@ -34,8 +34,30 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
-// TODO
-// pub struct BufferMemoryBarrier {}
+pub struct BufferMemoryBarrier {
+    pub src_access_mask: AccessFlags,
+    pub dst_access_mask: AccessFlags,
+    pub src_queue_family_index: u32,
+    pub dst_queue_family_index: u32,
+    pub buffer: Arc<Buffer>,
+    pub offset: u64,
+    pub size: u64,
+}
+impl BufferMemoryBarrier {
+    fn vk(&self) -> VkBufferMemoryBarrier {
+        VkBufferMemoryBarrier {
+            stype: Default::default(),
+            next: Default::default(),
+            src_access_mask: self.src_access_mask,
+            dst_access_mask: self.dst_access_mask,
+            src_queue_family_index: self.src_queue_family_index,
+            dst_queue_family_index: self.dst_queue_family_index,
+            buffer: self.buffer.borrow(),
+            offset: self.offset,
+            size: self.size,
+        }
+    }
+}
 pub struct ImageMemoryBarrier {
     pub src_access_mask: AccessFlags,
     pub dst_access_mask: AccessFlags,
@@ -46,6 +68,22 @@ pub struct ImageMemoryBarrier {
     pub image: Arc<Image>,
     pub subresource_range: ImageSubresourceRange,
 }
+impl ImageMemoryBarrier {
+    fn vk(&self) -> VkImageMemoryBarrier {
+        VkImageMemoryBarrier {
+            stype: Default::default(),
+            next: Default::default(),
+            src_access_mask: self.src_access_mask,
+            dst_access_mask: self.dst_access_mask,
+            old_layout: self.old_layout,
+            new_layout: self.new_layout,
+            src_queue_family_index: self.src_queue_family_index,
+            dst_queue_family_index: self.dst_queue_family_index,
+            image: self.image.borrow(),
+            subresource_range: self.subresource_range,
+        }
+    }
+}
 
 impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
     pub fn pipeline_barrier(
@@ -54,7 +92,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         dst_stage_mask: PipelineStageFlags,
         dependency_flags: DependencyFlags,
         memory_barriers: &[MemoryBarrier],
-        buffer_memory_barriers: &[()],
+        buffer_memory_barriers: &[BufferMemoryBarrier],
         image_memory_barriers: &[ImageMemoryBarrier],
     ) {
         self.0.pipeline_barrier(
@@ -75,29 +113,21 @@ impl<'a> CommandRecording<'a> {
         dst_stage_mask: PipelineStageFlags,
         dependency_flags: DependencyFlags,
         memory_barriers: &[MemoryBarrier],
-        buffer_memory_barriers: &[()],
+        buffer_memory_barriers: &[BufferMemoryBarrier],
         image_memory_barriers: &[ImageMemoryBarrier],
     ) {
-        let vk_buffer_barriers: Vec<_> =
-            buffer_memory_barriers.iter().map(|_| unimplemented!()).collect();
-        let vk_image_barriers: Vec<_> = image_memory_barriers
-            .iter()
-            .map(|barrier| {
-                self.add_resource(barrier.image.clone());
-                VkImageMemoryBarrier {
-                    stype: Default::default(),
-                    next: Default::default(),
-                    src_access_mask: barrier.src_access_mask,
-                    dst_access_mask: barrier.dst_access_mask,
-                    old_layout: barrier.old_layout,
-                    new_layout: barrier.new_layout,
-                    src_queue_family_index: barrier.src_queue_family_index,
-                    dst_queue_family_index: barrier.dst_queue_family_index,
-                    image: barrier.image.borrow(),
-                    subresource_range: barrier.subresource_range,
-                }
-            })
-            .collect();
+        for b in buffer_memory_barriers {
+            self.add_resource(b.buffer.clone());
+        }
+        for b in image_memory_barriers {
+            self.add_resource(b.image.clone());
+        }
+        let vk_buffer_barriers = self.pool.scratch.alloc_slice_fill_iter(
+            buffer_memory_barriers.iter().map(|b| b.vk()),
+        );
+        let vk_image_barriers = self.pool.scratch.alloc_slice_fill_iter(
+            image_memory_barriers.iter().map(|b| b.vk()),
+        );
 
         unsafe {
             (self.pool.res.device.fun.cmd_pipeline_barrier)(
@@ -108,11 +138,12 @@ impl<'a> CommandRecording<'a> {
                 memory_barriers.len() as u32,
                 Array::from_slice(memory_barriers),
                 vk_buffer_barriers.len() as u32,
-                Array::from_slice(&vk_buffer_barriers),
+                Array::from_slice(vk_buffer_barriers),
                 vk_image_barriers.len() as u32,
-                Array::from_slice(&vk_image_barriers),
+                Array::from_slice(vk_image_barriers),
             )
         }
+        self.pool.scratch.reset();
     }
 }
 
@@ -191,13 +222,16 @@ impl<'a> CommandRecording<'a> {
         first_binding: u32,
         buffers_offsets: &[(&Arc<Buffer>, u64)],
     ) -> Result<()> {
-        let mut buffers = vec![];
-        let mut offsets = vec![];
-        for &(buffer, offset) in buffers_offsets {
+        for &(buffer, _) in buffers_offsets {
             self.add_resource(buffer.clone());
-            buffers.push(buffer.borrow());
-            offsets.push(offset);
         }
+        let buffers = self.pool.scratch.alloc_slice_fill_iter(
+            buffers_offsets.iter().map(|&(b, _)| b.borrow()),
+        );
+        let offsets = self.pool.scratch.alloc_slice_fill_iter(
+            buffers_offsets.iter().map(|&(_, o)| o), //
+        );
+
         unsafe {
             (self.pool.res.device.fun.cmd_bind_vertex_buffers)(
                 self.buffer.handle.borrow_mut(),
@@ -207,6 +241,7 @@ impl<'a> CommandRecording<'a> {
                 Array::from_slice(&offsets).ok_or(Error::InvalidArgument)?,
             )
         }
+        self.pool.scratch.reset();
         Ok(())
     }
 }
