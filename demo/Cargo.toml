@@ -9,3 +9,4 @@ winit = "0.26"
 byte-strings = "0.2"
 anyhow = {version = "1.0", features = ["backtrace"]}
 inline-spirv = "0.1"
+bytemuck = {version = "1.0", features = ["derive"]}

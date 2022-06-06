@@ -388,6 +388,13 @@ pub struct DeviceFn {
         PipelineBindPoint,
         Ref<VkPipeline>,
     ),
+    pub cmd_bind_vertex_buffers: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        u32,
+        u32,
+        Array<Ref<VkBuffer>>,
+        Array<u64>,
+    ),
     pub cmd_draw:
         unsafe extern "system" fn(Mut<VkCommandBuffer>, u32, u32, u32, u32),
     pub cmd_set_viewport: unsafe extern "system" fn(
@@ -467,6 +474,7 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         cmd_begin_render_pass: transmute(load("vkCmdBeginRenderPass\0")),
         cmd_end_render_pass: transmute(load("vkCmdEndRenderPass\0")),
         cmd_bind_pipeline: transmute(load("vkCmdBindPipeline\0")),
+        cmd_bind_vertex_buffers: transmute(load("vkCmdBindVertexBuffers\0")),
         cmd_draw: transmute(load("vkCmdDraw\0")),
         cmd_set_viewport: transmute(load("vkCmdSetViewport\0")),
         cmd_set_scissor: transmute(load("vkCmdSetScissor\0")),

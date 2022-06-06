@@ -135,6 +135,18 @@ impl<T, const N: usize> InlineSlice<T, N> {
             )
         }
     }
+    #[inline]
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.as_slice().iter()
+    }
+}
+
+impl<'a, T, const N: usize> std::iter::IntoIterator for &'a InlineSlice<T, N> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().into_iter()
+    }
 }
 
 impl<T, const N: usize> Default for InlineSlice<T, N> {

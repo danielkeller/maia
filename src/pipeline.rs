@@ -1,7 +1,8 @@
+use std::collections::HashSet;
 use std::mem::MaybeUninit;
 
 use crate::device::Device;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::types::*;
 
 pub struct PipelineLayout {
@@ -60,6 +61,20 @@ impl Device {
         info: &GraphicsPipelineCreateInfo<'_>,
     ) -> Result<Arc<Pipeline>> {
         // TODO: check the render pass index is in bounds
+        let mut bindings = HashSet::new();
+        for b in info.vertex_input_state.vertex_binding_descriptions {
+            if !bindings.insert(b.binding) {
+                return Err(Error::InvalidArgument);
+            }
+        }
+        let mut locations = HashSet::new();
+        for att in info.vertex_input_state.vertex_attribute_descriptions {
+            if !locations.insert(att.location)
+                || !bindings.contains(&att.binding)
+            {
+                return Err(Error::InvalidArgument);
+            }
+        }
         let mut handle = MaybeUninit::uninit();
         unsafe {
             (self.fun.create_graphics_pipelines)(

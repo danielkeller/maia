@@ -62,6 +62,44 @@ fn required_device_extensions(
     }
 }
 
+#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
+#[repr(C)]
+struct Vertex {
+    pos: [f32; 4],
+    color: [f32; 4],
+}
+
+const VERTEX_DATA: [Vertex; 4] = [
+    Vertex {
+        pos: [-0.7, -0.7, 0.0, 1.0],
+        color: [1.0, 0.0, 0.0, 0.0],
+    },
+    Vertex {
+        pos: [-0.7, 0.7, 0.0, 1.0],
+        color: [0.0, 1.0, 0.0, 0.0],
+    },
+    Vertex {
+        pos: [0.7, -0.7, 0.0, 1.0],
+        color: [0.0, 0.0, 1.0, 0.0],
+    },
+    Vertex {
+        pos: [0.7, 0.7, 0.0, 1.0],
+        color: [0.3, 0.3, 0.3, 0.0],
+    },
+];
+
+fn host_memory_type(phy: &vk::PhysicalDevice) -> u32 {
+    let mem_props = phy.memory_properties();
+    let desired = vk::MemoryPropertyFlags::HOST_VISIBLE
+        | vk::MemoryPropertyFlags::HOST_COHERENT;
+    for (num, props) in mem_props.memory_types.iter().enumerate() {
+        if props.property_flags & desired == desired {
+            return num as u32;
+        }
+    }
+    panic!("No host visible memory!")
+}
+
 fn main() -> anyhow::Result<()> {
     use winit::event_loop::EventLoop;
     let event_loop = EventLoop::new();
@@ -117,6 +155,22 @@ fn main() -> anyhow::Result<()> {
         },
     )?);
 
+    let data_size = std::mem::size_of_val(&VERTEX_DATA);
+    let vertex_buffer = device.create_buffer(&vk::BufferCreateInfo {
+        size: std::mem::size_of_val(&VERTEX_DATA) as u64,
+        usage: vk::BufferUsageFlags::VERTEX_BUFFER,
+        ..Default::default()
+    })?;
+    let mem_size = vertex_buffer.memory_requirements().size;
+    let memory =
+        device.allocate_memory(mem_size as u64, host_memory_type(&phy))?;
+
+    let mut memory = memory.map(0, data_size)?;
+    *bytemuck::from_bytes_mut(memory.slice_mut()) = VERTEX_DATA;
+    let memory = memory.unmap();
+
+    let vertex_buffer = memory.bind_buffer_memory(vertex_buffer, 0)?;
+
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
         attachments: vk::Slice_::from(&[vk::AttachmentDescription {
             format: vk::Format::B8G8R8A8_SRGB,
@@ -152,7 +206,30 @@ fn main() -> anyhow::Result<()> {
                 vk::PipelineShaderStageCreateInfo::vertex(&vertex_shader),
                 vk::PipelineShaderStageCreateInfo::fragment(&fragment_shader),
             ]),
-            vertex_input_state: &Default::default(),
+            vertex_input_state: &vk::PipelineVertexInputStateCreateInfo {
+                vertex_binding_descriptions: vk::Slice_::from(&[
+                    vk::VertexInputBindingDescription {
+                        binding: 0,
+                        stride: std::mem::size_of::<Vertex>() as u32,
+                        input_rate: vk::VertexInputRate::VERTEX,
+                    },
+                ]),
+                vertex_attribute_descriptions: vk::Slice::from(&[
+                    vk::VertexInputAttributeDescription {
+                        location: 0,
+                        binding: 0,
+                        format: vk::Format::R32G32B32A32_SFLOAT,
+                        offset: 0,
+                    },
+                    vk::VertexInputAttributeDescription {
+                        location: 1,
+                        binding: 0,
+                        format: vk::Format::R32G32B32A32_SFLOAT,
+                        offset: 16,
+                    },
+                ]),
+                ..Default::default()
+            },
             input_assembly_state: &vk::PipelineInputAssemblyStateCreateInfo {
                 topology: vk::PrimitiveTopology::TRIANGLE_STRIP,
                 ..Default::default()
@@ -269,7 +346,8 @@ fn main() -> anyhow::Result<()> {
             max_depth: 1.0,
         });
         pass.bind_pipeline(vk::PipelineBindPoint::GRAPHICS, &pipeline);
-        pass.draw(3, 1, 0, 0);
+        pass.bind_vertex_buffers(0, &[(&vertex_buffer, 0)])?;
+        pass.draw(4, 1, 0, 0);
         pass.end();
 
         rec.end()?;

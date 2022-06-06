@@ -1,4 +1,4 @@
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
 use crate::memory::{DeviceMemory, MemoryPayload};
 use crate::subobject::Subobject;
 use crate::types::*;
@@ -14,7 +14,7 @@ pub struct BufferWithoutMemory {
 #[derive(Debug)]
 pub struct Buffer {
     handle: Handle<VkBuffer>,
-    memory: Subobject<MemoryPayload>,
+    _memory: Subobject<MemoryPayload>,
     device: Arc<Device>,
 }
 
@@ -35,28 +35,30 @@ impl Device {
 }
 impl DeviceMemory {
     pub fn bind_buffer_memory(
-        self: &Arc<Self>,
+        &self,
         mut buffer: BufferWithoutMemory,
         offset: u64,
-    ) -> Result<Arc<Buffer>> {
-        let mem_req = buffer.memory_requirements();
+    ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
         if !Arc::ptr_eq(&self.inner.device, &buffer.device)
-            || 1 << self.type_index() & mem_req.memory_type_bits == 0
-            || offset & (mem_req.alignment - 1) != 0
+            || !self.check(offset, buffer.memory_requirements())
         {
-            return Err(Error::InvalidArgument);
+            return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
-        unsafe {
+
+        if let Err(err) = unsafe {
             (self.inner.device.fun.bind_buffer_memory)(
                 self.inner.device.borrow(),
                 buffer.handle.borrow_mut(),
                 self.borrow(),
                 offset,
-            )?;
+            )
+        } {
+            return Err(ErrorAndSelf(err.into(), buffer));
         }
+
         Ok(Arc::new(Buffer {
             handle: buffer.handle,
-            memory: Subobject::new(&self.inner),
+            _memory: Subobject::new(&self.inner),
             device: self.inner.device.clone(),
         }))
     }

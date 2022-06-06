@@ -1,5 +1,5 @@
 use crate::enums::*;
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
 use crate::ext::khr_swapchain::SwapchainImages;
 use crate::memory::{DeviceMemory, MemoryPayload};
 use crate::subobject::Subobject;
@@ -58,21 +58,21 @@ impl DeviceMemory {
         &self,
         mut image: ImageWithoutMemory,
         offset: u64,
-    ) -> Result<Arc<Image>> {
-        let mem_req = image.memory_requirements();
+    ) -> ResultAndSelf<Arc<Image>, ImageWithoutMemory> {
         if !Arc::ptr_eq(&self.inner.device, &image.device)
-            || 1 << self.type_index() & mem_req.memory_type_bits == 0
-            || offset & (mem_req.alignment - 1) != 0
+            || !self.check(offset, image.memory_requirements())
         {
-            return Err(Error::InvalidArgument);
+            return Err(ErrorAndSelf(Error::InvalidArgument, image));
         }
-        unsafe {
+        if let Err(err) = unsafe {
             (self.inner.device.fun.bind_image_memory)(
                 self.inner.device.borrow(),
                 image.borrow_mut(),
                 self.borrow(),
                 offset,
-            )?;
+            )
+        } {
+            return Err(ErrorAndSelf(err.into(), image));
         }
         Ok(Arc::new(Image {
             handle: image.handle,

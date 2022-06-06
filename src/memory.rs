@@ -70,8 +70,12 @@ impl DeviceMemory {
     pub fn borrow_mut(&mut self) -> Mut<VkDeviceMemory> {
         self.inner.handle.borrow_mut()
     }
-    pub fn type_index(&self) -> u32 {
-        self.memory_type_index
+    pub fn check(&self, offset: u64, requirements: MemoryRequirements) -> bool {
+        let (end, overflow) = offset.overflowing_add(requirements.size);
+        (1 << self.memory_type_index) & requirements.memory_type_bits != 0
+            && offset & (requirements.alignment - 1) == 0
+            && !overflow
+            && end <= self.allocation_size
     }
 }
 

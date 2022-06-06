@@ -4,7 +4,7 @@ use crate::types::*;
 
 pub struct ShaderModule {
     handle: Handle<VkShaderModule>,
-    _device: Arc<Device>,
+    device: Arc<Device>,
 }
 
 impl Device {
@@ -29,7 +29,19 @@ impl Device {
                 &mut handle,
             )?;
         }
-        Ok(ShaderModule { handle: handle.unwrap(), _device: self.clone() })
+        Ok(ShaderModule { handle: handle.unwrap(), device: self.clone() })
+    }
+}
+
+impl Drop for ShaderModule {
+    fn drop(&mut self) {
+        unsafe {
+            (self.device.fun.destroy_shader_module)(
+                self.device.borrow(),
+                self.handle.borrow_mut(),
+                None,
+            )
+        }
     }
 }
 

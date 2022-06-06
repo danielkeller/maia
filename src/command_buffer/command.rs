@@ -1,3 +1,4 @@
+use crate::buffer::Buffer;
 use crate::enums::*;
 use crate::error::{Error, Result};
 use crate::ffi::Array;
@@ -173,6 +174,40 @@ impl<'a> CommandRecording<'a> {
                 std::array::from_ref(scissor).into(),
             )
         }
+    }
+}
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn bind_vertex_buffers(
+        &mut self,
+        first_binding: u32,
+        buffers_offsets: &[(&Arc<Buffer>, u64)],
+    ) -> Result<()> {
+        self.0.bind_vertex_buffers(first_binding, buffers_offsets)
+    }
+}
+impl<'a> CommandRecording<'a> {
+    pub fn bind_vertex_buffers(
+        &mut self,
+        first_binding: u32,
+        buffers_offsets: &[(&Arc<Buffer>, u64)],
+    ) -> Result<()> {
+        let mut buffers = vec![];
+        let mut offsets = vec![];
+        for &(buffer, offset) in buffers_offsets {
+            self.add_resource(buffer.clone());
+            buffers.push(buffer.borrow());
+            offsets.push(offset);
+        }
+        unsafe {
+            (self.pool.res.device.fun.cmd_bind_vertex_buffers)(
+                self.buffer.handle.borrow_mut(),
+                first_binding,
+                buffers.len() as u32,
+                Array::from_slice(&buffers).ok_or(Error::InvalidArgument)?,
+                Array::from_slice(&offsets).ok_or(Error::InvalidArgument)?,
+            )
+        }
+        Ok(())
     }
 }
 
