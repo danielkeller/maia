@@ -52,6 +52,7 @@ impl Drop for Queue {
     }
 }
 
+#[derive(Default)]
 pub struct SubmitInfo<'a> {
     pub wait: &'a mut [(&'a mut Semaphore, PipelineStageFlags)],
     pub commands: &'a mut [&'a mut CommandBuffer],
@@ -79,6 +80,7 @@ impl Queue {
 
         self.scratch.reset();
 
+        // This needs to stay in a Vec because its destructor is important
         let mut recordings = bumpalo::vec![in &self.scratch];
         let mut vk_infos = bumpalo::vec![in &self.scratch];
         for info in infos.iter_mut() {

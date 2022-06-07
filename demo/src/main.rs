@@ -100,6 +100,17 @@ fn host_memory_type(phy: &vk::PhysicalDevice) -> u32 {
     panic!("No host visible memory!")
 }
 
+fn device_memory_type(phy: &vk::PhysicalDevice) -> u32 {
+    let mem_props = phy.memory_properties();
+    let desired = vk::MemoryPropertyFlags::DEVICE_LOCAL;
+    for (num, props) in mem_props.memory_types.iter().enumerate() {
+        if props.property_flags & desired == desired {
+            return num as u32;
+        }
+    }
+    panic!("No device local memory!")
+}
+
 fn main() -> anyhow::Result<()> {
     use winit::event_loop::EventLoop;
     let event_loop = EventLoop::new();
@@ -139,6 +150,10 @@ fn main() -> anyhow::Result<()> {
     })?;
     let mut queue = device.queue(0, 0)?;
 
+    let mut acquire_sem = device.create_semaphore()?;
+    let mut present_sem = device.create_semaphore()?;
+    let mut fence = Some(device.create_fence()?);
+
     let mut swapchain_size = window.inner_size();
     let mut swapchain = Some(device.khr_swapchain().create(
         vk::CreateSwapchainFrom::Surface(surf),
@@ -155,21 +170,51 @@ fn main() -> anyhow::Result<()> {
         },
     )?);
 
+    let mut cmd_pool = device.create_command_pool(queue_family)?;
+
     let data_size = std::mem::size_of_val(&VERTEX_DATA);
+
     let vertex_buffer = device.create_buffer(&vk::BufferCreateInfo {
         size: std::mem::size_of_val(&VERTEX_DATA) as u64,
-        usage: vk::BufferUsageFlags::VERTEX_BUFFER,
+        usage: vk::BufferUsageFlags::VERTEX_BUFFER
+            | vk::BufferUsageFlags::TRANSFER_DST,
         ..Default::default()
     })?;
     let mem_size = vertex_buffer.memory_requirements().size;
     let memory =
+        device.allocate_memory(mem_size as u64, device_memory_type(&phy))?;
+    let vertex_buffer = memory.bind_buffer_memory(vertex_buffer, 0)?;
+
+    let staging_buffer = device.create_buffer(&vk::BufferCreateInfo {
+        size: std::mem::size_of_val(&VERTEX_DATA) as u64,
+        usage: vk::BufferUsageFlags::TRANSFER_SRC,
+        ..Default::default()
+    })?;
+    let mem_size = staging_buffer.memory_requirements().size;
+    let memory =
         device.allocate_memory(mem_size as u64, host_memory_type(&phy))?;
+    let staging_buffer = memory.bind_buffer_memory(staging_buffer, 0)?;
 
     let mut memory = memory.map(0, data_size)?;
     *bytemuck::from_bytes_mut(memory.slice_mut()) = VERTEX_DATA;
-    let memory = memory.unmap();
+    memory.unmap();
 
-    let vertex_buffer = memory.bind_buffer_memory(vertex_buffer, 0)?;
+    let mut transfer = cmd_pool.allocate()?;
+    let mut rec = cmd_pool.begin(&mut transfer)?;
+    rec.copy_buffer(
+        &staging_buffer,
+        &vertex_buffer,
+        &[vk::BufferCopy { size: mem_size, ..Default::default() }],
+    )?;
+    rec.end()?;
+    let pending_fence = queue.submit(
+        &mut [vk::SubmitInfo {
+            commands: &mut [&mut transfer],
+            ..Default::default()
+        }],
+        fence.take().unwrap(),
+    )?;
+    fence = Some(pending_fence.wait()?);
 
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
         attachments: vk::Slice_::from(&[vk::AttachmentDescription {
@@ -262,12 +307,6 @@ fn main() -> anyhow::Result<()> {
         })?;
 
     let mut framebuffers = HashMap::new();
-
-    let mut cmd_pool = device.create_command_pool(queue_family)?;
-
-    let mut acquire_sem = device.create_semaphore()?;
-    let mut present_sem = device.create_semaphore()?;
-    let mut fence = Some(device.create_fence()?);
 
     let begin = Instant::now();
 

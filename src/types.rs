@@ -343,6 +343,14 @@ pub struct MemoryRequirements {
     pub memory_type_bits: u32,
 }
 
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct BufferCopy {
+    pub src_offset: u64,
+    pub dst_offset: u64,
+    pub size: u64,
+}
+
 pub enum AllocationCallbacks {}
 
 #[repr(C)]

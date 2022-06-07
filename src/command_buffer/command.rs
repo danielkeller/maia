@@ -9,6 +9,28 @@ use crate::types::*;
 use super::{CommandRecording, RenderPassRecording};
 
 impl<'a> CommandRecording<'a> {
+    pub fn copy_buffer(
+        &mut self,
+        src: &Arc<Buffer>,
+        dst: &Arc<Buffer>,
+        regions: &[BufferCopy],
+    ) -> Result<()> {
+        unsafe {
+            (self.pool.res.device.fun.cmd_copy_buffer)(
+                self.buffer.handle.borrow_mut(),
+                src.borrow(),
+                dst.borrow(),
+                regions.len() as u32,
+                Array::from_slice(regions).ok_or(Error::InvalidArgument)?,
+            );
+        }
+        self.add_resource(src.clone());
+        self.add_resource(dst.clone());
+        Ok(())
+    }
+}
+
+impl<'a> CommandRecording<'a> {
     pub fn clear_color_image(
         &mut self,
         image: &Arc<Image>,

@@ -114,8 +114,14 @@ impl DeviceMemory {
     }
 }
 
+impl Drop for MappedMemory {
+    fn drop(&mut self) {
+        self.unmap_impl()
+    }
+}
+
 impl MappedMemory {
-    pub fn unmap(mut self) -> DeviceMemory {
+    fn unmap_impl(&mut self) {
         let inner = &mut *self.memory.inner;
         unsafe {
             (inner.device.fun.unmap_memory)(
@@ -123,7 +129,12 @@ impl MappedMemory {
                 inner.handle.borrow_mut(),
             )
         }
-        self.memory
+    }
+
+    pub fn unmap(mut self) -> DeviceMemory {
+        self.unmap_impl();
+        let no_drop = std::mem::ManuallyDrop::new(self);
+        unsafe { std::ptr::addr_of!(no_drop.memory).read() }
     }
 
     pub fn memory(&self) -> &DeviceMemory {

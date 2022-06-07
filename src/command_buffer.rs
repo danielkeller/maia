@@ -13,7 +13,7 @@ use crate::types::*;
 pub mod command;
 
 pub struct CommandPool {
-    recording: Arc<RecordedCommands>,
+    recording: Option<Arc<RecordedCommands>>,
     res: Owner<CommandPoolLifetime>,
     scratch: bumpalo::Bump,
 }
@@ -32,7 +32,6 @@ pub struct CommandBuffer(pub(crate) Arc<CommandBufferLifetime>);
 pub struct CommandRecording<'a> {
     pool: &'a mut CommandPool,
     buffer: &'a mut CommandBufferLifetime,
-    ended: bool,
 }
 
 pub struct RenderPassRecording<'a, 'rec>(&'a mut CommandRecording<'rec>);
@@ -41,10 +40,9 @@ pub struct RenderPassRecording<'a, 'rec>(&'a mut CommandRecording<'rec>);
 pub(crate) struct CommandBufferLifetime {
     handle: Handle<VkCommandBuffer>,
     pool: Subobject<CommandPoolLifetime>,
-    /// For buffers in the executable state, it will give an Arc with a value
-    /// matching generation. Otherwise the buffer is in the initial state.
+    /// For buffers in the executable state, it will give an Arc. Otherwise the
+    /// buffer is in the initial state.
     recording: Weak<RecordedCommands>,
-    generation: u64,
 }
 
 #[derive(Debug)]
@@ -55,10 +53,7 @@ struct CommandPoolLifetime {
 }
 
 #[derive(Debug)]
-struct RecordedCommands {
-    generation: u64,
-    _res: Subobject<CommandPoolLifetime>,
-}
+struct RecordedCommands(Subobject<CommandPoolLifetime>);
 
 impl std::fmt::Debug for CommandPool {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -99,7 +94,7 @@ impl Device {
         let _res = Subobject::new(&res);
         Ok(CommandPool {
             res,
-            recording: Arc::new(RecordedCommands { generation: 1, _res }),
+            recording: Some(Arc::new(RecordedCommands(_res))),
             scratch: bumpalo::Bump::new(),
         })
     }
@@ -124,10 +119,13 @@ impl CommandPool {
 
     /// Return SynchronizationError if any command buffers are pending.
     pub fn reset(&mut self, flags: CommandPoolResetFlags) -> Result<()> {
-        match Arc::get_mut(&mut self.recording) {
+        match Arc::try_unwrap(self.recording.take().unwrap()) {
             // Buffer in pending state
-            None => Err(Error::SynchronizationError),
-            Some(recording) => {
+            Err(arc) => {
+                self.recording = Some(arc);
+                Err(Error::SynchronizationError)
+            }
+            Ok(_) => {
                 let res = &mut *self.res;
                 unsafe {
                     (res.device.fun.reset_command_pool)(
@@ -136,7 +134,8 @@ impl CommandPool {
                         flags,
                     )?;
                 }
-                recording.generation += 1;
+                self.recording =
+                    Some(Arc::new(RecordedCommands(Subobject::new(&self.res))));
                 self.res.resources.clear();
                 Ok(())
             }
@@ -163,8 +162,7 @@ impl CommandPool {
         Ok(CommandBuffer(Arc::new(CommandBufferLifetime {
             handle,
             pool: Subobject::new(&self.res),
-            recording: Arc::downgrade(&self.recording),
-            generation: 0, // Start out unequal to recording, ie, initial state
+            recording: Weak::new(),
         })))
     }
 
@@ -207,7 +205,7 @@ impl CommandPool {
                 &Default::default(),
             )?;
         }
-        Ok(CommandRecording { pool: self, buffer: inner, ended: false })
+        Ok(CommandRecording { pool: self, buffer: inner })
     }
 }
 
@@ -223,10 +221,7 @@ impl CommandBuffer {
     pub(crate) fn lock_resources(
         &self,
     ) -> Option<Arc<impl Send + Sync + Debug>> {
-        self.0
-            .recording
-            .upgrade()
-            .filter(|rec| rec.generation == self.0.generation)
+        self.0.recording.upgrade()
     }
 }
 
@@ -240,17 +235,16 @@ impl<'a> CommandRecording<'a> {
                 self.buffer.handle.borrow_mut(),
             )?;
         }
-        self.ended = true;
-        self.buffer.generation = self.pool.recording.generation;
+        self.buffer.recording =
+            Arc::downgrade(self.pool.recording.as_ref().unwrap());
+        std::mem::forget(self);
         Ok(())
     }
 }
 
 impl<'a> Drop for CommandRecording<'a> {
     fn drop(&mut self) {
-        if !self.ended {
-            panic!("Command recording not ended")
-        }
+        panic!("Command recording not ended")
     }
 }
 
