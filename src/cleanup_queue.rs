@@ -1,5 +1,4 @@
-use std::cell::UnsafeCell;
-use std::mem::MaybeUninit;
+use std::cell::Cell;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
@@ -21,20 +20,27 @@ pub struct Cleanup {
 #[derive(Debug)]
 pub struct CleanupRAII(Cleanup);
 
-#[derive(Debug)]
 struct QueueEntry {
     guard: AtomicU64,
-    value: UnsafeCell<MaybeUninit<Arc<dyn Send + Sync>>>,
+    value: Cell<Option<Arc<dyn Send + Sync>>>,
 }
 
-unsafe impl Send for QueueEntry {}
+impl std::fmt::Debug for QueueEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("QueueEntry")
+            .field("guard", &self.guard)
+            .finish_non_exhaustive()
+    }
+}
+
+// Safety: Access to 'value' is guarded by 'guard'
 unsafe impl Sync for QueueEntry {}
 
 impl Default for QueueEntry {
     fn default() -> Self {
         Self {
             guard: AtomicU64::new(u64::MAX),
-            value: UnsafeCell::new(MaybeUninit::uninit()),
+            value: Cell::new(None),
         }
     }
 }
@@ -59,7 +65,7 @@ impl CleanupQueue {
         let guard = entry.guard.load(Ordering::Acquire);
         if guard == u64::MAX {
             // Safety: We're the only writer
-            unsafe { entry.value.get().write(MaybeUninit::new(value)) };
+            entry.value.set(Some(value));
             self.cursor = (self.cursor + 1) % self.array.len();
             entry.guard.store(self.level, Ordering::Release);
         } else {
@@ -128,7 +134,7 @@ impl Cleanup {
             }
             // Safety: The value was written, we have exclusive access, and it
             // will not be overwritten until we set guard to u64::MAX.
-            drop(unsafe { entry.value.get().read().assume_init_read() });
+            drop(entry.value.replace(None));
             entry.guard.store(u64::MAX, Ordering::Release);
 
             cursor =
