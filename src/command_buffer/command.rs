@@ -126,6 +126,20 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
             image_memory_barriers,
         )
     }
+    pub fn memory_barrier(
+        &mut self,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags,
+    ) {
+        self.0.memory_barrier(
+            src_stage_mask,
+            dst_stage_mask,
+            src_access_mask,
+            dst_access_mask,
+        )
+    }
 }
 
 impl<'a> CommandRecording<'a> {
@@ -166,6 +180,34 @@ impl<'a> CommandRecording<'a> {
             )
         }
         self.pool.scratch.reset();
+    }
+
+    /// A shortcut for simple memory barriers
+    pub fn memory_barrier(
+        &mut self,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags,
+    ) {
+        unsafe {
+            (self.pool.res.device.fun.cmd_pipeline_barrier)(
+                self.buffer.handle.borrow_mut(),
+                src_stage_mask,
+                dst_stage_mask,
+                Default::default(),
+                1,
+                Some(Array::from(&[MemoryBarrier {
+                    src_access_mask,
+                    dst_access_mask,
+                    ..Default::default()
+                }])),
+                0,
+                None,
+                0,
+                None,
+            )
+        }
     }
 }
 

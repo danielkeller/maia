@@ -206,6 +206,12 @@ fn main() -> anyhow::Result<()> {
         &vertex_buffer,
         &[vk::BufferCopy { size: mem_size, ..Default::default() }],
     )?;
+    rec.memory_barrier(
+        vk::PipelineStageFlags::TRANSFER,
+        vk::PipelineStageFlags::VERTEX_INPUT,
+        vk::AccessFlags::TRANSFER_WRITE,
+        vk::AccessFlags::VERTEX_ATTRIBUTE_READ,
+    );
     rec.end()?;
     let pending_fence = queue.submit(
         &mut [vk::SubmitInfo {
