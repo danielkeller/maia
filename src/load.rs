@@ -402,8 +402,22 @@ pub struct DeviceFn {
         Array<Ref<VkBuffer>>,
         Array<u64>,
     ),
+    pub cmd_bind_index_buffer: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        Ref<VkBuffer>,
+        u64,
+        IndexType,
+    ),
     pub cmd_draw:
         unsafe extern "system" fn(Mut<VkCommandBuffer>, u32, u32, u32, u32),
+    pub cmd_draw_indexed: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        u32,
+        u32,
+        u32,
+        i32,
+        u32,
+    ),
     pub cmd_set_viewport: unsafe extern "system" fn(
         Mut<VkCommandBuffer>,
         u32,
@@ -483,7 +497,9 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         cmd_end_render_pass: transmute(load("vkCmdEndRenderPass\0")),
         cmd_bind_pipeline: transmute(load("vkCmdBindPipeline\0")),
         cmd_bind_vertex_buffers: transmute(load("vkCmdBindVertexBuffers\0")),
+        cmd_bind_index_buffer: transmute(load("vkCmdBindIndexBuffer\0")),
         cmd_draw: transmute(load("vkCmdDraw\0")),
+        cmd_draw_indexed: transmute(load("vkCmdDrawIndexed\0")),
         cmd_set_viewport: transmute(load("vkCmdSetViewport\0")),
         cmd_set_scissor: transmute(load("vkCmdSetScissor\0")),
     }

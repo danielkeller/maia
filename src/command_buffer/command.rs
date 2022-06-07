@@ -279,6 +279,14 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
     ) -> Result<()> {
         self.0.bind_vertex_buffers(first_binding, buffers_offsets)
     }
+    pub fn bind_index_buffer(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        index_type: IndexType,
+    ) {
+        self.0.bind_index_buffer(buffer, offset, index_type)
+    }
 }
 impl<'a> CommandRecording<'a> {
     pub fn bind_vertex_buffers(
@@ -308,6 +316,22 @@ impl<'a> CommandRecording<'a> {
         self.pool.scratch.reset();
         Ok(())
     }
+    pub fn bind_index_buffer(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        index_type: IndexType,
+    ) {
+        self.add_resource(buffer.clone());
+        unsafe {
+            (self.pool.res.device.fun.cmd_bind_index_buffer)(
+                self.buffer.handle.borrow_mut(),
+                buffer.borrow(),
+                offset,
+                index_type,
+            )
+        }
+    }
 }
 
 impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
@@ -324,6 +348,25 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
                 vertex_count,
                 instance_count,
                 first_vertex,
+                first_instance,
+            )
+        }
+    }
+    pub fn draw_indexed(
+        &mut self,
+        index_count: u32,
+        instance_count: u32,
+        first_index: u32,
+        vertex_offset: i32,
+        first_instance: u32,
+    ) {
+        unsafe {
+            (self.0.pool.res.device.fun.cmd_draw_indexed)(
+                self.0.buffer.handle.borrow_mut(),
+                index_count,
+                instance_count,
+                first_index,
+                vertex_offset,
                 first_instance,
             )
         }

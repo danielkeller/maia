@@ -87,6 +87,7 @@ const VERTEX_DATA: [Vertex; 4] = [
         color: [0.3, 0.3, 0.3, 0.0],
     },
 ];
+const INDEX_DATA: [u16; 6] = [0, 1, 2, 2, 1, 3];
 
 fn host_memory_type(phy: &vk::PhysicalDevice) -> u32 {
     let mem_props = phy.memory_properties();
@@ -172,11 +173,14 @@ fn main() -> anyhow::Result<()> {
 
     let mut cmd_pool = device.create_command_pool(queue_family)?;
 
-    let data_size = std::mem::size_of_val(&VERTEX_DATA);
+    let data_size = std::mem::size_of_val(&VERTEX_DATA)
+        + std::mem::size_of_val(&INDEX_DATA);
+    let index_offset = std::mem::size_of_val(&VERTEX_DATA);
 
     let vertex_buffer = device.create_buffer(&vk::BufferCreateInfo {
-        size: std::mem::size_of_val(&VERTEX_DATA) as u64,
+        size: data_size as u64,
         usage: vk::BufferUsageFlags::VERTEX_BUFFER
+            | vk::BufferUsageFlags::INDEX_BUFFER
             | vk::BufferUsageFlags::TRANSFER_DST,
         ..Default::default()
     })?;
@@ -186,7 +190,7 @@ fn main() -> anyhow::Result<()> {
     let vertex_buffer = memory.bind_buffer_memory(vertex_buffer, 0)?;
 
     let staging_buffer = device.create_buffer(&vk::BufferCreateInfo {
-        size: std::mem::size_of_val(&VERTEX_DATA) as u64,
+        size: data_size as u64,
         usage: vk::BufferUsageFlags::TRANSFER_SRC,
         ..Default::default()
     })?;
@@ -196,7 +200,10 @@ fn main() -> anyhow::Result<()> {
     let staging_buffer = memory.bind_buffer_memory(staging_buffer, 0)?;
 
     let mut memory = memory.map(0, data_size)?;
-    *bytemuck::from_bytes_mut(memory.slice_mut()) = VERTEX_DATA;
+    *bytemuck::from_bytes_mut(&mut memory.slice_mut()[0..index_offset]) =
+        VERTEX_DATA;
+    *bytemuck::from_bytes_mut(&mut memory.slice_mut()[index_offset..]) =
+        INDEX_DATA;
     memory.unmap();
 
     let mut transfer = cmd_pool.allocate()?;
@@ -210,7 +217,7 @@ fn main() -> anyhow::Result<()> {
         vk::PipelineStageFlags::TRANSFER,
         vk::PipelineStageFlags::VERTEX_INPUT,
         vk::AccessFlags::TRANSFER_WRITE,
-        vk::AccessFlags::VERTEX_ATTRIBUTE_READ,
+        vk::AccessFlags::VERTEX_ATTRIBUTE_READ | vk::AccessFlags::INDEX_READ,
     );
     rec.end()?;
     let pending_fence = queue.submit(
@@ -392,7 +399,12 @@ fn main() -> anyhow::Result<()> {
         });
         pass.bind_pipeline(vk::PipelineBindPoint::GRAPHICS, &pipeline);
         pass.bind_vertex_buffers(0, &[(&vertex_buffer, 0)])?;
-        pass.draw(4, 1, 0, 0);
+        pass.bind_index_buffer(
+            &vertex_buffer,
+            index_offset as u64,
+            vk::IndexType::UINT16,
+        );
+        pass.draw_indexed(6, 1, 0, 0, 0);
         pass.end();
 
         rec.end()?;

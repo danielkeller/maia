@@ -617,6 +617,14 @@ flags!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct IndexType(u32);
+impl IndexType {
+    pub const UINT16: Self = Self(0);
+    pub const UINT32: Self = Self(1);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct Format(u32);
 impl Format {
     pub const UNDEFINED: Self = Self(0);
