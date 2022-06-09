@@ -5,6 +5,7 @@ mod descriptor_set;
 mod device;
 mod enums;
 mod error;
+mod exclusive;
 pub mod ext;
 mod fence;
 mod ffi;

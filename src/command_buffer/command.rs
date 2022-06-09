@@ -158,10 +158,11 @@ impl<'a> CommandRecording<'a> {
         for b in image_memory_barriers {
             self.add_resource(b.image.clone());
         }
-        let vk_buffer_barriers = self.pool.scratch.alloc_slice_fill_iter(
+        let scratch = self.pool.scratch.get_mut();
+        let vk_buffer_barriers = scratch.alloc_slice_fill_iter(
             buffer_memory_barriers.iter().map(|b| b.vk()),
         );
-        let vk_image_barriers = self.pool.scratch.alloc_slice_fill_iter(
+        let vk_image_barriers = scratch.alloc_slice_fill_iter(
             image_memory_barriers.iter().map(|b| b.vk()),
         );
 
@@ -179,7 +180,7 @@ impl<'a> CommandRecording<'a> {
                 Array::from_slice(vk_image_barriers),
             )
         }
-        self.pool.scratch.reset();
+        scratch.reset();
     }
 
     /// A shortcut for simple memory barriers
@@ -297,10 +298,11 @@ impl<'a> CommandRecording<'a> {
         for &(buffer, _) in buffers_offsets {
             self.add_resource(buffer.clone());
         }
-        let buffers = self.pool.scratch.alloc_slice_fill_iter(
+        let scratch = self.pool.scratch.get_mut();
+        let buffers = scratch.alloc_slice_fill_iter(
             buffers_offsets.iter().map(|&(b, _)| b.borrow()),
         );
-        let offsets = self.pool.scratch.alloc_slice_fill_iter(
+        let offsets = scratch.alloc_slice_fill_iter(
             buffers_offsets.iter().map(|&(_, o)| o), //
         );
 
@@ -313,7 +315,7 @@ impl<'a> CommandRecording<'a> {
                 Array::from_slice(&offsets).ok_or(Error::InvalidArgument)?,
             )
         }
-        self.pool.scratch.reset();
+        scratch.reset();
         Ok(())
     }
     pub fn bind_index_buffer(

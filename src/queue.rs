@@ -4,6 +4,7 @@ use crate::cleanup_queue::CleanupQueue;
 use crate::command_buffer::CommandBuffer;
 use crate::device::Device;
 use crate::error::{Error, Result};
+use crate::exclusive::Exclusive;
 use crate::fence::{Fence, PendingFence};
 use crate::ffi::Array;
 use crate::semaphore::{Semaphore, SemaphoreSignaller};
@@ -15,11 +16,8 @@ pub struct Queue {
     handle: Handle<VkQueue>,
     device: Arc<Device>,
     pub(crate) resources: CleanupQueue,
-    scratch: bumpalo::Bump,
+    scratch: Exclusive<bumpalo::Bump>,
 }
-
-// Safety: 'scratch' is not accessed by any shared-ref methods
-unsafe impl Sync for Queue {}
 
 impl Queue {
     pub(crate) fn new(handle: Handle<VkQueue>, device: Arc<Device>) -> Self {
@@ -27,7 +25,7 @@ impl Queue {
             handle,
             device,
             resources: CleanupQueue::new(100),
-            scratch: bumpalo::Bump::new(),
+            scratch: Exclusive::new(bumpalo::Bump::new()),
         }
     }
     pub fn borrow(&self) -> Ref<VkQueue> {
@@ -78,25 +76,26 @@ impl Queue {
             }
         }
 
-        self.scratch.reset();
+        let scratch = self.scratch.get_mut();
+        scratch.reset();
 
         // This needs to stay in a Vec because its destructor is important
-        let mut recordings = bumpalo::vec![in &self.scratch];
-        let mut vk_infos = bumpalo::vec![in &self.scratch];
+        let mut recordings = bumpalo::vec![in &scratch];
+        let mut vk_infos = bumpalo::vec![in &scratch];
         for info in infos.iter_mut() {
-            let mut commands = bumpalo::vec![in &self.scratch];
+            let mut commands = bumpalo::vec![in &scratch];
             for c in info.commands.iter_mut() {
                 recordings
                     .push(c.lock_resources().ok_or(Error::InvalidArgument)?);
                 commands.push(c.borrow_mut()?);
             }
-            let wait_semaphores = self.scratch.alloc_slice_fill_iter(
+            let wait_semaphores = scratch.alloc_slice_fill_iter(
                 info.wait.iter().map(|(sem, _)| sem.borrow()),
             );
-            let wait_stage_masks = self.scratch.alloc_slice_fill_iter(
+            let wait_stage_masks = scratch.alloc_slice_fill_iter(
                 info.wait.iter().map(|(_, mask)| *mask), //
             );
-            let signal_semaphores = self.scratch.alloc_slice_fill_iter(
+            let signal_semaphores = scratch.alloc_slice_fill_iter(
                 info.signal.iter().map(|sem| sem.borrow()),
             );
             vk_infos.push(VkSubmitInfo {

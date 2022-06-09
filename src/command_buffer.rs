@@ -5,6 +5,7 @@ use std::sync::Weak;
 use crate::device::Device;
 use crate::enums::*;
 use crate::error::{Error, Result};
+use crate::exclusive::Exclusive;
 use crate::framebuffer::Framebuffer;
 use crate::render_pass::RenderPass;
 use crate::subobject::{Owner, Subobject};
@@ -15,11 +16,8 @@ pub mod command;
 pub struct CommandPool {
     recording: Option<Arc<RecordedCommands>>,
     res: Owner<CommandPoolLifetime>,
-    scratch: bumpalo::Bump,
+    scratch: Exclusive<bumpalo::Bump>,
 }
-
-// Safety: 'scratch' is not accessed by any shared-ref methods
-unsafe impl Sync for CommandPool {}
 
 #[must_use = "Leaks pool resources if not freed"]
 #[derive(Debug)]
@@ -95,7 +93,7 @@ impl Device {
         Ok(CommandPool {
             res,
             recording: Some(Arc::new(RecordedCommands(_res))),
-            scratch: bumpalo::Bump::new(),
+            scratch: Exclusive::new(bumpalo::Bump::new()),
         })
     }
 }
