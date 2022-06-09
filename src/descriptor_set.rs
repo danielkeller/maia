@@ -71,3 +71,56 @@ impl Drop for DescriptorSetLayout {
         }
     }
 }
+
+pub struct DescriptorPool {
+    handle: Handle<VkDescriptorPool>,
+    device: Arc<Device>,
+}
+
+impl Device {
+    pub fn create_descriptor_pool(
+        self: &Arc<Device>,
+        max_sets: u32,
+        pool_sizes: &[DescriptorPoolSize],
+    ) -> Result<DescriptorPool> {
+        let mut handle = None;
+        unsafe {
+            (self.fun.create_descriptor_pool)(
+                self.borrow(),
+                &DescriptorPoolCreateInfo {
+                    max_sets,
+                    pool_sizes: pool_sizes.into(),
+                    ..Default::default()
+                },
+                None,
+                &mut handle,
+            )?;
+        }
+        Ok(DescriptorPool { handle: handle.unwrap(), device: self.clone() })
+    }
+}
+
+impl Drop for DescriptorPool {
+    fn drop(&mut self) {
+        unsafe {
+            (self.device.fun.destroy_descriptor_pool)(
+                self.device.borrow(),
+                self.handle.borrow_mut(),
+                None,
+            )
+        }
+    }
+}
+
+impl DescriptorPool {
+    pub fn reset(&mut self) -> Result<()> {
+        unsafe {
+            (self.device.fun.reset_descriptor_pool)(
+                self.device.borrow(),
+                self.handle.borrow_mut(),
+                Default::default(),
+            )?;
+        }
+        Ok(())
+    }
+}

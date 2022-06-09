@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ember = {path = "..", features = ["window"]}
+ember = { path = "..", features = [ "window" ] }
 winit = "0.26"
 byte-strings = "0.2"
-anyhow = {version = "1.0", features = ["backtrace"]}
+anyhow = { version = "1.0", features = [ "backtrace" ] }
 inline-spirv = "0.1"
-bytemuck = {version = "1.0", features = ["derive"]}
+bytemuck = { version = "1.0", features = [ "derive" ] }
+ultraviolet = { version = "0.9", features = [ "bytemuck" ] }

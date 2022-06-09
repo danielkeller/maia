@@ -62,6 +62,9 @@ pub mod vk {
         BufferMemoryBarrier, ImageMemoryBarrier,
     };
     pub use crate::create_instance;
+    pub use crate::descriptor_set::{
+        DescriptorSetLayout, DescriptorSetLayoutBinding,
+    };
     pub use crate::device::Device;
     pub use crate::enums::*;
     pub use crate::ext;

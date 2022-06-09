@@ -300,6 +300,22 @@ pub struct DeviceFn {
         Mut<VkDescriptorSetLayout>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_descriptor_pool: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &DescriptorPoolCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkDescriptorPool>>,
+    ) -> VkResult,
+    pub destroy_descriptor_pool: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkDescriptorPool>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+    pub reset_descriptor_pool: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkDescriptorPool>,
+        DescriptorPoolResetFlags,
+    ) -> VkResult,
     pub create_pipeline_layout: unsafe extern "system" fn(
         Ref<VkDevice>,
         &PipelineLayoutCreateInfo,
@@ -477,6 +493,9 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         destroy_descriptor_set_layout: transmute(load(
             "vkDestroyDescriptorSetLayout\0",
         )),
+        create_descriptor_pool: transmute(load("vkCreateDescriptorPool\0")),
+        destroy_descriptor_pool: transmute(load("vkDestroyDescriptorPool\0")),
+        reset_descriptor_pool: transmute(load("vkResetDescriptorPool\0")),
         create_pipeline_layout: transmute(load("vkCreatePipelineLayout\0")),
         destroy_pipeline_layout: transmute(load("vkDestroyPipelineLayout\0")),
         create_graphics_pipelines: transmute(load(

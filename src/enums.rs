@@ -1337,6 +1337,23 @@ flags!(DescriptorSetLayoutCreateFlags, [UPDATE_AFTER_BIND_POOL]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DescriptorPoolCreateFlags(u32);
+impl DescriptorPoolCreateFlags {
+    pub const CREATE_FREE_DESCRIPTOR_SET: Self = Self(0x1);
+    pub const CREATE_UPDATE_AFTER_BIND: Self = Self(0x2);
+}
+flags!(
+    DescriptorPoolCreateFlags,
+    [CREATE_FREE_DESCRIPTOR_SET, CREATE_UPDATE_AFTER_BIND]
+);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DescriptorPoolResetFlags(u32);
+flags!(DescriptorPoolResetFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PipelineLayoutCreateFlags(u32);
 impl PipelineLayoutCreateFlags {
     pub const INDEPENDENT_SETS_EXT: Self = Self(0x2);

@@ -149,6 +149,12 @@ pub struct VkSampler(NonNullNonDispatchableHandle);
 pub struct VkDescriptorSetLayout(NonNullNonDispatchableHandle);
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VkDescriptorPool(NonNullNonDispatchableHandle);
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VkDescriptorSet(NonNullNonDispatchableHandle);
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkPipelineLayout(NonNullNonDispatchableHandle);
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -1051,6 +1057,24 @@ pub struct VkDescriptorSetLayoutCreateInfo<'a, Next = Null> {
     pub bindings: Slice_<'a, VkDescriptorSetLayoutBinding<'a>>,
 }
 structure_type!(DescriptorSetLayoutCreateInfoType, 32);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct DescriptorPoolSize {
+    pub descriptor_type: DescriptorType,
+    pub descriptor_count: u32,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct DescriptorPoolCreateInfo<'a, Next = Null> {
+    pub stype: DescriptorPoolCreateInfoType,
+    pub next: Next,
+    pub flags: DescriptorPoolCreateFlags,
+    pub max_sets: u32,
+    pub pool_sizes: Slice<'a, DescriptorPoolSize>,
+}
+structure_type!(DescriptorPoolCreateInfoType, 33);
 
 #[repr(C)]
 #[derive(Debug, Default)]

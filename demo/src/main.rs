@@ -1,7 +1,43 @@
-use std::{collections::HashMap, time::Instant};
+use std::{collections::HashMap, mem::size_of, time::Instant};
 
 use ember::vk;
 use inline_spirv::include_spirv;
+use ultraviolet::{Mat4, Vec3};
+
+#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
+#[repr(C)]
+struct Vertex {
+    pos: [f32; 4],
+    color: [f32; 4],
+}
+
+const VERTEX_DATA: [Vertex; 4] = [
+    Vertex {
+        pos: [-0.7, -0.7, 0.0, 1.0],
+        color: [1.0, 0.0, 0.0, 0.0],
+    },
+    Vertex {
+        pos: [-0.7, 0.7, 0.0, 1.0],
+        color: [0.0, 1.0, 0.0, 0.0],
+    },
+    Vertex {
+        pos: [0.7, -0.7, 0.0, 1.0],
+        color: [0.0, 0.0, 1.0, 0.0],
+    },
+    Vertex {
+        pos: [0.7, 0.7, 0.0, 1.0],
+        color: [0.3, 0.3, 0.3, 0.0],
+    },
+];
+const INDEX_DATA: [u16; 6] = [0, 1, 2, 2, 1, 3];
+
+#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
+#[repr(C)]
+struct UBO {
+    model: Mat4,
+    view: Mat4,
+    proj: Mat4,
+}
 
 fn required_instance_extensions() -> anyhow::Result<&'static [vk::Str<'static>]>
 {
@@ -62,54 +98,17 @@ fn required_device_extensions(
     }
 }
 
-#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
-#[repr(C)]
-struct Vertex {
-    pos: [f32; 4],
-    color: [f32; 4],
-}
-
-const VERTEX_DATA: [Vertex; 4] = [
-    Vertex {
-        pos: [-0.7, -0.7, 0.0, 1.0],
-        color: [1.0, 0.0, 0.0, 0.0],
-    },
-    Vertex {
-        pos: [-0.7, 0.7, 0.0, 1.0],
-        color: [0.0, 1.0, 0.0, 0.0],
-    },
-    Vertex {
-        pos: [0.7, -0.7, 0.0, 1.0],
-        color: [0.0, 0.0, 1.0, 0.0],
-    },
-    Vertex {
-        pos: [0.7, 0.7, 0.0, 1.0],
-        color: [0.3, 0.3, 0.3, 0.0],
-    },
-];
-const INDEX_DATA: [u16; 6] = [0, 1, 2, 2, 1, 3];
-
-fn host_memory_type(phy: &vk::PhysicalDevice) -> u32 {
+fn memory_type(
+    phy: &vk::PhysicalDevice,
+    desired: vk::MemoryPropertyFlags,
+) -> u32 {
     let mem_props = phy.memory_properties();
-    let desired = vk::MemoryPropertyFlags::HOST_VISIBLE
-        | vk::MemoryPropertyFlags::HOST_COHERENT;
     for (num, props) in mem_props.memory_types.iter().enumerate() {
         if props.property_flags & desired == desired {
             return num as u32;
         }
     }
     panic!("No host visible memory!")
-}
-
-fn device_memory_type(phy: &vk::PhysicalDevice) -> u32 {
-    let mem_props = phy.memory_properties();
-    let desired = vk::MemoryPropertyFlags::DEVICE_LOCAL;
-    for (num, props) in mem_props.memory_types.iter().enumerate() {
-        if props.property_flags & desired == desired {
-            return num as u32;
-        }
-    }
-    panic!("No device local memory!")
 }
 
 fn main() -> anyhow::Result<()> {
@@ -185,8 +184,10 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     })?;
     let mem_size = vertex_buffer.memory_requirements().size;
-    let memory =
-        device.allocate_memory(mem_size as u64, device_memory_type(&phy))?;
+    let memory = device.allocate_memory(
+        mem_size as u64,
+        memory_type(&phy, vk::MemoryPropertyFlags::DEVICE_LOCAL),
+    )?;
     let vertex_buffer = memory.bind_buffer_memory(vertex_buffer, 0)?;
 
     let staging_buffer = device.create_buffer(&vk::BufferCreateInfo {
@@ -195,8 +196,14 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     })?;
     let mem_size = staging_buffer.memory_requirements().size;
-    let memory =
-        device.allocate_memory(mem_size as u64, host_memory_type(&phy))?;
+    let memory = device.allocate_memory(
+        mem_size as u64,
+        memory_type(
+            &phy,
+            vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT,
+        ),
+    )?;
     let staging_buffer = memory.bind_buffer_memory(staging_buffer, 0)?;
 
     let mut memory = memory.map(0, data_size)?;
@@ -229,6 +236,24 @@ fn main() -> anyhow::Result<()> {
     )?;
     fence = Some(pending_fence.wait()?);
 
+    let uniform_buffer = device.create_buffer(&vk::BufferCreateInfo {
+        size: size_of::<UBO>() as u64,
+        usage: vk::BufferUsageFlags::UNIFORM_BUFFER,
+        ..Default::default()
+    })?;
+    let mem_size = uniform_buffer.memory_requirements().size;
+    let memory = device.allocate_memory(
+        mem_size as u64,
+        memory_type(
+            &phy,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL
+                | vk::MemoryPropertyFlags::HOST_VISIBLE,
+        ),
+    )?;
+    let uniform_buffer = memory.bind_buffer_memory(uniform_buffer, 0)?;
+
+    let mut uniform_memory = memory.map(0, size_of::<UBO>())?;
+
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
         attachments: vk::Slice_::from(&[vk::AttachmentDescription {
             format: vk::Format::B8G8R8A8_SRGB,
@@ -254,6 +279,16 @@ fn main() -> anyhow::Result<()> {
     let fragment_shader = device
         .create_shader_module(include_spirv!("shaders/triangle.frag", frag))?;
 
+    let descriptor_set_layout = device.create_descriptor_set_layout(vec![
+        vk::DescriptorSetLayoutBinding {
+            binding: 0,
+            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            descriptor_count: 1,
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            immutable_samplers: vec![],
+        },
+    ])?;
+
     let pipeline_layout = device.create_pipeline_layout(&Default::default())?;
     let pipeline =
         device.create_graphics_pipeline(&vk::GraphicsPipelineCreateInfo {
@@ -268,7 +303,7 @@ fn main() -> anyhow::Result<()> {
                 vertex_binding_descriptions: vk::Slice_::from(&[
                     vk::VertexInputBindingDescription {
                         binding: 0,
-                        stride: std::mem::size_of::<Vertex>() as u32,
+                        stride: size_of::<Vertex>() as u32,
                         input_rate: vk::VertexInputRate::VERTEX,
                     },
                 ]),
@@ -408,6 +443,21 @@ fn main() -> anyhow::Result<()> {
         pass.end();
 
         rec.end()?;
+
+        *bytemuck::from_bytes_mut(uniform_memory.slice_mut()) = UBO {
+            model: Mat4::identity(),
+            view: Mat4::look_at(
+                Vec3::new(2., 2., 2.),
+                Vec3::zero(),
+                Vec3::new(0., 1., 0.),
+            ),
+            proj: ultraviolet::projection::perspective_infinite_z_vk(
+                std::f32::consts::FRAC_PI_2,
+                draw_size.width as f32 / draw_size.height as f32,
+                0.1,
+            ),
+        };
+
         let pending_fence = queue.submit(
             &mut [vk::SubmitInfo {
                 wait: &mut [(
