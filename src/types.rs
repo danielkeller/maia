@@ -50,7 +50,10 @@ impl Debug for NonNullNonDispatchableHandle {
     }
 }
 
-// This hides its pointer and is thus thread safe.
+// This hides its pointer and is thus thread safe. Theoretically, if we actually
+// used raw handle types anywhere they would be !Send + !Sync and the thread
+// safety would be provided by Handle, Ref, and Mut. But this appears
+// unneccesary.
 unsafe impl Send for NonNullDispatchableHandle {}
 unsafe impl Sync for NonNullDispatchableHandle {}
 
@@ -165,6 +168,9 @@ pub struct VkPipeline(NonNullNonDispatchableHandle);
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkBuffer(NonNullNonDispatchableHandle);
+#[repr(transparent)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct VkBufferView(NonNullNonDispatchableHandle);
 #[repr(transparent)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct VkImage(NonNullNonDispatchableHandle);
@@ -1075,6 +1081,63 @@ pub struct DescriptorPoolCreateInfo<'a, Next = Null> {
     pub pool_sizes: Slice<'a, DescriptorPoolSize>,
 }
 structure_type!(DescriptorPoolCreateInfoType, 33);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct DescriptorSetAllocateInfo<'a, Next = Null> {
+    pub stype: DescriptorSetAllocateInfoType,
+    pub next: Next,
+    pub descriptor_pool: Mut<'a, VkDescriptorPool>,
+    pub set_layouts: Slice<'a, Ref<'a, VkDescriptorSetLayout>>,
+}
+structure_type!(DescriptorSetAllocateInfoType, 34);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct DescriptorImageInfo<'a> {
+    pub sampler: Option<Ref<'a, VkSampler>>,
+    pub image_view: Option<Ref<'a, VkImageView>>,
+    pub image_layout: ImageLayout,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct DescriptorBufferInfo<'a> {
+    pub buffer: Ref<'a, VkBuffer>,
+    pub offset: u64,
+    pub range: u64,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VkWriteDescriptorSet<'a, Next = Null> {
+    pub stype: WriteDescriptorSetType,
+    pub next: Next,
+    pub dst_set: Mut<'a, VkDescriptorSet>,
+    pub dst_binding: u32,
+    pub dst_array_element: u32,
+    pub descriptor_count: u32,
+    pub descriptor_type: DescriptorType,
+    pub image_info: Option<Array<'a, DescriptorImageInfo<'a>>>,
+    pub buffer_info: Option<Array<'a, DescriptorBufferInfo<'a>>>,
+    pub texel_buffer_view: Option<Array<'a, Ref<'a, VkBufferView>>>,
+}
+structure_type!(WriteDescriptorSetType, 35);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct VkCopyDescriptorSet<'a, Next = Null> {
+    pub stype: WriteDescriptorSetType,
+    pub next: Next,
+    pub src_set: Ref<'a, VkDescriptorSet>,
+    pub src_binding: u32,
+    pub src_array_element: u32,
+    pub dst_set: Mut<'a, VkDescriptorSet>,
+    pub dst_binding: u32,
+    pub dst_array_element: u32,
+    pub descriptor_count: u32,
+}
+structure_type!(CopyDescriptorSetType, 35);
 
 #[repr(C)]
 #[derive(Debug, Default)]

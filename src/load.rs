@@ -316,6 +316,18 @@ pub struct DeviceFn {
         Mut<VkDescriptorPool>,
         DescriptorPoolResetFlags,
     ) -> VkResult,
+    pub allocate_descriptor_sets: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &DescriptorSetAllocateInfo,
+        ArrayMut<MaybeUninit<Handle<VkDescriptorSet>>>,
+    ) -> VkResult,
+    pub update_descriptor_sets: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        u32,
+        Option<Array<VkWriteDescriptorSet>>,
+        u32,
+        Option<Array<VkCopyDescriptorSet>>,
+    ),
     pub create_pipeline_layout: unsafe extern "system" fn(
         Ref<VkDevice>,
         &PipelineLayoutCreateInfo,
@@ -496,6 +508,8 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         create_descriptor_pool: transmute(load("vkCreateDescriptorPool\0")),
         destroy_descriptor_pool: transmute(load("vkDestroyDescriptorPool\0")),
         reset_descriptor_pool: transmute(load("vkResetDescriptorPool\0")),
+        allocate_descriptor_sets: transmute(load("vkAllocateDescriptorSets\0")),
+        update_descriptor_sets: transmute(load("vkUpdateDescriptorSets\0")),
         create_pipeline_layout: transmute(load("vkCreatePipelineLayout\0")),
         destroy_pipeline_layout: transmute(load("vkDestroyPipelineLayout\0")),
         create_graphics_pipelines: transmute(load(
