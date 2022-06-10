@@ -120,6 +120,12 @@ impl<'a, T: Copy> Mut<'a, T> {
     pub fn reborrow_mut(&mut self) -> Mut<'_, T> {
         Self { ..*self }
     }
+    /// The caller must ensure that uses of the result are externally
+    /// synchronized as defined by Vulkan. Note that this is more unsafe than
+    /// the other unchecked borrows, since it allows the lifetime to be extended
+    pub unsafe fn reborrow_mut_unchecked<'b>(&mut self) -> Mut<'b, T> {
+        Mut { _value: self._value, _lt: PhantomData }
+    }
 }
 
 #[repr(transparent)]
@@ -1094,7 +1100,7 @@ structure_type!(DescriptorSetAllocateInfoType, 34);
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct DescriptorImageInfo<'a> {
+pub struct VkDescriptorImageInfo<'a> {
     pub sampler: Option<Ref<'a, VkSampler>>,
     pub image_view: Option<Ref<'a, VkImageView>>,
     pub image_layout: ImageLayout,
@@ -1102,7 +1108,7 @@ pub struct DescriptorImageInfo<'a> {
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct DescriptorBufferInfo<'a> {
+pub struct VkDescriptorBufferInfo<'a> {
     pub buffer: Ref<'a, VkBuffer>,
     pub offset: u64,
     pub range: u64,
@@ -1118,8 +1124,8 @@ pub struct VkWriteDescriptorSet<'a, Next = Null> {
     pub dst_array_element: u32,
     pub descriptor_count: u32,
     pub descriptor_type: DescriptorType,
-    pub image_info: Option<Array<'a, DescriptorImageInfo<'a>>>,
-    pub buffer_info: Option<Array<'a, DescriptorBufferInfo<'a>>>,
+    pub image_info: Option<Array<'a, VkDescriptorImageInfo<'a>>>,
+    pub buffer_info: Option<Array<'a, VkDescriptorBufferInfo<'a>>>,
     pub texel_buffer_view: Option<Array<'a, Ref<'a, VkBufferView>>>,
 }
 structure_type!(WriteDescriptorSetType, 35);

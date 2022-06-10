@@ -288,6 +288,40 @@ fn main() -> anyhow::Result<()> {
             immutable_samplers: vec![],
         },
     ])?;
+    let mut descriptor_pool = device.create_descriptor_pool(
+        100,
+        &[vk::DescriptorPoolSize {
+            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+            descriptor_count: 100,
+        }],
+    )?;
+    let mut desc_set1 = descriptor_pool.allocate(&descriptor_set_layout)?;
+    let mut desc_set2 = descriptor_pool.allocate(&descriptor_set_layout)?;
+
+    let mut update = device.create_descriptor_set_update_builder();
+    update
+        .begin()
+        .dst_set(&mut desc_set1)
+        .uniform_buffers(
+            0,
+            0,
+            &[vk::DescriptorBufferInfo {
+                buffer: &uniform_buffer,
+                offset: 0,
+                range: u64::MAX,
+            }],
+        )?
+        .dst_set(&mut desc_set2)
+        .uniform_buffers(
+            0,
+            0,
+            &[vk::DescriptorBufferInfo {
+                buffer: &uniform_buffer,
+                offset: 0,
+                range: u64::MAX,
+            }],
+        )?
+        .end();
 
     let pipeline_layout = device.create_pipeline_layout(&Default::default())?;
     let pipeline =

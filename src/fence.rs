@@ -63,7 +63,7 @@ impl PendingFence {
     pub fn borrow(&self) -> Ref<VkFence> {
         self.handle.borrow()
     }
-    pub fn wait(self) -> Result<Fence> {
+    pub fn wait(mut self) -> Result<Fence> {
         unsafe {
             (self.device.fun.wait_for_fences)(
                 self.device.borrow(),
@@ -79,7 +79,7 @@ impl PendingFence {
                 self.device.borrow(),
                 1,
                 // Safe because the the outer structure is owned here
-                (&[self.handle.borrow_mut_unchecked()]).into(),
+                (&[self.handle.borrow_mut()]).into(),
             )?;
         }
         Ok(Fence { handle: Some(self.handle), device: self.device })

@@ -64,7 +64,8 @@ pub mod vk {
     };
     pub use crate::create_instance;
     pub use crate::descriptor_set::{
-        DescriptorSetLayout, DescriptorSetLayoutBinding,
+        DescriptorBufferInfo, DescriptorSetLayout, DescriptorSetLayoutBinding,
+        DescriptorSetUpdateBuilder,
     };
     pub use crate::device::Device;
     pub use crate::enums::*;
