@@ -218,8 +218,8 @@ fn main() -> anyhow::Result<()> {
         INDEX_DATA;
     memory.unmap();
 
-    let mut transfer = cmd_pool.allocate()?;
-    let mut rec = cmd_pool.begin(&mut transfer)?;
+    let transfer = cmd_pool.allocate()?;
+    let mut rec = cmd_pool.begin(transfer)?;
     rec.copy_buffer(
         &staging_buffer,
         &vertex_buffer,
@@ -231,7 +231,7 @@ fn main() -> anyhow::Result<()> {
         vk::AccessFlags::TRANSFER_WRITE,
         vk::AccessFlags::VERTEX_ATTRIBUTE_READ | vk::AccessFlags::INDEX_READ,
     );
-    rec.end()?;
+    let mut transfer = rec.end()?;
     let pending_fence = queue.submit(
         &mut [vk::SubmitInfo {
             commands: &mut [&mut transfer],
@@ -439,8 +439,8 @@ fn main() -> anyhow::Result<()> {
             })
             .clone()?;
 
-        let mut buf = cmd_pool.allocate()?;
-        let mut rec = cmd_pool.begin(&mut buf)?;
+        let buf = cmd_pool.allocate()?;
+        let mut rec = cmd_pool.begin(buf)?;
         let time = Instant::now().duration_since(begin);
         let blue = time.subsec_micros() as f32 / 1e6;
 
@@ -482,10 +482,10 @@ fn main() -> anyhow::Result<()> {
         pass.draw_indexed(6, 1, 0, 0, 0);
         pass.end();
 
-        rec.end()?;
+        let mut buf = rec.end()?;
 
         *bytemuck::from_bytes_mut(uniform_memory.slice_mut()) = UBO {
-            model: Mat4::from_rotation_y(time.as_secs_f32()),
+            model: Mat4::from_rotation_y(time.as_secs_f32() * 2.0),
             view: Mat4::look_at(
                 Vec3::new(1., 1., 1.),
                 Vec3::zero(),

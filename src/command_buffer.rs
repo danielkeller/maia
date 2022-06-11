@@ -4,7 +4,7 @@ use std::sync::Weak;
 
 use crate::device::Device;
 use crate::enums::*;
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
 use crate::exclusive::Exclusive;
 use crate::framebuffer::Framebuffer;
 use crate::render_pass::RenderPass;
@@ -26,10 +26,9 @@ pub struct CommandPool {
 // to find it locked.
 pub struct CommandBuffer(pub(crate) Arc<CommandBufferLifetime>);
 
-#[must_use = "Will panic if end() is not called"]
 pub struct CommandRecording<'a> {
     pool: &'a mut CommandPool,
-    buffer: &'a mut CommandBufferLifetime,
+    buffer: CommandBufferLifetime,
 }
 
 pub struct RenderPassRecording<'a, 'rec>(&'a mut CommandRecording<'rec>);
@@ -186,22 +185,28 @@ impl CommandPool {
     /// not in the initial state.
     pub fn begin<'a>(
         &'a mut self,
-        buffer: &'a mut CommandBuffer,
-    ) -> Result<CommandRecording<'a>> {
+        buffer: CommandBuffer,
+    ) -> ResultAndSelf<CommandRecording<'a>, CommandBuffer> {
         if !Owner::ptr_eq(&self.res, &buffer.0.pool)
             // In executable state
             || buffer.lock_resources().is_some()
         {
-            return Err(Error::InvalidArgument);
+            return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
         // In pending state
-        let inner =
-            Arc::get_mut(&mut buffer.0).ok_or(Error::SynchronizationError)?;
+        let mut inner = Arc::try_unwrap(buffer.0).map_err(|arc| {
+            ErrorAndSelf(Error::SynchronizationError, CommandBuffer(arc))
+        })?;
         unsafe {
-            (self.res.device.fun.begin_command_buffer)(
+            if let Err(err) = (self.res.device.fun.begin_command_buffer)(
                 inner.handle.borrow_mut(),
                 &Default::default(),
-            )?;
+            ) {
+                return Err(ErrorAndSelf(
+                    err.into(),
+                    CommandBuffer(Arc::new(inner)),
+                ));
+            };
         }
         Ok(CommandRecording { pool: self, buffer: inner })
     }
@@ -227,7 +232,9 @@ impl<'a> CommandRecording<'a> {
     fn add_resource(&mut self, value: Arc<dyn Send + Sync + Debug>) {
         self.pool.res.resources.push(value);
     }
-    pub fn end(mut self) -> Result<()> {
+    /// A failed call to vkEndCommandBuffer leaves the buffer in the invalid
+    /// state, so it is dropped in that case.
+    pub fn end(mut self) -> Result<CommandBuffer> {
         unsafe {
             (self.pool.res.device.fun.end_command_buffer)(
                 self.buffer.handle.borrow_mut(),
@@ -235,15 +242,7 @@ impl<'a> CommandRecording<'a> {
         }
         self.buffer.recording =
             Arc::downgrade(self.pool.recording.as_ref().unwrap());
-        std::mem::forget(self);
-        Ok(())
-    }
-}
-
-// FIXME: This makes recording error handling annoying
-impl<'a> Drop for CommandRecording<'a> {
-    fn drop(&mut self) {
-        panic!("Command recording not ended")
+        Ok(CommandBuffer(Arc::new(self.buffer)))
     }
 }
 
