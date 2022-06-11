@@ -1,4 +1,7 @@
-use std::{collections::HashMap, mem::size_of, time::Instant};
+use std::collections::HashMap;
+use std::mem::size_of;
+use std::sync::Arc;
+use std::time::Instant;
 
 use ember::vk;
 use inline_spirv::include_spirv;
@@ -140,11 +143,13 @@ fn main() -> anyhow::Result<()> {
 
     let device_extensions = required_device_extensions(&phy)?;
     let device = phy.create_device(&vk::DeviceCreateInfo {
-        queue_create_infos: vk::Slice_::from(&[vk::DeviceQueueCreateInfo {
-            queue_family_index: queue_family,
-            queue_priorities: (&[1.0]).into(),
-            ..Default::default()
-        }]),
+        queue_create_infos: vk::Slice_::from_slice(&[
+            vk::DeviceQueueCreateInfo {
+                queue_family_index: queue_family,
+                queue_priorities: (&[1.0]).into(),
+                ..Default::default()
+            },
+        ]),
         enabled_extension_names: device_extensions.into(),
         ..Default::default()
     })?;
@@ -255,7 +260,7 @@ fn main() -> anyhow::Result<()> {
     let mut uniform_memory = memory.map(0, size_of::<UBO>())?;
 
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
-        attachments: vk::Slice_::from(&[vk::AttachmentDescription {
+        attachments: vk::Slice_::from_slice(&[vk::AttachmentDescription {
             format: vk::Format::B8G8R8A8_SRGB,
             load_op: vk::AttachmentLoadOp::CLEAR,
             store_op: vk::AttachmentStoreOp::STORE,
@@ -263,7 +268,7 @@ fn main() -> anyhow::Result<()> {
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
             ..Default::default()
         }]),
-        subpasses: vk::Slice::from(&[vk::SubpassDescription {
+        subpasses: vk::Slice::from_slice(&[vk::SubpassDescription {
             color_attachments: &[vk::AttachmentReference {
                 attachment: 0,
                 layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
@@ -289,29 +294,18 @@ fn main() -> anyhow::Result<()> {
         },
     ])?;
     let mut descriptor_pool = device.create_descriptor_pool(
-        100,
+        1,
         &[vk::DescriptorPoolSize {
             descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-            descriptor_count: 100,
+            descriptor_count: 1,
         }],
     )?;
-    let mut desc_set1 = descriptor_pool.allocate(&descriptor_set_layout)?;
-    let mut desc_set2 = descriptor_pool.allocate(&descriptor_set_layout)?;
+    let mut desc_set = descriptor_pool.allocate(&descriptor_set_layout)?;
 
     let mut update = device.create_descriptor_set_update_builder();
     update
         .begin()
-        .dst_set(&mut desc_set1)
-        .uniform_buffers(
-            0,
-            0,
-            &[vk::DescriptorBufferInfo {
-                buffer: &uniform_buffer,
-                offset: 0,
-                range: u64::MAX,
-            }],
-        )?
-        .dst_set(&mut desc_set2)
+        .dst_set(&mut desc_set)
         .uniform_buffers(
             0,
             0,
@@ -322,26 +316,32 @@ fn main() -> anyhow::Result<()> {
             }],
         )?
         .end();
+    let desc_set = Arc::new(desc_set);
 
-    let pipeline_layout = device.create_pipeline_layout(&Default::default())?;
+    let pipeline_layout = device.create_pipeline_layout(
+        Default::default(),
+        vec![descriptor_set_layout.clone()],
+        &[],
+    )?;
+
     let pipeline =
         device.create_graphics_pipeline(&vk::GraphicsPipelineCreateInfo {
             stype: Default::default(),
             next: Default::default(),
             flags: Default::default(),
-            stages: vk::Slice_::from(&[
+            stages: vk::Slice_::from_slice(&[
                 vk::PipelineShaderStageCreateInfo::vertex(&vertex_shader),
                 vk::PipelineShaderStageCreateInfo::fragment(&fragment_shader),
             ]),
             vertex_input_state: &vk::PipelineVertexInputStateCreateInfo {
-                vertex_binding_descriptions: vk::Slice_::from(&[
+                vertex_binding_descriptions: vk::Slice_::from_slice(&[
                     vk::VertexInputBindingDescription {
                         binding: 0,
                         stride: size_of::<Vertex>() as u32,
                         input_rate: vk::VertexInputRate::VERTEX,
                     },
                 ]),
-                vertex_attribute_descriptions: vk::Slice::from(&[
+                vertex_attribute_descriptions: vk::Slice::from_slice(&[
                     vk::VertexInputAttributeDescription {
                         location: 0,
                         binding: 0,
@@ -363,8 +363,8 @@ fn main() -> anyhow::Result<()> {
             },
             tessellation_state: None,
             viewport_state: &vk::PipelineViewportStateCreateInfo {
-                viewports: vk::Slice_::from(&[Default::default()]),
-                scissors: vk::Slice::from(&[vk::Rect2D {
+                viewports: vk::Slice_::from_slice(&[Default::default()]),
+                scissors: vk::Slice::from_slice(&[vk::Rect2D {
                     offset: Default::default(),
                     extent: vk::Extent2D { width: 3840, height: 2160 },
                 }]),
@@ -375,7 +375,7 @@ fn main() -> anyhow::Result<()> {
             depth_stencil_state: None,
             color_blend_state: &Default::default(),
             dynamic_state: Some(&vk::PipelineDynamicStateCreateInfo {
-                dynamic_states: vk::Slice_::from(&[
+                dynamic_states: vk::Slice_::from_slice(&[
                     vk::DynamicState::VIEWPORT,
                     //vk::DynamicState::SCISSOR,
                 ]),
@@ -441,8 +441,8 @@ fn main() -> anyhow::Result<()> {
 
         let mut buf = cmd_pool.allocate()?;
         let mut rec = cmd_pool.begin(&mut buf)?;
-        let blue =
-            Instant::now().duration_since(begin).subsec_micros() as f32 / 1e6;
+        let time = Instant::now().duration_since(begin);
+        let blue = time.subsec_micros() as f32 / 1e6;
 
         let mut pass = rec.begin_render_pass(
             &render_pass,
@@ -473,15 +473,21 @@ fn main() -> anyhow::Result<()> {
             index_offset as u64,
             vk::IndexType::UINT16,
         );
+        pass.bind_descriptor_sets(
+            vk::PipelineBindPoint::GRAPHICS,
+            &pipeline_layout,
+            0,
+            &[&desc_set],
+        )?;
         pass.draw_indexed(6, 1, 0, 0, 0);
         pass.end();
 
         rec.end()?;
 
         *bytemuck::from_bytes_mut(uniform_memory.slice_mut()) = UBO {
-            model: Mat4::identity(),
+            model: Mat4::from_rotation_y(time.as_secs_f32()),
             view: Mat4::look_at(
-                Vec3::new(2., 2., 2.),
+                Vec3::new(1., 1., 1.),
                 Vec3::zero(),
                 Vec3::new(0., 1., 0.),
             ),

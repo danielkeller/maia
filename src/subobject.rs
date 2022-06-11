@@ -8,10 +8,10 @@ use std::sync::{Arc, Weak};
 /// multiple WeakSubobjects, which can be upgrade()d to Subobjects.
 pub struct Owner<T: ?Sized>(Arc<UnsafeCell<T>>);
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Subobject<T: ?Sized>(Arc<UnsafeCell<T>>);
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct WeakSubobject<T: ?Sized>(Weak<UnsafeCell<T>>);
 
 unsafe impl<T: Send> Send for Owner<T> {}
@@ -72,5 +72,17 @@ impl<T> std::ops::DerefMut for Owner<T> {
 impl<T: std::fmt::Debug> std::fmt::Debug for Owner<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("Owner").field(self.deref()).finish()
+    }
+}
+
+impl<T> std::fmt::Debug for Subobject<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Subobject").field(&self.0).finish()
+    }
+}
+
+impl<T> std::fmt::Debug for WeakSubobject<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("WeakSubobject").field(&self.0).finish()
     }
 }

@@ -240,6 +240,7 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
+// FIXME: This makes recording error handling annoying
 impl<'a> Drop for CommandRecording<'a> {
     fn drop(&mut self) {
         panic!("Command recording not ended")

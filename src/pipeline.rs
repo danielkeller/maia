@@ -1,31 +1,45 @@
 use std::collections::HashSet;
 use std::mem::MaybeUninit;
 
+use crate::descriptor_set::DescriptorSetLayout;
 use crate::device::Device;
+use crate::enums::PipelineLayoutCreateFlags;
 use crate::error::{Error, Result};
+use crate::ffi::*;
 use crate::types::*;
 
 pub struct PipelineLayout {
     handle: Handle<VkPipelineLayout>,
+    set_layouts: Vec<Arc<DescriptorSetLayout>>,
     device: Arc<Device>,
 }
 
 impl Device {
     pub fn create_pipeline_layout(
         self: &Arc<Self>,
-        info: &PipelineLayoutCreateInfo<'_>,
+        flags: PipelineLayoutCreateFlags,
+        set_layouts: Vec<Arc<DescriptorSetLayout>>,
+        push_constant_ranges: &[PushConstantRange],
     ) -> Result<Arc<PipelineLayout>> {
         let mut handle = None;
         unsafe {
+            let set_layouts =
+                &set_layouts.iter().map(|l| l.borrow()).collect::<Vec<_>>();
             (self.fun.create_pipeline_layout)(
                 self.borrow(),
-                info,
+                &PipelineLayoutCreateInfo {
+                    flags,
+                    set_layouts: set_layouts.into(),
+                    push_constant_ranges: Slice::from(push_constant_ranges),
+                    ..Default::default()
+                },
                 None,
                 &mut handle,
             )?;
         }
         Ok(Arc::new(PipelineLayout {
             handle: handle.unwrap(),
+            set_layouts,
             device: self.clone(),
         }))
     }
@@ -46,6 +60,9 @@ impl Drop for PipelineLayout {
 impl PipelineLayout {
     pub fn borrow(&self) -> Ref<VkPipelineLayout> {
         self.handle.borrow()
+    }
+    pub fn layout(&self, binding: u32) -> Option<&Arc<DescriptorSetLayout>> {
+        self.set_layouts.get(binding as usize)
     }
 }
 

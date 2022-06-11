@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::mem::MaybeUninit;
 
 use crate::buffer::Buffer;
@@ -11,12 +12,14 @@ use crate::types::*;
 
 use bumpalo::collections::Vec as BumpVec;
 
+#[derive(Debug, Eq)]
 pub struct DescriptorSetLayout {
     handle: Handle<VkDescriptorSetLayout>,
     bindings: Vec<DescriptorSetLayoutBinding>,
     device: Arc<Device>,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct DescriptorSetLayoutBinding {
     pub binding: u32,
     pub descriptor_type: DescriptorType,
@@ -80,6 +83,12 @@ impl Drop for DescriptorSetLayout {
     }
 }
 
+impl PartialEq for DescriptorSetLayout {
+    fn eq(&self, other: &Self) -> bool {
+        self.bindings == other.bindings && self.device == other.device
+    }
+}
+
 impl DescriptorSetLayout {
     pub fn borrow(&self) -> Ref<VkDescriptorSetLayout> {
         self.handle.borrow()
@@ -91,6 +100,7 @@ struct DescriptorPoolLifetime {
     device: Arc<Device>,
 }
 
+#[derive(Debug)]
 struct AllocatedSets;
 
 pub struct DescriptorPool {
@@ -156,12 +166,13 @@ impl DescriptorPool {
     }
 }
 
+#[derive(Debug)]
 pub struct DescriptorSet {
     handle: Handle<VkDescriptorSet>,
     layout: Arc<DescriptorSetLayout>,
-    pool: Subobject<DescriptorPoolLifetime>,
-    allocation: Arc<AllocatedSets>,
-    resources: Vec<Vec<Option<Arc<dyn Send + Sync>>>>,
+    resources: Vec<Vec<Option<Arc<dyn Send + Sync + Debug>>>>,
+    _allocation: Arc<AllocatedSets>,
+    _pool: Subobject<DescriptorPoolLifetime>,
 }
 
 impl DescriptorPool {
@@ -201,8 +212,8 @@ impl DescriptorPool {
         Ok(DescriptorSet {
             handle,
             layout: layout.clone(),
-            pool: Subobject::new(&self.res),
-            allocation: self.allocated.clone(),
+            _pool: Subobject::new(&self.res),
+            _allocation: self.allocated.clone(),
             resources,
         })
     }
@@ -214,6 +225,9 @@ impl DescriptorSet {
     }
     pub fn borrow_mut(&mut self) -> Mut<VkDescriptorSet> {
         self.handle.borrow_mut()
+    }
+    pub fn layout(&self) -> &Arc<DescriptorSetLayout> {
+        &self.layout
     }
 }
 
@@ -237,7 +251,7 @@ struct Resource {
     set: usize,
     binding: usize,
     element: usize,
-    resource: Arc<dyn Send + Sync>,
+    resource: Arc<dyn Send + Sync + Debug>,
 }
 
 #[must_use = "This object does nothing until end() is called."]

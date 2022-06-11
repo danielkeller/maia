@@ -1,9 +1,10 @@
 use crate::buffer::Buffer;
+use crate::descriptor_set::DescriptorSet;
 use crate::enums::*;
 use crate::error::{Error, Result};
 use crate::ffi::Array;
 use crate::image::Image;
-use crate::pipeline::Pipeline;
+use crate::pipeline::{Pipeline, PipelineLayout};
 use crate::types::*;
 
 use super::{CommandRecording, RenderPassRecording};
@@ -333,6 +334,60 @@ impl<'a> CommandRecording<'a> {
                 index_type,
             )
         }
+    }
+}
+
+impl<'a> CommandRecording<'a> {
+    pub fn bind_descriptor_sets(
+        &mut self,
+        pipeline_bind_point: PipelineBindPoint,
+        layout: &PipelineLayout,
+        first_set: u32,
+        sets: &[&Arc<DescriptorSet>],
+    ) -> Result<()> {
+        // TODO: Typecheck the pipeline as well
+        // TODO: Dynamic offsets
+        for (i, set) in sets.iter().enumerate() {
+            if layout.layout(i as u32 + first_set) != Some(set.layout()) {
+                return Err(Error::InvalidArgument);
+            }
+        }
+        for &set in sets {
+            self.add_resource(set.clone());
+        }
+        let scratch = self.pool.scratch.get_mut();
+        let sets =
+            scratch.alloc_slice_fill_iter(sets.iter().map(|s| s.borrow()));
+        unsafe {
+            (self.pool.res.device.fun.cmd_bind_descriptor_sets)(
+                self.buffer.handle.borrow_mut(),
+                pipeline_bind_point,
+                layout.borrow(),
+                first_set,
+                sets.len() as u32,
+                Array::from_slice(sets),
+                0,
+                None,
+            )
+        }
+
+        Ok(())
+    }
+}
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn bind_descriptor_sets(
+        &mut self,
+        pipeline_bind_point: PipelineBindPoint,
+        layout: &PipelineLayout,
+        first_set: u32,
+        sets: &[&Arc<DescriptorSet>],
+    ) -> Result<()> {
+        self.0.bind_descriptor_sets(
+            pipeline_bind_point,
+            layout,
+            first_set,
+            sets,
+        )
     }
 }
 

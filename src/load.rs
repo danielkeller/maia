@@ -436,6 +436,16 @@ pub struct DeviceFn {
         u64,
         IndexType,
     ),
+    pub cmd_bind_descriptor_sets: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        PipelineBindPoint,
+        Ref<VkPipelineLayout>,
+        u32,
+        u32,
+        Option<Array<Ref<VkDescriptorSet>>>,
+        u32,
+        Option<Array<u32>>,
+    ),
     pub cmd_draw:
         unsafe extern "system" fn(Mut<VkCommandBuffer>, u32, u32, u32, u32),
     pub cmd_draw_indexed: unsafe extern "system" fn(
@@ -531,6 +541,7 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         cmd_bind_pipeline: transmute(load("vkCmdBindPipeline\0")),
         cmd_bind_vertex_buffers: transmute(load("vkCmdBindVertexBuffers\0")),
         cmd_bind_index_buffer: transmute(load("vkCmdBindIndexBuffer\0")),
+        cmd_bind_descriptor_sets: transmute(load("vkCmdBindDescriptorSets\0")),
         cmd_draw: transmute(load("vkCmdDraw\0")),
         cmd_draw_indexed: transmute(load("vkCmdDrawIndexed\0")),
         cmd_set_viewport: transmute(load("vkCmdSetViewport\0")),

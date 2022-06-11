@@ -50,8 +50,7 @@ impl<'a> Str<'a> {
 
 impl Default for Str<'_> {
     fn default() -> Self {
-        const INST: Str<'static> = unsafe { Str::new_unchecked(b"\0") };
-        INST
+        <&CStr>::default().into()
     }
 }
 
@@ -183,8 +182,12 @@ impl<'a, T> Clone for Slice<'a, T> {
 }
 
 impl<'a, T> Slice<'a, T> {
-    pub fn from(arr: &'a [T]) -> Self {
-        arr.into()
+    pub fn from_slice(arr: &'a [T]) -> Self {
+        Slice {
+            count: arr.len() as u32,
+            ptr: arr.as_ptr(),
+            _lt: PhantomData,
+        }
     }
     pub fn len(&self) -> u32 {
         self.count
@@ -204,32 +207,21 @@ impl<'a, T> Default for Slice<'a, T> {
     }
 }
 
-/// Panics if the slice has 2^32 or more elements
 impl<'a, T> From<&'a [T]> for Slice<'a, T> {
-    fn from(ts: &'a [T]) -> Self {
-        Slice {
-            count: ts.len().try_into().unwrap(),
-            ptr: ts.as_ptr(),
-            _lt: PhantomData,
-        }
+    fn from(arr: &'a [T]) -> Self {
+        Self::from_slice(arr)
     }
 }
 
-/// Panics if the slice has 2^32 or more elements
 impl<'a, T> From<&'a mut [T]> for Slice<'a, T> {
-    fn from(ts: &'a mut [T]) -> Self {
-        (&*ts).into()
+    fn from(arr: &'a mut [T]) -> Self {
+        Self::from_slice(arr)
     }
 }
 
-/// Panics if the Vec has 2^32 or more elements
 impl<'a, T> From<&'a Vec<T>> for Slice<'a, T> {
-    fn from(ts: &'a Vec<T>) -> Self {
-        Slice {
-            count: ts.len().try_into().unwrap(),
-            ptr: ts.as_ptr(),
-            _lt: PhantomData,
-        }
+    fn from(arr: &'a Vec<T>) -> Self {
+        Self::from_slice(arr)
     }
 }
 
@@ -283,8 +275,12 @@ impl<'a, T> Default for Slice_<'a, T> {
 }
 
 impl<'a, T> Slice_<'a, T> {
-    pub fn from(arr: &'a [T]) -> Self {
-        arr.into()
+    pub fn from_slice(arr: &'a [T]) -> Self {
+        Self {
+            count: arr.len() as u32,
+            ptr: unsafe { std::mem::transmute(arr.as_ptr()) },
+            _lt: PhantomData,
+        }
     }
     pub fn len(&self) -> u32 {
         self.count
@@ -299,21 +295,21 @@ impl<'a, T> Slice_<'a, T> {
     }
 }
 
-/// Panics if the slice has 2^32 or more elements
 impl<'a, T> From<&'a [T]> for Slice_<'a, T> {
-    fn from(ts: &'a [T]) -> Self {
-        Slice_ {
-            count: ts.len().try_into().unwrap(),
-            ptr: unsafe { std::mem::transmute(ts.as_ptr()) },
-            _lt: PhantomData,
-        }
+    fn from(arr: &'a [T]) -> Self {
+        Self::from_slice(arr)
     }
 }
 
-/// Panics if the slice has 2^32 or more elements
 impl<'a, T> From<&'a mut [T]> for Slice_<'a, T> {
-    fn from(ts: &'a mut [T]) -> Self {
-        (&*ts).into()
+    fn from(arr: &'a mut [T]) -> Self {
+        Self::from_slice(arr)
+    }
+}
+
+impl<'a, T> From<&'a Vec<T>> for Slice_<'a, T> {
+    fn from(arr: &'a Vec<T>) -> Self {
+        Self::from_slice(arr)
     }
 }
 
@@ -353,8 +349,12 @@ impl<'a> Clone for Bytes<'a> {
 }
 
 impl<'a> Bytes<'a> {
-    pub fn from(arr: &'a [u8]) -> Self {
-        arr.into()
+    pub fn from_slice(slice: &'a [u8]) -> Self {
+        Self {
+            len: slice.len(),
+            ptr: slice.as_ptr(),
+            _lt: PhantomData,
+        }
     }
     pub fn len(&self) -> usize {
         self.len
@@ -367,17 +367,13 @@ impl<'a> Bytes<'a> {
 
 impl<'a> Default for Bytes<'a> {
     fn default() -> Self {
-        Self::from(&[])
+        Self::from_slice(&[])
     }
 }
 
 impl<'a> From<&'a [u8]> for Bytes<'a> {
     fn from(slice: &'a [u8]) -> Self {
-        Bytes {
-            len: slice.len(),
-            ptr: slice.as_ptr(),
-            _lt: PhantomData,
-        }
+        Self::from_slice(slice)
     }
 }
 
@@ -393,11 +389,7 @@ impl<'a> From<&'a [u32]> for Bytes<'a> {
 
 impl<'a> From<&'a Vec<u8>> for Bytes<'a> {
     fn from(vec: &'a Vec<u8>) -> Self {
-        Bytes {
-            len: vec.len(),
-            ptr: vec.as_ptr(),
-            _lt: PhantomData,
-        }
+        Self::from_slice(vec)
     }
 }
 
