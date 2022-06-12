@@ -3,10 +3,13 @@ use std::mem::MaybeUninit;
 
 use crate::buffer::Buffer;
 use crate::device::Device;
+use crate::enums::ImageLayout;
 use crate::enums::{DescriptorType, ShaderStageFlags};
 use crate::error::{Error, Result};
 use crate::exclusive::Exclusive;
 use crate::ffi::Array;
+use crate::image::ImageView;
+use crate::sampler::Sampler;
 use crate::subobject::{Owner, Subobject};
 use crate::types::*;
 
@@ -25,7 +28,7 @@ pub struct DescriptorSetLayoutBinding {
     pub descriptor_type: DescriptorType,
     pub descriptor_count: u32,
     pub stage_flags: ShaderStageFlags,
-    pub immutable_samplers: Vec<()>, //TODO
+    pub immutable_samplers: Vec<Arc<Sampler>>,
 }
 
 impl Device {
@@ -40,14 +43,19 @@ impl Device {
                 return Err(Error::InvalidArgument);
             }
         }
+        let vk_samplers = bindings
+            .iter()
+            .map(|b| b.immutable_samplers.iter().map(|s| s.borrow()).collect())
+            .collect::<Vec<Vec<_>>>();
         let vk_bindings = bindings
             .iter()
-            .map(|b| VkDescriptorSetLayoutBinding {
+            .zip(vk_samplers.iter())
+            .map(|(b, s)| VkDescriptorSetLayoutBinding {
                 binding: b.binding,
                 descriptor_type: b.descriptor_type,
                 descriptor_count: b.descriptor_count,
                 stage_flags: b.stage_flags,
-                immutable_samplers: None,
+                immutable_samplers: Array::from_slice(s),
             })
             .collect::<Vec<_>>();
         let mut handle = None;
@@ -288,8 +296,11 @@ impl<'a> DescriptorSetUpdates<'a> {
     pub fn dst_set(
         self,
         set: &'a mut DescriptorSet,
-    ) -> DescriptorSetUpdate<'a> {
-        DescriptorSetUpdate { updates: self, set }
+    ) -> Result<DescriptorSetUpdate<'a>> {
+        if &*set.layout.device != self.device {
+            return Err(Error::InvalidArgument);
+        }
+        Ok(DescriptorSetUpdate { updates: self, set })
     }
     fn end(mut self) {
         for res in self.resources {
@@ -321,10 +332,11 @@ impl<'a> DescriptorSetUpdate<'a> {
         // a single use as far as external synchronization is concerned
         unsafe { self.set.handle.borrow_mut().reborrow_mut_unchecked() }
     }
+
     pub fn dst_set(
         mut self,
         set: &'a mut DescriptorSet,
-    ) -> DescriptorSetUpdate<'a> {
+    ) -> Result<DescriptorSetUpdate<'a>> {
         self.updates.dst_sets.push(self.set);
         self.updates.dst_set(set)
     }
@@ -332,38 +344,31 @@ impl<'a> DescriptorSetUpdate<'a> {
         self.updates.dst_sets.push(self.set);
         self.updates.end()
     }
-    pub fn uniform_buffers(
+
+    fn buffers_impl(
         mut self,
         dst_binding: u32,
         dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
+        descriptor_type: DescriptorType,
     ) -> Result<Self> {
-        let mut binding = dst_binding as usize;
-        let mut element = dst_array_element;
-        let bindings = &self.set.layout.bindings;
-        for b in buffers {
-            if binding >= bindings.len() {
-                return Err(Error::InvalidArgument);
-            }
-            while element >= bindings[binding].descriptor_count {
-                element -= bindings[binding].descriptor_count;
-                binding += 1;
-                if binding >= bindings.len() {
-                    return Err(Error::InvalidArgument);
-                }
-            }
-            if bindings[binding].descriptor_type
-                != DescriptorType::UNIFORM_BUFFER
-            {
+        let iter = BindingIter::new(
+            &self.set.layout.bindings,
+            dst_binding as usize,
+            dst_array_element,
+            descriptor_type,
+        );
+        for (b, be) in buffers.iter().zip(iter) {
+            let (binding, element) = be?;
+            if &*b.buffer.device != self.updates.device {
                 return Err(Error::InvalidArgument);
             }
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
-                element: element as usize,
+                element,
                 resource: b.buffer.clone(),
             });
-            element += 1;
         }
 
         let buffer_infos =
@@ -382,11 +387,292 @@ impl<'a> DescriptorSetUpdate<'a> {
             dst_binding,
             dst_array_element,
             descriptor_count: buffer_infos.len() as u32,
-            descriptor_type: DescriptorType::UNIFORM_BUFFER,
+            descriptor_type,
             image_info: None,
             buffer_info: Array::from_slice(buffer_infos),
             texel_buffer_view: None,
         });
         Ok(self)
+    }
+    pub fn uniform_buffers(
+        self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        buffers: &'_ [DescriptorBufferInfo<'a>],
+    ) -> Result<Self> {
+        self.buffers_impl(
+            dst_binding,
+            dst_array_element,
+            buffers,
+            DescriptorType::UNIFORM_BUFFER,
+        )
+    }
+    pub fn storage_buffers(
+        self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        buffers: &'_ [DescriptorBufferInfo<'a>],
+    ) -> Result<Self> {
+        self.buffers_impl(
+            dst_binding,
+            dst_array_element,
+            buffers,
+            DescriptorType::STORAGE_BUFFER,
+        )
+    }
+    pub fn uniform_buffers_dynamic(
+        self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        buffers: &'_ [DescriptorBufferInfo<'a>],
+    ) -> Result<Self> {
+        self.buffers_impl(
+            dst_binding,
+            dst_array_element,
+            buffers,
+            DescriptorType::UNIFORM_BUFFER_DYNAMIC,
+        )
+    }
+    pub fn storage_buffers_dynamic(
+        self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        buffers: &'_ [DescriptorBufferInfo<'a>],
+    ) -> Result<Self> {
+        self.buffers_impl(
+            dst_binding,
+            dst_array_element,
+            buffers,
+            DescriptorType::STORAGE_BUFFER_DYNAMIC,
+        )
+    }
+
+    pub fn samplers(
+        mut self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        samplers: &[&'a Arc<Sampler>],
+    ) -> Result<Self> {
+        let iter = BindingIter::new(
+            &self.set.layout.bindings,
+            dst_binding as usize,
+            dst_array_element,
+            DescriptorType::SAMPLER,
+        );
+        for (&s, be) in samplers.iter().zip(iter) {
+            let (binding, element) = be?;
+            if !self.set.layout.bindings[binding].immutable_samplers.is_empty()
+            {
+                return Err(Error::InvalidArgument);
+            }
+            if &*s.device != self.updates.device {
+                return Err(Error::InvalidArgument);
+            }
+            self.updates.resources.push(Resource {
+                set: self.updates.dst_sets.len(),
+                binding,
+                element,
+                resource: s.clone(),
+            });
+        }
+        let image_info =
+            self.updates.bump.alloc_slice_fill_iter(samplers.iter().map(|s| {
+                VkDescriptorImageInfo {
+                    sampler: Some(s.borrow()),
+                    ..Default::default()
+                }
+            }));
+        let dst_set = self.set_ref();
+        self.updates.writes.push(VkWriteDescriptorSet {
+            stype: Default::default(),
+            next: Default::default(),
+            dst_set,
+            dst_binding,
+            dst_array_element,
+            descriptor_count: image_info.len() as u32,
+            descriptor_type: DescriptorType::SAMPLER,
+            image_info: Array::from_slice(image_info),
+            buffer_info: None,
+            texel_buffer_view: None,
+        });
+        Ok(self)
+    }
+
+    fn images_impl(
+        mut self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        images: &[(&'a Arc<ImageView>, ImageLayout)],
+        descriptor_type: DescriptorType,
+    ) -> Result<Self> {
+        let iter = BindingIter::new(
+            &self.set.layout.bindings,
+            dst_binding as usize,
+            dst_array_element,
+            descriptor_type,
+        );
+        for (&(i, _), be) in images.iter().zip(iter) {
+            let (binding, element) = be?;
+            if &*i.image.device != self.updates.device {
+                return Err(Error::InvalidArgument);
+            }
+            self.updates.resources.push(Resource {
+                set: self.updates.dst_sets.len(),
+                binding,
+                element,
+                resource: i.clone(),
+            });
+        }
+        let image_info = self.updates.bump.alloc_slice_fill_iter(
+            images.iter().map(|&(i, image_layout)| VkDescriptorImageInfo {
+                image_view: Some(i.borrow()),
+                image_layout,
+                ..Default::default()
+            }),
+        );
+        let dst_set = self.set_ref();
+        self.updates.writes.push(VkWriteDescriptorSet {
+            stype: Default::default(),
+            next: Default::default(),
+            dst_set,
+            dst_binding,
+            dst_array_element,
+            descriptor_count: image_info.len() as u32,
+            descriptor_type,
+            image_info: Array::from_slice(image_info),
+            buffer_info: None,
+            texel_buffer_view: None,
+        });
+        Ok(self)
+    }
+    pub fn sampled_images(
+        self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        images: &[(&'a Arc<ImageView>, ImageLayout)],
+    ) -> Result<Self> {
+        self.images_impl(
+            dst_binding,
+            dst_array_element,
+            images,
+            DescriptorType::SAMPLED_IMAGE,
+        )
+    }
+    pub fn storage_images(
+        self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        images: &[(&'a Arc<ImageView>, ImageLayout)],
+    ) -> Result<Self> {
+        self.images_impl(
+            dst_binding,
+            dst_array_element,
+            images,
+            DescriptorType::STORAGE_IMAGE,
+        )
+    }
+    pub fn input_attachments(
+        self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        images: &[(&'a Arc<ImageView>, ImageLayout)],
+    ) -> Result<Self> {
+        self.images_impl(
+            dst_binding,
+            dst_array_element,
+            images,
+            DescriptorType::INPUT_ATTACHMENT,
+        )
+    }
+
+    /// The samplers must be immutable to use this type
+    pub fn combined_image_samplers(
+        mut self,
+        dst_binding: u32,
+        dst_array_element: u32,
+        images: &[(&'a Arc<ImageView>, ImageLayout)],
+    ) -> Result<Self> {
+        let iter = BindingIter::new(
+            &self.set.layout.bindings,
+            dst_binding as usize,
+            dst_array_element,
+            DescriptorType::COMBINED_IMAGE_SAMPLER,
+        );
+        for (&(i, _), be) in images.iter().zip(iter) {
+            let (binding, element) = be?;
+            if &*i.image.device != self.updates.device {
+                return Err(Error::InvalidArgument);
+            }
+            if self.set.layout.bindings[binding].immutable_samplers.is_empty() {
+                return Err(Error::InvalidArgument);
+            }
+            self.updates.resources.push(Resource {
+                set: self.updates.dst_sets.len(),
+                binding,
+                element,
+                resource: i.clone(),
+            });
+        }
+        let image_info = self.updates.bump.alloc_slice_fill_iter(
+            images.iter().map(|&(i, image_layout)| VkDescriptorImageInfo {
+                image_view: Some(i.borrow()),
+                image_layout,
+                ..Default::default()
+            }),
+        );
+        let dst_set = self.set_ref();
+        self.updates.writes.push(VkWriteDescriptorSet {
+            stype: Default::default(),
+            next: Default::default(),
+            dst_set,
+            dst_binding,
+            dst_array_element,
+            descriptor_count: image_info.len() as u32,
+            descriptor_type: DescriptorType::COMBINED_IMAGE_SAMPLER,
+            image_info: Array::from_slice(image_info),
+            buffer_info: None,
+            texel_buffer_view: None,
+        });
+        Ok(self)
+    }
+}
+
+struct BindingIter<'a> {
+    bindings: &'a [DescriptorSetLayoutBinding],
+    binding: usize,
+    element: u32,
+    descriptor_type: DescriptorType,
+}
+
+impl<'a> BindingIter<'a> {
+    fn new(
+        bindings: &'a [DescriptorSetLayoutBinding],
+        binding: usize,
+        element: u32,
+        descriptor_type: DescriptorType,
+    ) -> Self {
+        Self { bindings, binding, element, descriptor_type }
+    }
+}
+
+impl<'a> Iterator for BindingIter<'a> {
+    type Item = Result<(usize, usize)>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.binding >= self.bindings.len() {
+            return Some(Err(Error::InvalidArgument));
+        }
+        while self.element >= self.bindings[self.binding].descriptor_count {
+            self.element -= self.bindings[self.binding].descriptor_count;
+            self.binding += 1;
+            if self.binding >= self.bindings.len() {
+                return Some(Err(Error::InvalidArgument));
+            }
+        }
+        if self.bindings[self.binding].descriptor_type != self.descriptor_type {
+            return Some(Err(Error::InvalidArgument));
+        }
+        self.element += 1;
+
+        Some(Ok((self.binding, self.element as usize - 1)))
     }
 }

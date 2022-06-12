@@ -18,6 +18,7 @@ mod physical_device;
 mod pipeline;
 mod queue;
 mod render_pass;
+mod sampler;
 mod semaphore;
 mod shader;
 mod subobject;
@@ -83,5 +84,6 @@ pub mod vk {
     pub use crate::physical_device::PhysicalDevice;
     pub use crate::queue::Queue;
     pub use crate::queue::SubmitInfo;
+    pub use crate::sampler::Sampler;
     pub use crate::types::*;
 }

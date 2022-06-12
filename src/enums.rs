@@ -1361,10 +1361,54 @@ impl PipelineLayoutCreateFlags {
 flags!(PipelineLayoutCreateFlags, [INDEPENDENT_SETS_EXT]);
 
 #[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SamplerCreateFlags(u32);
+flags!(SamplerCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct Filter(u32);
+impl Filter {
+    pub const NEAREST: Self = Self(0);
+    pub const LINEAR: Self = Self(1);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct SamplerMipmapMode(u32);
+impl SamplerMipmapMode {
+    pub const NEAREST: Self = Self(0);
+    pub const LINEAR: Self = Self(1);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct SamplerAddressMode(u32);
+impl SamplerAddressMode {
+    pub const REPEAT: Self = Self(0);
+    pub const MIRRORED_REPEAT: Self = Self(1);
+    pub const CLAMP_TO_EDGE: Self = Self(2);
+    pub const CLAMP_TO_BORDER: Self = Self(3);
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+pub struct BorderColor(u32);
+impl BorderColor {
+    pub const FLOAT_TRANSPARENT_BLACK: Self = Self(0);
+    pub const INT_TRANSPARENT_BLACK: Self = Self(1);
+    pub const FLOAT_OPAQUE_BLACK: Self = Self(2);
+    pub const INT_OPAQUE_BLACK: Self = Self(3);
+    pub const FLOAT_OPAQUE_WHITE: Self = Self(4);
+    pub const INT_OPAQUE_WHITE: Self = Self(5);
+}
+
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct DescriptorType(u32);
 impl DescriptorType {
     pub const SAMPLER: Self = Self(0);
+    /// Can only be used with immutable samplers at the moment
     pub const COMBINED_IMAGE_SAMPLER: Self = Self(1);
     pub const SAMPLED_IMAGE: Self = Self(2);
     pub const STORAGE_IMAGE: Self = Self(3);

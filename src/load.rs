@@ -339,6 +339,17 @@ pub struct DeviceFn {
         Mut<VkPipelineLayout>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_sampler: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &SamplerCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkSampler>>,
+    ) -> VkResult,
+    pub destroy_sampler: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkSampler>,
+        Option<&'_ AllocationCallbacks>,
+    ),
     pub create_graphics_pipelines: unsafe extern "system" fn(
         Ref<VkDevice>,
         Option<Mut<VkPipelineCache>>,
@@ -522,6 +533,8 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         update_descriptor_sets: transmute(load("vkUpdateDescriptorSets\0")),
         create_pipeline_layout: transmute(load("vkCreatePipelineLayout\0")),
         destroy_pipeline_layout: transmute(load("vkDestroyPipelineLayout\0")),
+        create_sampler: transmute(load("vkCreateSampler\0")),
+        destroy_sampler: transmute(load("vkDestroySampler\0")),
         create_graphics_pipelines: transmute(load(
             "vkCreateGraphicsPipelines\0",
         )),

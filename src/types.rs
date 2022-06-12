@@ -1051,13 +1051,62 @@ structure_type!(PipelineLayoutCreateInfoType, 30);
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct SamplerCreateInfo<Next = Null> {
+    pub stype: SamplerCreateInfoType,
+    pub next: Next,
+    pub flags: SamplerCreateFlags,
+    pub mag_filter: Filter,
+    pub min_filter: Filter,
+    pub mipmap_mode: SamplerMipmapMode,
+    pub address_mode_u: SamplerAddressMode,
+    pub address_mode_v: SamplerAddressMode,
+    pub address_mode_w: SamplerAddressMode,
+    pub mip_lod_bias: f32,
+    pub anisotropy_enable: Bool,
+    pub max_anisotropy: f32,
+    pub compare_enable: Bool,
+    pub compare_op: CompareOp,
+    pub min_lod: f32,
+    pub max_lod: f32,
+    pub border_color: BorderColor,
+    pub unnormalized_coordinates: Bool,
+}
+structure_type!(SamplerCreateInfoType, 31);
+
+impl Default for SamplerCreateInfo {
+    fn default() -> Self {
+        Self {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            mag_filter: Default::default(),
+            min_filter: Default::default(),
+            mipmap_mode: Default::default(),
+            address_mode_u: Default::default(),
+            address_mode_v: Default::default(),
+            address_mode_w: Default::default(),
+            mip_lod_bias: Default::default(),
+            anisotropy_enable: Default::default(),
+            max_anisotropy: Default::default(),
+            compare_enable: Default::default(),
+            compare_op: Default::default(),
+            min_lod: Default::default(),
+            max_lod: 1000.0,
+            border_color: Default::default(),
+            unnormalized_coordinates: Default::default(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct VkDescriptorSetLayoutBinding<'a> {
     pub binding: u32,
     pub descriptor_type: DescriptorType,
     pub descriptor_count: u32,
     pub stage_flags: ShaderStageFlags,
     // Safety: Must be descriptor_count long
-    pub immutable_samplers: Option<Array<'a, VkSampler>>,
+    pub immutable_samplers: Option<Array<'a, Ref<'a, VkSampler>>>,
 }
 
 #[repr(C)]
@@ -1099,7 +1148,7 @@ pub struct DescriptorSetAllocateInfo<'a, Next = Null> {
 structure_type!(DescriptorSetAllocateInfoType, 34);
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct VkDescriptorImageInfo<'a> {
     pub sampler: Option<Ref<'a, VkSampler>>,
     pub image_view: Option<Ref<'a, VkImageView>>,

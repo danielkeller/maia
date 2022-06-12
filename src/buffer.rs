@@ -15,7 +15,7 @@ pub struct BufferWithoutMemory {
 pub struct Buffer {
     handle: Handle<VkBuffer>,
     _memory: Subobject<MemoryPayload>,
-    device: Arc<Device>,
+    pub(crate) device: Arc<Device>,
 }
 
 impl Device {
