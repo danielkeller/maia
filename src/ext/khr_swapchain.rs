@@ -152,7 +152,9 @@ impl KHRSwapchain {
                         h,
                         self.device.clone(),
                         Subobject::new(&res),
+                        info.image_format,
                         info.image_extent.into(),
+                        info.image_array_layers,
                     )),
                     false,
                 )

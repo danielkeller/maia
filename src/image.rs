@@ -17,7 +17,10 @@ enum ImageOwner {
 #[derive(Debug)]
 pub struct ImageWithoutMemory {
     handle: Handle<VkImage>,
+    format: Format,
     extent: Extent3D,
+    mip_levels: u32,
+    array_layers: u32,
     res: ImageOwner,
     device: Arc<Device>,
 }
@@ -54,6 +57,9 @@ impl Device {
         Ok(ImageWithoutMemory {
             handle: handle.unwrap(),
             extent: info.extent,
+            format: info.format,
+            mip_levels: info.mip_levels,
+            array_layers: info.array_layers,
             res: ImageOwner::Application,
             device: self.clone(),
         })
@@ -150,14 +156,19 @@ impl Image {
         handle: Handle<VkImage>,
         device: Arc<Device>,
         res: Subobject<SwapchainImages>,
+        format: Format,
         extent: Extent3D,
+        array_layers: u32,
     ) -> Self {
         Self {
             inner: ImageWithoutMemory {
                 handle,
                 extent,
+                array_layers,
+                mip_levels: 1,
                 res: ImageOwner::Swapchain(res),
                 device,
+                format,
             },
             _memory: None,
         }
@@ -169,8 +180,14 @@ impl Image {
     pub fn device(&self) -> &Device {
         &*self.inner.device
     }
+    pub fn format(&self) -> Format {
+        self.inner.format
+    }
     pub fn extent(&self) -> Extent3D {
         self.inner.extent
+    }
+    pub fn byte_size_level_0(&self) -> u64 {
+        image_byte_size_3d(self.inner.format, self.inner.extent).unwrap()
     }
 }
 

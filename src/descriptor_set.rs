@@ -672,13 +672,13 @@ impl<'a> Iterator for BindingIter<'a> {
     type Item = Result<(usize, usize)>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.binding >= self.bindings.len() {
-            return Some(Err(Error::InvalidArgument));
+            return Some(Err(Error::OutOfBounds));
         }
         while self.element >= self.bindings[self.binding].descriptor_count {
             self.element -= self.bindings[self.binding].descriptor_count;
             self.binding += 1;
             if self.binding >= self.bindings.len() {
-                return Some(Err(Error::InvalidArgument));
+                return Some(Err(Error::OutOfBounds));
             }
         }
         if self.bindings[self.binding].descriptor_type != self.descriptor_type {

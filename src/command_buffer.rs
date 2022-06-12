@@ -67,7 +67,7 @@ impl Device {
     ) -> Result<CommandPool> {
         let i = queue_family_index as usize;
         if i > self.queues.len() || self.queues[i] < 1 {
-            return Err(Error::InvalidArgument);
+            return Err(Error::OutOfBounds);
         }
         let mut handle = None;
         unsafe {

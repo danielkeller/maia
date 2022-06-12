@@ -16,6 +16,15 @@ impl<'a> CommandRecording<'a> {
         dst: &Arc<Buffer>,
         regions: &[BufferCopy],
     ) -> Result<()> {
+        for r in regions {
+            if r.src_offset >= src.len()
+                || r.dst_offset >= dst.len()
+                || r.size > src.len() - r.src_offset
+                || r.size > dst.len() - r.dst_offset
+            {
+                return Err(Error::OutOfBounds);
+            }
+        }
         unsafe {
             (self.pool.res.device.fun.cmd_copy_buffer)(
                 self.buffer.handle.borrow_mut(),
@@ -39,6 +48,23 @@ impl<'a> CommandRecording<'a> {
         dst_layout: ImageLayout,
         regions: &[BufferImageCopy],
     ) -> Result<()> {
+        for r in regions {
+            // TODO: Image bounds check
+            if r.buffer_offset >= src.len() {
+                return Err(Error::OutOfBounds);
+            }
+            let bytes = image_byte_size_3d(dst.format(), r.image_extent)
+                .and_then(|b| {
+                    b.checked_mul(r.image_subresource.layer_count as u64)
+                });
+            match bytes {
+                None => return Err(Error::OutOfBounds),
+                Some(b) if b > src.len() - r.buffer_offset => {
+                    return Err(Error::OutOfBounds)
+                }
+                _ => (),
+            };
+        }
         unsafe {
             (self.pool.res.device.fun.cmd_copy_buffer_to_image)(
                 self.buffer.handle.borrow_mut(),

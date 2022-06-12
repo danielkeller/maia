@@ -72,7 +72,7 @@ impl Device {
     ) -> Result<Queue> {
         let i = family_index as usize;
         if i > self.queues.len() || self.queues[i] <= queue_index {
-            return Err(Error::InvalidArgument);
+            return Err(Error::OutOfBounds);
         }
         let mut handle = None;
         unsafe {

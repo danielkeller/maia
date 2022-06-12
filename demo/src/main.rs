@@ -201,11 +201,6 @@ fn upload_image(
         vk::ImageLayout::TRANSFER_DST_OPTIMAL,
         &[vk::BufferImageCopy {
             image_extent: vk::Extent3D { width: 512, height: 512, depth: 1 },
-            image_subresource: vk::ImageSubresourceLayers {
-                //FIXME
-                //layer_count: u32::MAX,
-                ..Default::default()
-            },
             ..Default::default()
         }],
     )?;

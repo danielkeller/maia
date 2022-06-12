@@ -4,6 +4,7 @@ use crate::types::VkError;
 pub enum Error {
     Other,
     InvalidArgument,
+    OutOfBounds,
     SynchronizationError,
     NotReady,
     Timeout,

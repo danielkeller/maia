@@ -1,3 +1,5 @@
+use crate::types::{Extent2D, Extent3D};
+
 macro_rules! flags {
     ($name: ident, [$($member:ident),*]) => {
         impl Default for $name {
@@ -878,6 +880,209 @@ impl Format {
     pub const ASTC_10X10_SFLOAT_BLOCK: Self = Self(1000066011);
     pub const ASTC_12X10_SFLOAT_BLOCK: Self = Self(1000066012);
     pub const ASTC_12X12_SFLOAT_BLOCK: Self = Self(1000066013);
+}
+
+impl Format {
+    /// Number of bytes per block
+    pub fn bytes(self) -> u64 {
+        match self {
+            Self::R8_SINT => 1,
+            Self::R8_SNORM => 1,
+            Self::R8_SRGB => 1,
+            Self::R8_UINT => 1,
+            Self::R8_UNORM => 1,
+
+            Self::R8G8_SINT => 2,
+            Self::R8G8_SNORM => 2,
+            Self::R8G8_UINT => 2,
+            Self::R8G8_UNORM => 2,
+            Self::R16_SFLOAT => 2,
+            Self::R16_SINT => 2,
+            Self::R16_SNORM => 2,
+            Self::R16_UINT => 2,
+            Self::R16_UNORM => 2,
+            Self::D16_UNORM => 2,
+            Self::A1R5G5B5_UNORM_PACK16 => 2,
+            Self::B4G4R4A4_UNORM_PACK16 => 2,
+            Self::B5G5R5A1_UNORM_PACK16 => 2,
+            Self::B5G6R5_UNORM_PACK16 => 2,
+            Self::R4G4B4A4_UNORM_PACK16 => 2,
+            Self::R5G5B5A1_UNORM_PACK16 => 2,
+            Self::R5G6B5_UNORM_PACK16 => 2,
+
+            Self::B8G8R8A8_SINT => 4,
+            Self::B8G8R8A8_SNORM => 4,
+            Self::B8G8R8A8_SRGB => 4,
+            Self::B8G8R8A8_UINT => 4,
+            Self::B8G8R8A8_UNORM => 4,
+            Self::R8G8B8A8_SINT => 4,
+            Self::R8G8B8A8_SNORM => 4,
+            Self::R8G8B8A8_SRGB => 4,
+            Self::R8G8B8A8_UINT => 4,
+            Self::R8G8B8A8_UNORM => 4,
+            Self::R16G16_SFLOAT => 4,
+            Self::R16G16_SINT => 4,
+            Self::R16G16_SNORM => 4,
+            Self::R16G16_UINT => 4,
+            Self::R16G16_UNORM => 4,
+            Self::R32_SFLOAT => 4,
+            Self::R32_SINT => 4,
+            Self::R32_UINT => 4,
+            Self::A2B10G10R10_UINT_PACK32 => 4,
+            Self::A2B10G10R10_UNORM_PACK32 => 4,
+            Self::A2R10G10B10_UINT_PACK32 => 4,
+            Self::A2R10G10B10_UNORM_PACK32 => 4,
+            Self::A8B8G8R8_SINT_PACK32 => 4,
+            Self::A8B8G8R8_SNORM_PACK32 => 4,
+            Self::A8B8G8R8_SRGB_PACK32 => 4,
+            Self::A8B8G8R8_UINT_PACK32 => 4,
+            Self::A8B8G8R8_UNORM_PACK32 => 4,
+            Self::B10G11R11_UFLOAT_PACK32 => 4,
+            Self::E5B9G9R9_UFLOAT_PACK32 => 4,
+            Self::D24_UNORM_S8_UINT => 4,
+            Self::D32_SFLOAT => 4,
+            Self::X8_D24_UNORM_PACK32 => 4,
+
+            Self::R16G16B16A16_SFLOAT => 8,
+            Self::R16G16B16A16_SINT => 8,
+            Self::R16G16B16A16_SNORM => 8,
+            Self::R16G16B16A16_UINT => 8,
+            Self::R16G16B16A16_UNORM => 8,
+            Self::R32G32_SFLOAT => 8,
+            Self::R32G32_SINT => 8,
+            Self::R32G32_UINT => 8,
+
+            Self::R32G32B32_SFLOAT => 12,
+            Self::R32G32B32_SINT => 12,
+            Self::R32G32B32_UINT => 12,
+
+            Self::R32G32B32A32_SFLOAT => 16,
+            Self::R32G32B32A32_SINT => 16,
+            Self::R32G32B32A32_UINT => 16,
+
+            Self::B8G8R8G8_422_UNORM => 4,
+            Self::G8B8G8R8_422_UNORM => 4,
+
+            Self::EAC_R11_SNORM_BLOCK => 8,
+            Self::EAC_R11_UNORM_BLOCK => 8,
+            Self::EAC_R11G11_SNORM_BLOCK => 16,
+            Self::EAC_R11G11_UNORM_BLOCK => 16,
+            Self::ETC2_R8G8B8_SRGB_BLOCK => 8,
+            Self::ETC2_R8G8B8_UNORM_BLOCK => 8,
+            Self::ETC2_R8G8B8A1_SRGB_BLOCK => 8,
+            Self::ETC2_R8G8B8A1_UNORM_BLOCK => 8,
+            Self::ETC2_R8G8B8A8_SRGB_BLOCK => 16,
+            Self::ETC2_R8G8B8A8_UNORM_BLOCK => 16,
+
+            _ => panic!("Unimplemented format"),
+        }
+    }
+    /// Number of texels per block
+    pub fn texels(self) -> Extent2D {
+        const ONE: Extent2D = Extent2D { width: 1, height: 1 };
+        const TWO_ONE: Extent2D = Extent2D { width: 2, height: 1 };
+        const FOUR_FOUR: Extent2D = Extent2D { width: 4, height: 4 };
+        match self {
+            Self::R8_SINT => ONE,
+            Self::R8_SNORM => ONE,
+            Self::R8_SRGB => ONE,
+            Self::R8_UINT => ONE,
+            Self::R8_UNORM => ONE,
+            Self::R8G8_SINT => ONE,
+            Self::R8G8_SNORM => ONE,
+            Self::R8G8_UINT => ONE,
+            Self::R8G8_UNORM => ONE,
+            Self::R16_SFLOAT => ONE,
+            Self::R16_SINT => ONE,
+            Self::R16_SNORM => ONE,
+            Self::R16_UINT => ONE,
+            Self::R16_UNORM => ONE,
+            Self::D16_UNORM => ONE,
+            Self::A1R5G5B5_UNORM_PACK16 => ONE,
+            Self::B4G4R4A4_UNORM_PACK16 => ONE,
+            Self::B5G5R5A1_UNORM_PACK16 => ONE,
+            Self::B5G6R5_UNORM_PACK16 => ONE,
+            Self::R4G4B4A4_UNORM_PACK16 => ONE,
+            Self::R5G5B5A1_UNORM_PACK16 => ONE,
+            Self::R5G6B5_UNORM_PACK16 => ONE,
+            Self::B8G8R8A8_SINT => ONE,
+            Self::B8G8R8A8_SNORM => ONE,
+            Self::B8G8R8A8_SRGB => ONE,
+            Self::B8G8R8A8_UINT => ONE,
+            Self::B8G8R8A8_UNORM => ONE,
+            Self::R8G8B8A8_SINT => ONE,
+            Self::R8G8B8A8_SNORM => ONE,
+            Self::R8G8B8A8_SRGB => ONE,
+            Self::R8G8B8A8_UINT => ONE,
+            Self::R8G8B8A8_UNORM => ONE,
+            Self::R16G16_SFLOAT => ONE,
+            Self::R16G16_SINT => ONE,
+            Self::R16G16_SNORM => ONE,
+            Self::R16G16_UINT => ONE,
+            Self::R16G16_UNORM => ONE,
+            Self::R32_SFLOAT => ONE,
+            Self::R32_SINT => ONE,
+            Self::R32_UINT => ONE,
+            Self::A2B10G10R10_UINT_PACK32 => ONE,
+            Self::A2B10G10R10_UNORM_PACK32 => ONE,
+            Self::A2R10G10B10_UINT_PACK32 => ONE,
+            Self::A2R10G10B10_UNORM_PACK32 => ONE,
+            Self::A8B8G8R8_SINT_PACK32 => ONE,
+            Self::A8B8G8R8_SNORM_PACK32 => ONE,
+            Self::A8B8G8R8_SRGB_PACK32 => ONE,
+            Self::A8B8G8R8_UINT_PACK32 => ONE,
+            Self::A8B8G8R8_UNORM_PACK32 => ONE,
+            Self::B10G11R11_UFLOAT_PACK32 => ONE,
+            Self::E5B9G9R9_UFLOAT_PACK32 => ONE,
+            Self::D24_UNORM_S8_UINT => ONE,
+            Self::D32_SFLOAT => ONE,
+            Self::X8_D24_UNORM_PACK32 => ONE,
+            Self::R16G16B16A16_SFLOAT => ONE,
+            Self::R16G16B16A16_SINT => ONE,
+            Self::R16G16B16A16_SNORM => ONE,
+            Self::R16G16B16A16_UINT => ONE,
+            Self::R16G16B16A16_UNORM => ONE,
+            Self::R32G32_SFLOAT => ONE,
+            Self::R32G32_SINT => ONE,
+            Self::R32G32_UINT => ONE,
+            Self::R32G32B32_SFLOAT => ONE,
+            Self::R32G32B32_SINT => ONE,
+            Self::R32G32B32_UINT => ONE,
+            Self::R32G32B32A32_SFLOAT => ONE,
+            Self::R32G32B32A32_SINT => ONE,
+            Self::R32G32B32A32_UINT => ONE,
+
+            Self::B8G8R8G8_422_UNORM => TWO_ONE,
+            Self::G8B8G8R8_422_UNORM => TWO_ONE,
+            Self::EAC_R11_SNORM_BLOCK => FOUR_FOUR,
+            Self::EAC_R11_UNORM_BLOCK => FOUR_FOUR,
+            Self::EAC_R11G11_SNORM_BLOCK => FOUR_FOUR,
+            Self::EAC_R11G11_UNORM_BLOCK => FOUR_FOUR,
+            Self::ETC2_R8G8B8_SRGB_BLOCK => FOUR_FOUR,
+            Self::ETC2_R8G8B8_UNORM_BLOCK => FOUR_FOUR,
+            Self::ETC2_R8G8B8A1_SRGB_BLOCK => FOUR_FOUR,
+            Self::ETC2_R8G8B8A1_UNORM_BLOCK => FOUR_FOUR,
+            Self::ETC2_R8G8B8A8_SRGB_BLOCK => FOUR_FOUR,
+            Self::ETC2_R8G8B8A8_UNORM_BLOCK => FOUR_FOUR,
+            _ => panic!("Unimplemented format"),
+        }
+    }
+}
+
+/// Returns None on overflow
+pub fn image_byte_size_2d(format: Format, extent: Extent2D) -> Option<u64> {
+    let block = format.texels();
+    let w = (extent.width.checked_add(block.width)? - 1) / block.width;
+    let h = (extent.height.checked_add(block.height)? - 1) / block.height;
+    let blocks = (w as u64).checked_mul(h as u64)?;
+    blocks.checked_mul(format.bytes())
+}
+pub fn image_byte_size_3d(format: Format, extent: Extent3D) -> Option<u64> {
+    let size = image_byte_size_2d(
+        format,
+        Extent2D { width: extent.width, height: extent.height },
+    )?;
+    size.checked_mul(extent.depth as u64)
 }
 
 #[repr(transparent)]

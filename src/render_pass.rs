@@ -10,7 +10,7 @@ pub struct RenderPass {
 
 fn att_bounds(attachments: &[AttachmentReference], len: u32) -> Result<()> {
     if attachments.iter().any(|a| a.attachment >= len) {
-        Err(Error::InvalidArgument)
+        Err(Error::OutOfBounds)
     } else {
         Ok(())
     }

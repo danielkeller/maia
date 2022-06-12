@@ -24,7 +24,7 @@ impl Device {
     ) -> Result<DeviceMemory> {
         let mem_types = self.physical_device().memory_properties();
         if memory_type_index >= mem_types.memory_types.len() {
-            return Err(Error::InvalidArgument);
+            return Err(Error::OutOfBounds);
         }
         let mut handle = None;
         unsafe {
@@ -94,7 +94,7 @@ impl DeviceMemory {
     ) -> ResultAndSelf<MappedMemory, Self> {
         let (end, overflow) = offset.overflowing_add(size as u64);
         if overflow || end > self.allocation_size {
-            return Err(ErrorAndSelf(Error::InvalidArgument, self));
+            return Err(ErrorAndSelf(Error::OutOfBounds, self));
         }
         let inner = &mut *self.inner;
         let mut ptr = std::ptr::null_mut();
