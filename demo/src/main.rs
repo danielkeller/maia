@@ -478,6 +478,7 @@ fn main() -> anyhow::Result<()> {
             &pipeline_layout,
             0,
             &[&desc_set],
+            &[],
         )?;
         pass.draw_indexed(6, 1, 0, 0, 0);
         pass.end();

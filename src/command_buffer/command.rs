@@ -344,13 +344,22 @@ impl<'a> CommandRecording<'a> {
         layout: &PipelineLayout,
         first_set: u32,
         sets: &[&Arc<DescriptorSet>],
+        dynamic_offsets: &[u32],
     ) -> Result<()> {
-        // TODO: Typecheck the pipeline as well
-        // TODO: Dynamic offsets
+        // Unfortunately, typechecking this against the pipeline is a bit of
+        // an issue, since only descriptors that are statically used are
+        // required to typecheck, which requires inspecting the spir-v. I'm
+        // inclined to say that this is out of scope for this crate, since the
+        // result of incompatible bindings is the shader reading garbage.
+        let mut num_dyn_offsets = 0;
         for (i, set) in sets.iter().enumerate() {
             if layout.layout(i as u32 + first_set) != Some(set.layout()) {
                 return Err(Error::InvalidArgument);
             }
+            num_dyn_offsets += set.layout().num_dynamic_offsets();
+        }
+        if dynamic_offsets.len() != num_dyn_offsets as usize {
+            return Err(Error::InvalidArgument);
         }
         for &set in sets {
             self.add_resource(set.clone());
@@ -366,10 +375,11 @@ impl<'a> CommandRecording<'a> {
                 first_set,
                 sets.len() as u32,
                 Array::from_slice(sets),
-                0,
-                None,
+                num_dyn_offsets,
+                Array::from_slice(dynamic_offsets),
             )
         }
+        scratch.reset();
 
         Ok(())
     }
@@ -381,12 +391,14 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         layout: &PipelineLayout,
         first_set: u32,
         sets: &[&Arc<DescriptorSet>],
+        dynamic_offsets: &[u32],
     ) -> Result<()> {
         self.0.bind_descriptor_sets(
             pipeline_bind_point,
             layout,
             first_set,
             sets,
+            dynamic_offsets,
         )
     }
 }

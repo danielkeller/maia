@@ -101,6 +101,17 @@ impl DescriptorSetLayout {
     pub fn borrow(&self) -> Ref<VkDescriptorSetLayout> {
         self.handle.borrow()
     }
+    pub fn num_dynamic_offsets(&self) -> u32 {
+        let mut result = 0;
+        for b in &self.bindings {
+            if b.descriptor_type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
+                || b.descriptor_type == DescriptorType::STORAGE_BUFFER_DYNAMIC
+            {
+                result += b.descriptor_count
+            }
+        }
+        result
+    }
 }
 
 struct DescriptorPoolLifetime {
@@ -637,6 +648,8 @@ impl<'a> DescriptorSetUpdate<'a> {
     }
 }
 
+/// Gets the binding and element number for a series of consecutive bindings,
+/// doing bounds and type checking on each.
 struct BindingIter<'a> {
     bindings: &'a [DescriptorSetLayoutBinding],
     binding: usize,
