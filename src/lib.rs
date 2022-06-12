@@ -63,6 +63,9 @@ pub mod vk {
     pub use crate::command_buffer::command::{
         BufferMemoryBarrier, ImageMemoryBarrier,
     };
+    pub use crate::command_buffer::{
+        CommandBuffer, CommandPool, CommandRecording, RenderPassRecording,
+    };
     pub use crate::create_instance;
     pub use crate::descriptor_set::{
         DescriptorBufferInfo, DescriptorSetLayout, DescriptorSetLayoutBinding,
@@ -74,6 +77,7 @@ pub mod vk {
     pub use crate::ext::khr_swapchain::{
         CreateSwapchainFrom, KHRSwapchain, SwapchainCreateInfoKHR,
     };
+    pub use crate::fence::{Fence, PendingFence};
     pub use crate::ffi::*;
     pub use crate::image::{
         Image, ImageView, ImageViewCreateInfo, ImageWithoutMemory,

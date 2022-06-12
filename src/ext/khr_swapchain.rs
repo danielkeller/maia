@@ -1,20 +1,15 @@
 use crate::device::Device;
 use crate::enums::*;
-use crate::error::Error;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::ffi::ArrayMut;
 use crate::image::Image;
-use crate::image::ImageOwner;
 use crate::queue::Queue;
-use crate::semaphore::Semaphore;
-use crate::semaphore::SemaphoreSignaller;
-use crate::subobject::Owner;
-use crate::subobject::Subobject;
+use crate::semaphore::{Semaphore, SemaphoreSignaller};
+use crate::subobject::{Owner, Subobject};
 use crate::types::*;
 
 use super::khr_surface::SurfaceLifetime;
-use super::load::SwapchainDeviceFn;
-use super::load::SwapchainKHRFn;
+use super::load::{SwapchainDeviceFn, SwapchainKHRFn};
 use super::SurfaceKHR;
 
 pub struct KHRSwapchain {
@@ -156,7 +151,8 @@ impl KHRSwapchain {
                     Arc::new(Image::new(
                         h,
                         self.device.clone(),
-                        ImageOwner::Swapchain(Subobject::new(&res)),
+                        Subobject::new(&res),
+                        info.image_extent.into(),
                     )),
                     false,
                 )

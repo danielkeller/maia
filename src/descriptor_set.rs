@@ -371,7 +371,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (b, be) in buffers.iter().zip(iter) {
             let (binding, element) = be?;
-            if &*b.buffer.device != self.updates.device {
+            if b.buffer.device() != self.updates.device {
                 return Err(Error::InvalidArgument);
             }
             self.updates.resources.push(Resource {
@@ -524,7 +524,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
-            if &*i.image.device != self.updates.device {
+            if i.image.device() != self.updates.device {
                 return Err(Error::InvalidArgument);
             }
             self.updates.resources.push(Resource {
@@ -611,7 +611,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
-            if &*i.image.device != self.updates.device {
+            if i.image.device() != self.updates.device {
                 return Err(Error::InvalidArgument);
             }
             if self.set.layout.bindings[binding].immutable_samplers.is_empty() {

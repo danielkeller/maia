@@ -11,3 +11,12 @@ anyhow = { version = "1.0", features = [ "backtrace" ] }
 inline-spirv = "0.1"
 bytemuck = { version = "1.0", features = [ "derive" ] }
 ultraviolet = { version = "0.9", features = [ "bytemuck" ] }
+image = { version = "0.24", features = [ "jpeg" ] }
+
+# Turn on optimization here to speed up debug builds
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+[profile.dev.package.adler32]
+opt-level = 3
+[profile.dev.package.jpeg-decoder]
+opt-level = 3

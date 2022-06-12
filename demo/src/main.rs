@@ -11,26 +11,14 @@ use ultraviolet::{Mat4, Vec3};
 #[repr(C)]
 struct Vertex {
     pos: [f32; 4],
-    color: [f32; 4],
+    uv: [f32; 2],
 }
 
 const VERTEX_DATA: [Vertex; 4] = [
-    Vertex {
-        pos: [-0.7, -0.7, 0.0, 1.0],
-        color: [1.0, 0.0, 0.0, 0.0],
-    },
-    Vertex {
-        pos: [-0.7, 0.7, 0.0, 1.0],
-        color: [0.0, 1.0, 0.0, 0.0],
-    },
-    Vertex {
-        pos: [0.7, -0.7, 0.0, 1.0],
-        color: [0.0, 0.0, 1.0, 0.0],
-    },
-    Vertex {
-        pos: [0.7, 0.7, 0.0, 1.0],
-        color: [0.3, 0.3, 0.3, 0.0],
-    },
+    Vertex { pos: [-0.7, -0.7, 0.0, 1.0], uv: [1.0, 1.0] },
+    Vertex { pos: [-0.7, 0.7, 0.0, 1.0], uv: [1.0, 0.0] },
+    Vertex { pos: [0.7, -0.7, 0.0, 1.0], uv: [0.0, 1.0] },
+    Vertex { pos: [0.7, 0.7, 0.0, 1.0], uv: [0.0, 0.0] },
 ];
 const INDEX_DATA: [u16; 6] = [0, 1, 2, 2, 1, 3];
 
@@ -114,6 +102,136 @@ fn memory_type(
     panic!("No host visible memory!")
 }
 
+fn upload_data(
+    device: &Arc<vk::Device>,
+    queue: &mut vk::Queue,
+    cmd_pool: &mut vk::CommandPool,
+    src: &[u8],
+    dst: &Arc<vk::Buffer>,
+    dst_stage_mask: vk::PipelineStageFlags,
+    dst_access_mask: vk::AccessFlags,
+) -> anyhow::Result<()> {
+    let staging_buffer = device.create_buffer(&vk::BufferCreateInfo {
+        size: src.len() as u64,
+        usage: vk::BufferUsageFlags::TRANSFER_SRC,
+        ..Default::default()
+    })?;
+    let mem_size = staging_buffer.memory_requirements().size;
+    let host_mem = memory_type(
+        device.physical_device(),
+        vk::MemoryPropertyFlags::HOST_VISIBLE
+            | vk::MemoryPropertyFlags::HOST_COHERENT,
+    );
+    let memory = device.allocate_memory(mem_size as u64, host_mem)?;
+    let staging_buffer = memory.bind_buffer_memory(staging_buffer, 0)?;
+    let mut memory = memory.map(0, src.len())?;
+    memory.slice_mut().copy_from_slice(src);
+
+    let transfer = cmd_pool.allocate()?;
+    let mut rec = cmd_pool.begin(transfer)?;
+    rec.copy_buffer(
+        &staging_buffer,
+        dst,
+        &[vk::BufferCopy { size: mem_size, ..Default::default() }],
+    )?;
+    rec.memory_barrier(
+        vk::PipelineStageFlags::TRANSFER,
+        dst_stage_mask,
+        vk::AccessFlags::TRANSFER_WRITE,
+        dst_access_mask,
+    );
+    let mut transfer = rec.end()?;
+    let fence = device.create_fence()?;
+    let pending_fence = queue.submit(
+        &mut [vk::SubmitInfo {
+            commands: &mut [&mut transfer],
+            ..Default::default()
+        }],
+        fence,
+    )?;
+    pending_fence.wait()?;
+    Ok(())
+}
+
+fn upload_image(
+    device: &Arc<vk::Device>,
+    queue: &mut vk::Queue,
+    image: &Arc<vk::Image>,
+    cmd_pool: &mut vk::CommandPool,
+) -> anyhow::Result<()> {
+    let image_data = image::io::Reader::open("assets/texture.jpg")?.decode()?;
+    let image_data =
+        image_data.as_rgb8().ok_or(anyhow::anyhow!("Wrong image type"))?;
+
+    let staging_buffer = device.create_buffer(&vk::BufferCreateInfo {
+        size: (image_data.len() / 3 * 4) as u64,
+        usage: vk::BufferUsageFlags::TRANSFER_SRC,
+        ..Default::default()
+    })?;
+    let mem_size = staging_buffer.memory_requirements().size;
+    let host_mem = memory_type(
+        device.physical_device(),
+        vk::MemoryPropertyFlags::HOST_VISIBLE
+            | vk::MemoryPropertyFlags::HOST_COHERENT,
+    );
+    let memory = device.allocate_memory(mem_size, host_mem)?;
+    let staging_buffer = memory.bind_buffer_memory(staging_buffer, 0)?;
+    let mut memory = memory.map(0, mem_size as usize)?;
+    for (dst, src) in
+        memory.slice_mut().chunks_exact_mut(4).zip(image_data.chunks_exact(3))
+    {
+        dst[..3].copy_from_slice(src)
+    }
+    memory.unmap();
+
+    let transfer = cmd_pool.allocate()?;
+    let mut rec = cmd_pool.begin(transfer)?;
+    rec.image_barrier(
+        image,
+        vk::PipelineStageFlags::TOP_OF_PIPE,
+        vk::PipelineStageFlags::TRANSFER,
+        vk::AccessFlags::default(),
+        vk::AccessFlags::TRANSFER_WRITE,
+        vk::ImageLayout::UNDEFINED,
+        vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+    );
+    rec.copy_buffer_to_image(
+        &staging_buffer,
+        image,
+        vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+        &[vk::BufferImageCopy {
+            image_extent: vk::Extent3D { width: 512, height: 512, depth: 1 },
+            image_subresource: vk::ImageSubresourceLayers {
+                //FIXME
+                //layer_count: u32::MAX,
+                ..Default::default()
+            },
+            ..Default::default()
+        }],
+    )?;
+    rec.image_barrier(
+        image,
+        vk::PipelineStageFlags::TRANSFER,
+        vk::PipelineStageFlags::TOP_OF_PIPE,
+        vk::AccessFlags::TRANSFER_WRITE,
+        vk::AccessFlags::MEMORY_READ,
+        vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+        vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL,
+    );
+    let mut transfer = rec.end()?;
+    let fence = device.create_fence()?;
+    let pending_fence = queue.submit(
+        &mut [vk::SubmitInfo {
+            commands: &mut [&mut transfer],
+            ..Default::default()
+        }],
+        fence,
+    )?;
+    pending_fence.wait()?;
+
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     use winit::event_loop::EventLoop;
     let event_loop = EventLoop::new();
@@ -177,69 +295,60 @@ fn main() -> anyhow::Result<()> {
 
     let mut cmd_pool = device.create_command_pool(queue_family)?;
 
-    let data_size = std::mem::size_of_val(&VERTEX_DATA)
-        + std::mem::size_of_val(&INDEX_DATA);
-    let index_offset = std::mem::size_of_val(&VERTEX_DATA);
+    let vertex_size = std::mem::size_of_val(&VERTEX_DATA);
+    let index_size = std::mem::size_of_val(&INDEX_DATA);
+
+    let device_mem = memory_type(
+        &device.physical_device(),
+        vk::MemoryPropertyFlags::DEVICE_LOCAL,
+    );
 
     let vertex_buffer = device.create_buffer(&vk::BufferCreateInfo {
-        size: data_size as u64,
+        size: vertex_size as u64,
         usage: vk::BufferUsageFlags::VERTEX_BUFFER
-            | vk::BufferUsageFlags::INDEX_BUFFER
             | vk::BufferUsageFlags::TRANSFER_DST,
         ..Default::default()
     })?;
-    let mem_size = vertex_buffer.memory_requirements().size;
-    let memory = device.allocate_memory(
-        mem_size as u64,
-        memory_type(&phy, vk::MemoryPropertyFlags::DEVICE_LOCAL),
+    let vertex_buffer = vertex_buffer.allocate_memory(device_mem)?;
+    upload_data(
+        &device,
+        &mut queue,
+        &mut cmd_pool,
+        bytemuck::bytes_of(&VERTEX_DATA),
+        &vertex_buffer,
+        vk::PipelineStageFlags::VERTEX_INPUT,
+        vk::AccessFlags::VERTEX_ATTRIBUTE_READ,
     )?;
-    let vertex_buffer = memory.bind_buffer_memory(vertex_buffer, 0)?;
 
-    let staging_buffer = device.create_buffer(&vk::BufferCreateInfo {
-        size: data_size as u64,
-        usage: vk::BufferUsageFlags::TRANSFER_SRC,
+    let index_buffer = device.create_buffer(&vk::BufferCreateInfo {
+        size: index_size as u64,
+        usage: vk::BufferUsageFlags::INDEX_BUFFER
+            | vk::BufferUsageFlags::TRANSFER_DST,
         ..Default::default()
     })?;
-    let mem_size = staging_buffer.memory_requirements().size;
-    let memory = device.allocate_memory(
-        mem_size as u64,
-        memory_type(
-            &phy,
-            vk::MemoryPropertyFlags::HOST_VISIBLE
-                | vk::MemoryPropertyFlags::HOST_COHERENT,
-        ),
-    )?;
-    let staging_buffer = memory.bind_buffer_memory(staging_buffer, 0)?;
-
-    let mut memory = memory.map(0, data_size)?;
-    *bytemuck::from_bytes_mut(&mut memory.slice_mut()[0..index_offset]) =
-        VERTEX_DATA;
-    *bytemuck::from_bytes_mut(&mut memory.slice_mut()[index_offset..]) =
-        INDEX_DATA;
-    memory.unmap();
-
-    let transfer = cmd_pool.allocate()?;
-    let mut rec = cmd_pool.begin(transfer)?;
-    rec.copy_buffer(
-        &staging_buffer,
-        &vertex_buffer,
-        &[vk::BufferCopy { size: mem_size, ..Default::default() }],
-    )?;
-    rec.memory_barrier(
-        vk::PipelineStageFlags::TRANSFER,
+    let index_buffer = index_buffer.allocate_memory(device_mem)?;
+    upload_data(
+        &device,
+        &mut queue,
+        &mut cmd_pool,
+        bytemuck::bytes_of(&INDEX_DATA),
+        &index_buffer,
         vk::PipelineStageFlags::VERTEX_INPUT,
-        vk::AccessFlags::TRANSFER_WRITE,
-        vk::AccessFlags::VERTEX_ATTRIBUTE_READ | vk::AccessFlags::INDEX_READ,
-    );
-    let mut transfer = rec.end()?;
-    let pending_fence = queue.submit(
-        &mut [vk::SubmitInfo {
-            commands: &mut [&mut transfer],
-            ..Default::default()
-        }],
-        fence.take().unwrap(),
+        vk::AccessFlags::INDEX_READ,
     )?;
-    fence = Some(pending_fence.wait()?);
+
+    let image = device.create_image(&vk::ImageCreateInfo {
+        format: vk::Format::R8G8B8A8_SRGB,
+        extent: vk::Extent3D { width: 512, height: 512, depth: 1 },
+        usage: vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
+        ..Default::default()
+    })?;
+    let image = image.allocate_memory(device_mem)?;
+    upload_image(&device, &mut queue, &image, &mut cmd_pool)?;
+    let image_view = image.create_view(&vk::ImageViewCreateInfo {
+        format: vk::Format::R8G8B8A8_SRGB,
+        ..Default::default()
+    })?;
 
     let uniform_buffer = device.create_buffer(&vk::BufferCreateInfo {
         size: size_of::<UBO>() as u64,
@@ -292,13 +401,28 @@ fn main() -> anyhow::Result<()> {
             stage_flags: vk::ShaderStageFlags::VERTEX,
             immutable_samplers: vec![],
         },
+        vk::DescriptorSetLayoutBinding {
+            binding: 1,
+            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            descriptor_count: 1,
+            stage_flags: vk::ShaderStageFlags::FRAGMENT,
+            immutable_samplers: vec![
+                device.create_sampler(&Default::default())?
+            ],
+        },
     ])?;
     let mut descriptor_pool = device.create_descriptor_pool(
         1,
-        &[vk::DescriptorPoolSize {
-            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-            descriptor_count: 1,
-        }],
+        &[
+            vk::DescriptorPoolSize {
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+            },
+            vk::DescriptorPoolSize {
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+            },
+        ],
     )?;
     let mut desc_set = descriptor_pool.allocate(&descriptor_set_layout)?;
 
@@ -314,6 +438,11 @@ fn main() -> anyhow::Result<()> {
                 offset: 0,
                 range: u64::MAX,
             }],
+        )?
+        .combined_image_samplers(
+            1,
+            0,
+            &[(&image_view, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)],
         )?
         .end();
     let desc_set = Arc::new(desc_set);
@@ -351,7 +480,7 @@ fn main() -> anyhow::Result<()> {
                     vk::VertexInputAttributeDescription {
                         location: 1,
                         binding: 0,
-                        format: vk::Format::R32G32B32A32_SFLOAT,
+                        format: vk::Format::R32G32_SFLOAT,
                         offset: 16,
                     },
                 ]),
@@ -468,11 +597,7 @@ fn main() -> anyhow::Result<()> {
         });
         pass.bind_pipeline(vk::PipelineBindPoint::GRAPHICS, &pipeline);
         pass.bind_vertex_buffers(0, &[(&vertex_buffer, 0)])?;
-        pass.bind_index_buffer(
-            &vertex_buffer,
-            index_offset as u64,
-            vk::IndexType::UINT16,
-        );
+        pass.bind_index_buffer(&index_buffer, 0, vk::IndexType::UINT16);
         pass.bind_descriptor_sets(
             vk::PipelineBindPoint::GRAPHICS,
             &pipeline_layout,

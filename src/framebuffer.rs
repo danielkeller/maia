@@ -19,7 +19,7 @@ impl RenderPass {
         attachments: Vec<Arc<ImageView>>,
         size: Extent3D,
     ) -> Result<Arc<Framebuffer>> {
-        if attachments.iter().any(|iv| iv.image.device != self.device) {
+        if attachments.iter().any(|iv| iv.image.device() != &*self.device) {
             return Err(Error::InvalidArgument);
         }
         let vk_attachments: Vec<_> =

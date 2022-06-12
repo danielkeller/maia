@@ -112,6 +112,9 @@ impl DeviceMemory {
         }
         Ok(MappedMemory { memory: self, _offset: offset, size, ptr })
     }
+    pub fn len(&self) -> u64 {
+        self.allocation_size
+    }
 }
 
 impl Drop for MappedMemory {

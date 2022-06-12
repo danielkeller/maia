@@ -236,11 +236,25 @@ pub struct Extent3D {
     pub depth: u32,
 }
 
+impl From<Extent2D> for Extent3D {
+    fn from(e: Extent2D) -> Self {
+        Self { width: e.width, height: e.height, depth: 1 }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Offset2D {
     pub x: i32,
     pub y: i32,
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Offset3D {
+    pub x: i32,
+    pub y: i32,
+    pub z: i32,
 }
 
 #[repr(C)]
@@ -292,11 +306,11 @@ impl Default for ClearValue {
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct ImageSubresourceRange {
-    aspect_mask: ImageAspectFlags,
-    base_mip_level: u32,
-    level_count: u32,
-    base_array_layer: u32,
-    layer_count: u32,
+    pub aspect_mask: ImageAspectFlags,
+    pub base_mip_level: u32,
+    pub level_count: u32,
+    pub base_array_layer: u32,
+    pub layer_count: u32,
 }
 
 impl Default for ImageSubresourceRange {
@@ -310,6 +324,36 @@ impl Default for ImageSubresourceRange {
             layer_count: u32::MAX,
         }
     }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct ImageSubresourceLayers {
+    pub aspect_mask: ImageAspectFlags,
+    pub mip_level: u32,
+    pub base_array_layer: u32,
+    pub layer_count: u32,
+}
+
+impl Default for ImageSubresourceLayers {
+    /// The first level and layer of a color image
+    fn default() -> Self {
+        Self {
+            aspect_mask: ImageAspectFlags::COLOR,
+            mip_level: 0,
+            base_array_layer: 0,
+            layer_count: 1,
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ImageBlit {
+    pub src_subresource: ImageSubresourceLayers,
+    pub src_offsets: [Offset3D; 2],
+    pub dst_subresource: ImageSubresourceLayers,
+    pub dst_offsets: [Offset3D; 2],
 }
 
 #[repr(C)]
@@ -367,6 +411,17 @@ pub struct BufferCopy {
     pub src_offset: u64,
     pub dst_offset: u64,
     pub size: u64,
+}
+
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct BufferImageCopy {
+    pub buffer_offset: u64,
+    pub buffer_row_length: u32,
+    pub buffer_image_height: u32,
+    pub image_subresource: ImageSubresourceLayers,
+    pub image_offset: Offset3D,
+    pub image_extent: Extent3D,
 }
 
 pub enum AllocationCallbacks {}
@@ -692,7 +747,7 @@ pub struct BufferCreateInfo<'a, Next = Null> {
 structure_type!(BufferCreateInfoType, 12);
 
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ImageCreateInfo<'a, Next = Null> {
     pub stype: ImageCreateInfoType,
     pub next: Next,
@@ -710,6 +765,27 @@ pub struct ImageCreateInfo<'a, Next = Null> {
     pub initial_layout: ImageLayout,
 }
 structure_type!(ImageCreateInfoType, 14);
+
+impl<'a> Default for ImageCreateInfo<'a> {
+    fn default() -> Self {
+        Self {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            image_type: Default::default(),
+            format: Default::default(),
+            extent: Default::default(),
+            mip_levels: 1,
+            array_layers: 1,
+            samples: Default::default(),
+            tiling: Default::default(),
+            usage: Default::default(),
+            sharing_mode: Default::default(),
+            queue_family_indices: Default::default(),
+            initial_layout: Default::default(),
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Debug)]

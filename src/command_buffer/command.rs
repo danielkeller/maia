@@ -32,6 +32,58 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> CommandRecording<'a> {
+    pub fn copy_buffer_to_image(
+        &mut self,
+        src: &Arc<Buffer>,
+        dst: &Arc<Image>,
+        dst_layout: ImageLayout,
+        regions: &[BufferImageCopy],
+    ) -> Result<()> {
+        unsafe {
+            (self.pool.res.device.fun.cmd_copy_buffer_to_image)(
+                self.buffer.handle.borrow_mut(),
+                src.borrow(),
+                dst.borrow(),
+                dst_layout,
+                regions.len() as u32,
+                Array::from_slice(regions).ok_or(Error::InvalidArgument)?,
+            );
+        }
+        self.add_resource(src.clone());
+        self.add_resource(dst.clone());
+        Ok(())
+    }
+}
+
+impl<'a> CommandRecording<'a> {
+    pub fn blit_image(
+        &mut self,
+        src: &Arc<Image>,
+        src_layout: ImageLayout,
+        dst: &Arc<Image>,
+        dst_layout: ImageLayout,
+        regions: &[ImageBlit],
+        filter: Filter,
+    ) -> Result<()> {
+        unsafe {
+            (self.pool.res.device.fun.cmd_blit_image)(
+                self.buffer.handle.borrow_mut(),
+                src.borrow(),
+                src_layout,
+                dst.borrow(),
+                dst_layout,
+                regions.len() as u32,
+                Array::from_slice(regions).ok_or(Error::InvalidArgument)?,
+                filter,
+            );
+        }
+        self.add_resource(src.clone());
+        self.add_resource(dst.clone());
+        Ok(())
+    }
+}
+
+impl<'a> CommandRecording<'a> {
     pub fn clear_color_image(
         &mut self,
         image: &Arc<Image>,
@@ -57,16 +109,16 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
-pub struct BufferMemoryBarrier {
+pub struct BufferMemoryBarrier<'a> {
     pub src_access_mask: AccessFlags,
     pub dst_access_mask: AccessFlags,
     pub src_queue_family_index: u32,
     pub dst_queue_family_index: u32,
-    pub buffer: Arc<Buffer>,
+    pub buffer: &'a Arc<Buffer>,
     pub offset: u64,
     pub size: u64,
 }
-impl BufferMemoryBarrier {
+impl<'a> BufferMemoryBarrier<'a> {
     fn vk(&self) -> VkBufferMemoryBarrier {
         VkBufferMemoryBarrier {
             stype: Default::default(),
@@ -81,17 +133,17 @@ impl BufferMemoryBarrier {
         }
     }
 }
-pub struct ImageMemoryBarrier {
+pub struct ImageMemoryBarrier<'a> {
     pub src_access_mask: AccessFlags,
     pub dst_access_mask: AccessFlags,
     pub old_layout: ImageLayout,
     pub new_layout: ImageLayout,
     pub src_queue_family_index: u32,
     pub dst_queue_family_index: u32,
-    pub image: Arc<Image>,
+    pub image: &'a Arc<Image>,
     pub subresource_range: ImageSubresourceRange,
 }
-impl ImageMemoryBarrier {
+impl<'a> ImageMemoryBarrier<'a> {
     fn vk(&self) -> VkImageMemoryBarrier {
         VkImageMemoryBarrier {
             stype: Default::default(),
@@ -127,6 +179,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
             image_memory_barriers,
         )
     }
+    /// A shortcut for simple memory barriers
     pub fn memory_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,
@@ -139,6 +192,27 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
             dst_stage_mask,
             src_access_mask,
             dst_access_mask,
+        )
+    }
+    /// A shortcut for simple image barriers
+    pub fn image_barrier(
+        &mut self,
+        image: &Arc<Image>,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags,
+        old_layout: ImageLayout,
+        new_layout: ImageLayout,
+    ) {
+        self.0.image_barrier(
+            image,
+            src_stage_mask,
+            dst_stage_mask,
+            src_access_mask,
+            dst_access_mask,
+            old_layout,
+            new_layout,
         )
     }
 }
@@ -208,6 +282,46 @@ impl<'a> CommandRecording<'a> {
                 None,
                 0,
                 None,
+            )
+        }
+    }
+
+    /// A shortcut for simple image barriers
+    pub fn image_barrier(
+        &mut self,
+        image: &Arc<Image>,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags,
+        old_layout: ImageLayout,
+        new_layout: ImageLayout,
+    ) {
+        self.add_resource(image.clone());
+        unsafe {
+            let barrier = VkImageMemoryBarrier {
+                stype: Default::default(),
+                next: Default::default(),
+                src_access_mask,
+                dst_access_mask,
+                old_layout,
+                new_layout,
+                src_queue_family_index: Default::default(),
+                dst_queue_family_index: Default::default(),
+                image: image.borrow(),
+                subresource_range: Default::default(),
+            };
+            (self.pool.res.device.fun.cmd_pipeline_barrier)(
+                self.buffer.handle.borrow_mut(),
+                src_stage_mask,
+                dst_stage_mask,
+                Default::default(),
+                0,
+                None,
+                0,
+                None,
+                1,
+                Array::from_slice(&[barrier]),
             )
         }
     }

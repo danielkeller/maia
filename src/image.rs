@@ -9,35 +9,36 @@ use crate::vk::Device;
 use std::fmt::Debug;
 
 #[derive(Debug)]
-pub(crate) enum ImageOwner {
+enum ImageOwner {
     Swapchain(Subobject<SwapchainImages>),
-    Application(Subobject<MemoryPayload>),
+    Application,
 }
 
-#[must_use = "Image is leaked if it is not bound to memory"]
 #[derive(Debug)]
 pub struct ImageWithoutMemory {
     handle: Handle<VkImage>,
+    extent: Extent3D,
+    res: ImageOwner,
     device: Arc<Device>,
 }
 
 #[derive(Debug)]
 pub struct Image {
-    handle: Handle<VkImage>,
-    pub(crate) device: Arc<Device>,
-    res: ImageOwner,
+    inner: ImageWithoutMemory,
+    _memory: Option<Subobject<MemoryPayload>>,
 }
 
 impl PartialEq for Image {
     fn eq(&self, other: &Self) -> bool {
-        self.device == other.device && self.handle == other.handle
+        self.inner.device == other.inner.device
+            && self.inner.handle == other.inner.handle
     }
 }
 impl Eq for Image {}
 impl std::hash::Hash for Image {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.device.hash(state);
-        self.handle.hash(state);
+        self.inner.device.hash(state);
+        self.inner.handle.hash(state);
     }
 }
 
@@ -50,13 +51,18 @@ impl Device {
         unsafe {
             (self.fun.create_image)(self.borrow(), info, None, &mut handle)?;
         }
-        Ok(ImageWithoutMemory { handle: handle.unwrap(), device: self.clone() })
+        Ok(ImageWithoutMemory {
+            handle: handle.unwrap(),
+            extent: info.extent,
+            res: ImageOwner::Application,
+            device: self.clone(),
+        })
     }
 }
 impl DeviceMemory {
     pub fn bind_image_memory(
         &self,
-        mut image: ImageWithoutMemory,
+        image: ImageWithoutMemory,
         offset: u64,
     ) -> ResultAndSelf<Arc<Image>, ImageWithoutMemory> {
         if !Arc::ptr_eq(&self.inner.device, &image.device)
@@ -64,27 +70,34 @@ impl DeviceMemory {
         {
             return Err(ErrorAndSelf(Error::InvalidArgument, image));
         }
+        self.bind_image_impl(image, offset)
+    }
+
+    fn bind_image_impl(
+        &self,
+        mut inner: ImageWithoutMemory,
+        offset: u64,
+    ) -> ResultAndSelf<Arc<Image>, ImageWithoutMemory> {
         if let Err(err) = unsafe {
             (self.inner.device.fun.bind_image_memory)(
                 self.inner.device.borrow(),
-                image.borrow_mut(),
+                inner.borrow_mut(),
                 self.borrow(),
                 offset,
             )
         } {
-            return Err(ErrorAndSelf(err.into(), image));
+            return Err(ErrorAndSelf(err.into(), inner));
         }
         Ok(Arc::new(Image {
-            handle: image.handle,
-            device: image.device,
-            res: ImageOwner::Application(Subobject::new(&self.inner)),
+            inner,
+            _memory: Some(Subobject::new(&self.inner)),
         }))
     }
 }
 
-impl Drop for Image {
+impl Drop for ImageWithoutMemory {
     fn drop(&mut self) {
-        if let ImageOwner::Application(_) = &self.res {
+        if let ImageOwner::Application = &self.res {
             unsafe {
                 (self.device.fun.destroy_image)(
                     self.device.borrow(),
@@ -111,19 +124,53 @@ impl ImageWithoutMemory {
         }
         result
     }
+    /// Allocate a single piece of memory for the image and bind it.
+    pub fn allocate_memory(
+        self,
+        memory_type_index: u32,
+    ) -> ResultAndSelf<Arc<Image>, Self> {
+        let mem_req = self.memory_requirements();
+        if (1 << memory_type_index) & mem_req.memory_type_bits == 0 {
+            return Err(ErrorAndSelf(Error::InvalidArgument, self));
+        }
+        let memory = match self
+            .device
+            .allocate_memory(mem_req.size, memory_type_index)
+        {
+            Ok(memory) => memory,
+            Err(err) => return Err(ErrorAndSelf(err.into(), self)),
+        };
+        // Don't need to check requirements
+        memory.bind_image_impl(self, 0)
+    }
 }
 
 impl Image {
     pub(crate) fn new(
         handle: Handle<VkImage>,
         device: Arc<Device>,
-        res: ImageOwner,
+        res: Subobject<SwapchainImages>,
+        extent: Extent3D,
     ) -> Self {
-        Self { handle, device, res }
+        Self {
+            inner: ImageWithoutMemory {
+                handle,
+                extent,
+                res: ImageOwner::Swapchain(res),
+                device,
+            },
+            _memory: None,
+        }
     }
 
     pub fn borrow(&self) -> Ref<VkImage> {
-        self.handle.borrow()
+        self.inner.handle.borrow()
+    }
+    pub fn device(&self) -> &Device {
+        &*self.inner.device
+    }
+    pub fn extent(&self) -> Extent3D {
+        self.inner.extent
     }
 }
 
@@ -135,13 +182,14 @@ pub struct ImageView {
 
 impl PartialEq for ImageView {
     fn eq(&self, other: &Self) -> bool {
-        self.image.device == other.image.device && self.handle == other.handle
+        self.image.inner.device == other.image.inner.device
+            && self.handle == other.handle
     }
 }
 impl Eq for ImageView {}
 impl std::hash::Hash for ImageView {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.image.device.hash(state);
+        self.image.inner.device.hash(state);
         self.handle.hash(state);
     }
 }
@@ -172,14 +220,26 @@ impl Image {
         };
         let mut handle = None;
         unsafe {
-            (self.device.fun.create_image_view)(
-                self.device.borrow(),
+            (self.inner.device.fun.create_image_view)(
+                self.inner.device.borrow(),
                 &vk_info,
                 None,
                 &mut handle,
             )?;
         }
         Ok(Arc::new(ImageView { handle: handle.unwrap(), image: self.clone() }))
+    }
+}
+
+impl Drop for ImageView {
+    fn drop(&mut self) {
+        unsafe {
+            (self.image.device().fun.destroy_image_view)(
+                self.image.device().borrow(),
+                self.handle.borrow_mut(),
+                None,
+            )
+        }
     }
 }
 
