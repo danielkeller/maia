@@ -205,7 +205,8 @@ impl Image {
         offset: Offset3D,
     ) -> bool {
         let ex = self.extent(mip_level);
-        (offset.x >= 0 && offset.y >= 0 && offset.z >= 0)
+        mip_level < self.inner.mip_levels
+            && (offset.x >= 0 && offset.y >= 0 && offset.z >= 0)
             && ex.width >= offset.x as u32
             && ex.height >= offset.y as u32
             && ex.depth >= offset.z as u32
