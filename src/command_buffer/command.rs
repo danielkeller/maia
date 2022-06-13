@@ -17,10 +17,8 @@ impl<'a> CommandRecording<'a> {
         regions: &[BufferCopy],
     ) -> Result<()> {
         for r in regions {
-            if r.src_offset >= src.len()
-                || r.dst_offset >= dst.len()
-                || r.size > src.len() - r.src_offset
-                || r.size > dst.len() - r.dst_offset
+            if !src.bounds_check(r.src_offset, r.size)
+                || !dst.bounds_check(r.dst_offset, r.size)
             {
                 return Err(Error::OutOfBounds);
             }
@@ -49,21 +47,21 @@ impl<'a> CommandRecording<'a> {
         regions: &[BufferImageCopy],
     ) -> Result<()> {
         for r in regions {
-            // TODO: Image bounds check
-            if r.buffer_offset >= src.len() {
+            let bytes = image_byte_size_3d(dst.format(), r.image_extent)
+                .ok_or(Error::OutOfBounds)?
+                .checked_mul(r.image_subresource.layer_count as u64)
+                .ok_or(Error::OutOfBounds)?;
+            if !dst.bounds_check(
+                r.image_subresource.mip_level,
+                r.image_offset,
+                r.image_extent,
+            ) || !dst.array_bounds_check(
+                r.image_subresource.base_array_layer,
+                r.image_subresource.layer_count,
+            ) || !src.bounds_check(r.buffer_offset, bytes)
+            {
                 return Err(Error::OutOfBounds);
             }
-            let bytes = image_byte_size_3d(dst.format(), r.image_extent)
-                .and_then(|b| {
-                    b.checked_mul(r.image_subresource.layer_count as u64)
-                });
-            match bytes {
-                None => return Err(Error::OutOfBounds),
-                Some(b) if b > src.len() - r.buffer_offset => {
-                    return Err(Error::OutOfBounds)
-                }
-                _ => (),
-            };
         }
         unsafe {
             (self.pool.res.device.fun.cmd_copy_buffer_to_image)(
@@ -91,6 +89,29 @@ impl<'a> CommandRecording<'a> {
         regions: &[ImageBlit],
         filter: Filter,
     ) -> Result<()> {
+        for r in regions {
+            if !src.array_bounds_check(
+                r.src_subresource.base_array_layer,
+                r.src_subresource.layer_count,
+            ) || !dst.array_bounds_check(
+                r.dst_subresource.base_array_layer,
+                r.dst_subresource.layer_count,
+            ) || !src.offset_bounds_check(
+                r.src_subresource.mip_level,
+                r.src_offsets[0],
+            ) || !src.offset_bounds_check(
+                r.src_subresource.mip_level,
+                r.src_offsets[1],
+            ) || !dst.offset_bounds_check(
+                r.dst_subresource.mip_level,
+                r.dst_offsets[0],
+            ) || !dst.offset_bounds_check(
+                r.dst_subresource.mip_level,
+                r.dst_offsets[1],
+            ) {
+                return Err(Error::OutOfBounds);
+            }
+        }
         unsafe {
             (self.pool.res.device.fun.cmd_blit_image)(
                 self.buffer.handle.borrow_mut(),

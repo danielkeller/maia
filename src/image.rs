@@ -183,11 +183,44 @@ impl Image {
     pub fn format(&self) -> Format {
         self.inner.format
     }
-    pub fn extent(&self) -> Extent3D {
-        self.inner.extent
+    pub fn extent(&self, mip_level: u32) -> Extent3D {
+        let ex = self.inner.extent;
+        Extent3D {
+            width: ex.width >> mip_level,
+            height: ex.height >> mip_level,
+            depth: ex.depth >> mip_level,
+        }
     }
-    pub fn byte_size_level_0(&self) -> u64 {
-        image_byte_size_3d(self.inner.format, self.inner.extent).unwrap()
+    pub fn array_bounds_check(
+        &self,
+        base_array_layer: u32,
+        layer_count: u32,
+    ) -> bool {
+        self.inner.array_layers >= base_array_layer
+            && self.inner.array_layers - base_array_layer >= layer_count
+    }
+    pub fn offset_bounds_check(
+        &self,
+        mip_level: u32,
+        offset: Offset3D,
+    ) -> bool {
+        let ex = self.extent(mip_level);
+        (offset.x >= 0 && offset.y >= 0 && offset.z >= 0)
+            && ex.width >= offset.x as u32
+            && ex.height >= offset.y as u32
+            && ex.depth >= offset.z as u32
+    }
+    pub fn bounds_check(
+        &self,
+        mip_level: u32,
+        offset: Offset3D,
+        extent: Extent3D,
+    ) -> bool {
+        let ex = self.extent(mip_level);
+        self.offset_bounds_check(mip_level, offset)
+            && ex.width - offset.x as u32 >= extent.width
+            && ex.height - offset.y as u32 >= extent.height
+            && ex.depth - offset.z as u32 >= extent.depth
     }
 }
 

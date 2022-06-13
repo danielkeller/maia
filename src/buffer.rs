@@ -88,6 +88,9 @@ impl Buffer {
     pub fn len(&self) -> u64 {
         self.inner.len
     }
+    pub fn bounds_check(&self, offset: u64, len: u64) -> bool {
+        self.len() >= offset && self.len() - offset >= len
+    }
 }
 
 impl BufferWithoutMemory {
