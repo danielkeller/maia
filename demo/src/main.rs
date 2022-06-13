@@ -482,7 +482,7 @@ fn main() -> anyhow::Result<()> {
                 ..Default::default()
             },
             input_assembly_state: &vk::PipelineInputAssemblyStateCreateInfo {
-                topology: vk::PrimitiveTopology::TRIANGLE_STRIP,
+                topology: vk::PrimitiveTopology::TRIANGLE_LIST,
                 ..Default::default()
             },
             tessellation_state: None,
@@ -566,7 +566,6 @@ fn main() -> anyhow::Result<()> {
         let buf = cmd_pool.allocate()?;
         let mut rec = cmd_pool.begin(buf)?;
         let time = Instant::now().duration_since(begin);
-        let blue = time.subsec_micros() as f32 / 1e6;
 
         let mut pass = rec.begin_render_pass(
             &render_pass,
@@ -579,7 +578,7 @@ fn main() -> anyhow::Result<()> {
                 },
             },
             &[vk::ClearValue {
-                color: vk::ClearColorValue { f32: [0.1, 0.2, blue, 1.0] },
+                color: vk::ClearColorValue { f32: [0.1, 0.2, 0.3, 1.0] },
             }],
         );
         pass.set_viewport(&vk::Viewport {
