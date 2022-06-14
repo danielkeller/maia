@@ -424,7 +424,7 @@ fn main() -> anyhow::Result<()> {
     let mut update = device.create_descriptor_set_update_builder();
     update
         .begin()
-        .dst_set(&mut desc_set)?
+        .dst_set(&mut desc_set)
         .uniform_buffers(
             0,
             0,

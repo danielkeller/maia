@@ -307,11 +307,9 @@ impl<'a> DescriptorSetUpdates<'a> {
     pub fn dst_set(
         self,
         set: &'a mut DescriptorSet,
-    ) -> Result<DescriptorSetUpdate<'a>> {
-        if &*set.layout.device != self.device {
-            return Err(Error::InvalidArgument);
-        }
-        Ok(DescriptorSetUpdate { updates: self, set })
+    ) -> DescriptorSetUpdate<'a> {
+        assert_eq!(&*set.layout.device, self.device);
+        DescriptorSetUpdate { updates: self, set }
     }
     fn end(mut self) {
         for res in self.resources {
@@ -347,7 +345,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     pub fn dst_set(
         mut self,
         set: &'a mut DescriptorSet,
-    ) -> Result<DescriptorSetUpdate<'a>> {
+    ) -> DescriptorSetUpdate<'a> {
         self.updates.dst_sets.push(self.set);
         self.updates.dst_set(set)
     }
@@ -371,9 +369,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (b, be) in buffers.iter().zip(iter) {
             let (binding, element) = be?;
-            if b.buffer.device() != self.updates.device {
-                return Err(Error::InvalidArgument);
-            }
+            assert_eq!(b.buffer.device(), self.updates.device);
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
@@ -476,9 +472,7 @@ impl<'a> DescriptorSetUpdate<'a> {
             {
                 return Err(Error::InvalidArgument);
             }
-            if &*s.device != self.updates.device {
-                return Err(Error::InvalidArgument);
-            }
+            assert_eq!(&*s.device, self.updates.device);
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
@@ -524,9 +518,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
-            if i.image.device() != self.updates.device {
-                return Err(Error::InvalidArgument);
-            }
+            assert_eq!(i.image.device(), self.updates.device);
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
@@ -611,9 +603,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
-            if i.image.device() != self.updates.device {
-                return Err(Error::InvalidArgument);
-            }
+            assert_eq!(i.image.device(), self.updates.device);
             if self.set.layout.bindings[binding].immutable_samplers.is_empty() {
                 return Err(Error::InvalidArgument);
             }
