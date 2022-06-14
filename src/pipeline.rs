@@ -147,6 +147,36 @@ impl Device {
             device: self.clone(),
         }))
     }
+    pub fn create_compute_pipeline(
+        self: &Arc<Self>,
+        stage: PipelineShaderStageCreateInfo,
+        layout: &PipelineLayout,
+    ) -> Result<Arc<Pipeline>> {
+        let info = ComputePipelineCreateInfo {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            stage,
+            layout: layout.borrow(),
+            base_pipeline_handle: Default::default(),
+            base_pipeline_index: Default::default(),
+        };
+        let mut handle = MaybeUninit::uninit();
+        unsafe {
+            (self.fun.create_compute_pipelines)(
+                self.borrow(),
+                None,
+                1,
+                std::array::from_ref(&info).into(),
+                None,
+                std::array::from_mut(&mut handle).into(),
+            )?;
+        }
+        Ok(Arc::new(Pipeline {
+            handle: unsafe { handle.assume_init() },
+            device: self.clone(),
+        }))
+    }
 }
 
 impl Pipeline {

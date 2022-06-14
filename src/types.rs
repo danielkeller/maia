@@ -1108,6 +1108,19 @@ structure_type!(GraphicsPipelineCreateInfoType, 28);
 
 #[repr(C)]
 #[derive(Debug)]
+pub struct ComputePipelineCreateInfo<'a, Next = Null> {
+    pub stype: ComputePipelineCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineCreateFlags,
+    pub stage: PipelineShaderStageCreateInfo<'a>,
+    pub layout: Ref<'a, VkPipelineLayout>,
+    pub base_pipeline_handle: Option<Ref<'a, VkPipeline>>,
+    pub base_pipeline_index: u32,
+}
+structure_type!(ComputePipelineCreateInfoType, 29);
+
+#[repr(C)]
+#[derive(Debug)]
 pub struct PushConstantRange {
     pub stage_flags: ShaderStageFlags,
     pub offset: u32,
