@@ -31,7 +31,11 @@ pub struct CommandRecording<'a> {
     buffer: CommandBufferLifetime,
 }
 
-pub struct RenderPassRecording<'a, 'rec>(&'a mut CommandRecording<'rec>);
+pub struct RenderPassRecording<'a, 'rec> {
+    rec: &'a mut CommandRecording<'rec>,
+    num_subpasses: u32,
+    subpass: u32,
+}
 
 #[derive(Debug)]
 pub(crate) struct CommandBufferLifetime {
@@ -272,19 +276,36 @@ impl<'rec> CommandRecording<'rec> {
                 SubpassContents::INLINE,
             );
         }
-        RenderPassRecording(self)
+        RenderPassRecording {
+            rec: self,
+            num_subpasses: render_pass.num_subpasses(),
+            subpass: 0,
+        }
     }
 }
 
 impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn next_subpass(&mut self) -> Result<()> {
+        if self.subpass >= self.num_subpasses - 1 {
+            return Err(Error::OutOfBounds);
+        }
+        self.subpass += 1;
+        unsafe {
+            (self.rec.pool.res.device.fun.cmd_next_subpass)(
+                self.rec.buffer.handle.borrow_mut(),
+                SubpassContents::INLINE,
+            )
+        }
+        Ok(())
+    }
     pub fn end(self) {}
 }
 
 impl<'a, 'rec> Drop for RenderPassRecording<'a, 'rec> {
     fn drop(&mut self) {
         unsafe {
-            (self.0.pool.res.device.fun.cmd_end_render_pass)(
-                self.0.buffer.handle.borrow_mut(),
+            (self.rec.pool.res.device.fun.cmd_end_render_pass)(
+                self.rec.buffer.handle.borrow_mut(),
             )
         }
     }

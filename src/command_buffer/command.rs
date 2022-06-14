@@ -253,7 +253,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         buffer_memory_barriers: &[BufferMemoryBarrier],
         image_memory_barriers: &[ImageMemoryBarrier],
     ) {
-        self.0.pipeline_barrier(
+        self.rec.pipeline_barrier(
             src_stage_mask,
             dst_stage_mask,
             dependency_flags,
@@ -270,7 +270,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         src_access_mask: AccessFlags,
         dst_access_mask: AccessFlags,
     ) {
-        self.0.memory_barrier(
+        self.rec.memory_barrier(
             src_stage_mask,
             dst_stage_mask,
             src_access_mask,
@@ -288,7 +288,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         old_layout: ImageLayout,
         new_layout: ImageLayout,
     ) {
-        self.0.image_barrier(
+        self.rec.image_barrier(
             image,
             src_stage_mask,
             dst_stage_mask,
@@ -416,7 +416,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         bind_point: PipelineBindPoint,
         pipeline: &Arc<Pipeline>,
     ) {
-        self.0.bind_pipeline(bind_point, pipeline)
+        self.rec.bind_pipeline(bind_point, pipeline)
     }
 }
 
@@ -438,7 +438,7 @@ impl<'a> CommandRecording<'a> {
 }
 impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
     pub fn set_viewport(&mut self, viewport: &Viewport) {
-        self.0.set_viewport(viewport)
+        self.rec.set_viewport(viewport)
     }
 }
 impl<'a> CommandRecording<'a> {
@@ -455,7 +455,7 @@ impl<'a> CommandRecording<'a> {
 }
 impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
     pub fn set_scissor(&mut self, scissor: &Rect2D) {
-        self.0.set_scissor(scissor)
+        self.rec.set_scissor(scissor)
     }
 }
 impl<'a> CommandRecording<'a> {
@@ -476,7 +476,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         first_binding: u32,
         buffers_offsets: &[(&Arc<Buffer>, u64)],
     ) -> Result<()> {
-        self.0.bind_vertex_buffers(first_binding, buffers_offsets)
+        self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
     pub fn bind_index_buffer(
         &mut self,
@@ -484,7 +484,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         offset: u64,
         index_type: IndexType,
     ) {
-        self.0.bind_index_buffer(buffer, offset, index_type)
+        self.rec.bind_index_buffer(buffer, offset, index_type)
     }
 }
 impl<'a> CommandRecording<'a> {
@@ -590,7 +590,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         sets: &[&Arc<DescriptorSet>],
         dynamic_offsets: &[u32],
     ) -> Result<()> {
-        self.0.bind_descriptor_sets(
+        self.rec.bind_descriptor_sets(
             pipeline_bind_point,
             layout,
             first_set,
@@ -609,8 +609,8 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         first_instance: u32,
     ) {
         unsafe {
-            (self.0.pool.res.device.fun.cmd_draw)(
-                self.0.buffer.handle.borrow_mut(),
+            (self.rec.pool.res.device.fun.cmd_draw)(
+                self.rec.buffer.handle.borrow_mut(),
                 vertex_count,
                 instance_count,
                 first_vertex,
@@ -625,10 +625,10 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         draw_count: u32,
         stride: u32,
     ) {
-        self.0.add_resource(buffer.clone());
+        self.rec.add_resource(buffer.clone());
         unsafe {
-            (self.0.pool.res.device.fun.cmd_draw_indirect)(
-                self.0.buffer.handle.borrow_mut(),
+            (self.rec.pool.res.device.fun.cmd_draw_indirect)(
+                self.rec.buffer.handle.borrow_mut(),
                 buffer.borrow(),
                 offset,
                 draw_count,
@@ -645,8 +645,8 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         first_instance: u32,
     ) {
         unsafe {
-            (self.0.pool.res.device.fun.cmd_draw_indexed)(
-                self.0.buffer.handle.borrow_mut(),
+            (self.rec.pool.res.device.fun.cmd_draw_indexed)(
+                self.rec.buffer.handle.borrow_mut(),
                 index_count,
                 instance_count,
                 first_index,
@@ -662,10 +662,10 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         draw_count: u32,
         stride: u32,
     ) {
-        self.0.add_resource(buffer.clone());
+        self.rec.add_resource(buffer.clone());
         unsafe {
-            (self.0.pool.res.device.fun.cmd_draw_indexed_indirect)(
-                self.0.buffer.handle.borrow_mut(),
+            (self.rec.pool.res.device.fun.cmd_draw_indexed_indirect)(
+                self.rec.buffer.handle.borrow_mut(),
                 buffer.borrow(),
                 offset,
                 draw_count,
@@ -703,8 +703,6 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
-// TODO: Panic on non-matching device
-// TODO: Subpasses
 // TODO: Specialization constants, push constants
 // TODO: Pipeline cache
 // TODO(maybe): Other kinds of command buffers
