@@ -86,6 +86,7 @@ pub mod vk {
     pub use crate::instance_extension_properties;
     pub use crate::memory::DeviceMemory;
     pub use crate::physical_device::PhysicalDevice;
+    pub use crate::pipeline::{GraphicsPipelineCreateInfo, Pipeline};
     pub use crate::queue::Queue;
     pub use crate::queue::SubmitInfo;
     pub use crate::sampler::Sampler;

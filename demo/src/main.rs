@@ -450,13 +450,10 @@ fn main() -> anyhow::Result<()> {
 
     let pipeline =
         device.create_graphics_pipeline(&vk::GraphicsPipelineCreateInfo {
-            stype: Default::default(),
-            next: Default::default(),
-            flags: Default::default(),
-            stages: vk::Slice_::from_slice(&[
+            stages: &[
                 vk::PipelineShaderStageCreateInfo::vertex(&vertex_shader),
                 vk::PipelineShaderStageCreateInfo::fragment(&fragment_shader),
-            ]),
+            ],
             vertex_input_state: &vk::PipelineVertexInputStateCreateInfo {
                 vertex_binding_descriptions: vk::Slice_::from_slice(&[
                     vk::VertexInputBindingDescription {
@@ -501,15 +498,12 @@ fn main() -> anyhow::Result<()> {
             dynamic_state: Some(&vk::PipelineDynamicStateCreateInfo {
                 dynamic_states: vk::Slice_::from_slice(&[
                     vk::DynamicState::VIEWPORT,
-                    //vk::DynamicState::SCISSOR,
                 ]),
                 ..Default::default()
             }),
-            layout: pipeline_layout.borrow(),
-            render_pass: render_pass.borrow(),
+            layout: &pipeline_layout,
+            render_pass: &render_pass,
             subpass: 0,
-            base_pipeline_handle: None,
-            base_pipeline_index: 0,
         })?;
 
     let mut framebuffers = HashMap::new();

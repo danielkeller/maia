@@ -5,6 +5,7 @@ use crate::types::*;
 #[derive(Debug)]
 pub struct RenderPass {
     handle: Handle<VkRenderPass>,
+    num_subpasses: u32,
     pub(crate) device: Arc<Device>,
 }
 
@@ -45,13 +46,20 @@ impl Device {
             )?;
         }
         let handle = handle.unwrap();
-        Ok(Arc::new(RenderPass { handle, device: self.clone() }))
+        Ok(Arc::new(RenderPass {
+            handle,
+            num_subpasses: info.subpasses.len(),
+            device: self.clone(),
+        }))
     }
 }
 
 impl RenderPass {
     pub fn borrow(&self) -> Ref<VkRenderPass> {
         self.handle.borrow()
+    }
+    pub fn num_subpasses(&self) -> u32 {
+        self.num_subpasses
     }
 }
 

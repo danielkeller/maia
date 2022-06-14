@@ -1084,7 +1084,7 @@ structure_type!(PipelineDynamicStateCreateInfoType, 27);
 
 #[repr(C)]
 #[derive(Debug)]
-pub struct GraphicsPipelineCreateInfo<'a, Next = Null> {
+pub struct VkGraphicsPipelineCreateInfo<'a, Next = Null> {
     pub stype: GraphicsPipelineCreateInfoType,
     pub next: Next,
     pub flags: PipelineCreateFlags,

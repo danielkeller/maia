@@ -354,7 +354,7 @@ pub struct DeviceFn {
         Ref<VkDevice>,
         Option<Mut<VkPipelineCache>>,
         u32,
-        Array<GraphicsPipelineCreateInfo>,
+        Array<VkGraphicsPipelineCreateInfo>,
         Option<&'_ AllocationCallbacks>,
         ArrayMut<MaybeUninit<Handle<VkPipeline>>>,
     ) -> VkResult,
