@@ -485,6 +485,13 @@ pub struct DeviceFn {
     ),
     pub cmd_draw:
         unsafe extern "system" fn(Mut<VkCommandBuffer>, u32, u32, u32, u32),
+    pub cmd_draw_indirect: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        Ref<VkBuffer>,
+        u64,
+        u32,
+        u32,
+    ),
     pub cmd_draw_indexed: unsafe extern "system" fn(
         Mut<VkCommandBuffer>,
         u32,
@@ -493,6 +500,17 @@ pub struct DeviceFn {
         i32,
         u32,
     ),
+    pub cmd_draw_indexed_indirect: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        Ref<VkBuffer>,
+        u64,
+        u32,
+        u32,
+    ),
+    pub cmd_dispatch:
+        unsafe extern "system" fn(Mut<VkCommandBuffer>, u32, u32, u32),
+    pub cmd_dispatch_indirect:
+        unsafe extern "system" fn(Mut<VkCommandBuffer>, Ref<VkBuffer>, u64),
     pub cmd_set_viewport: unsafe extern "system" fn(
         Mut<VkCommandBuffer>,
         u32,
@@ -585,7 +603,13 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         cmd_bind_index_buffer: transmute(load("vkCmdBindIndexBuffer\0")),
         cmd_bind_descriptor_sets: transmute(load("vkCmdBindDescriptorSets\0")),
         cmd_draw: transmute(load("vkCmdDraw\0")),
+        cmd_draw_indirect: transmute(load("vkCmdDrawIndirect\0")),
         cmd_draw_indexed: transmute(load("vkCmdDrawIndexed\0")),
+        cmd_draw_indexed_indirect: transmute(load(
+            "vkCmdDrawIndexedIndirect\0",
+        )),
+        cmd_dispatch: transmute(load("vkCmdDispatch\0")),
+        cmd_dispatch_indirect: transmute(load("vkCmdDispatchIndirect\0")),
         cmd_set_viewport: transmute(load("vkCmdSetViewport\0")),
         cmd_set_scissor: transmute(load("vkCmdSetScissor\0")),
     }

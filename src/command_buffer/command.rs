@@ -582,6 +582,24 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
             )
         }
     }
+    pub fn draw_indirect(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        draw_count: u32,
+        stride: u32,
+    ) {
+        self.0.add_resource(buffer.clone());
+        unsafe {
+            (self.0.pool.res.device.fun.cmd_draw_indirect)(
+                self.0.buffer.handle.borrow_mut(),
+                buffer.borrow(),
+                offset,
+                draw_count,
+                stride,
+            )
+        }
+    }
     pub fn draw_indexed(
         &mut self,
         index_count: u32,
@@ -601,4 +619,56 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
             )
         }
     }
+    pub fn draw_indexed_indirect(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        draw_count: u32,
+        stride: u32,
+    ) {
+        self.0.add_resource(buffer.clone());
+        unsafe {
+            (self.0.pool.res.device.fun.cmd_draw_indexed_indirect)(
+                self.0.buffer.handle.borrow_mut(),
+                buffer.borrow(),
+                offset,
+                draw_count,
+                stride,
+            )
+        }
+    }
 }
+
+impl<'a> CommandRecording<'a> {
+    pub fn dispatch(
+        &mut self,
+        group_count_x: u32,
+        group_count_y: u32,
+        group_count_z: u32,
+    ) {
+        unsafe {
+            (self.pool.res.device.fun.cmd_dispatch)(
+                self.buffer.handle.borrow_mut(),
+                group_count_x,
+                group_count_y,
+                group_count_z,
+            );
+        }
+    }
+    pub fn dispatch_indirect(&mut self, buffer: &Arc<Buffer>, offset: u64) {
+        self.add_resource(buffer.clone());
+        unsafe {
+            (self.pool.res.device.fun.cmd_dispatch_indirect)(
+                self.buffer.handle.borrow_mut(),
+                buffer.borrow(),
+                offset,
+            );
+        }
+    }
+}
+
+// TODO: Fill buffer
+// TODO: Subpasses
+// TODO: Specialization constants, push constants
+// TODO: Pipeline cache
+// TODO(maybe): Other kinds of command buffers

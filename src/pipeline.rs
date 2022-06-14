@@ -90,6 +90,7 @@ pub struct GraphicsPipelineCreateInfo<'a> {
 }
 
 impl Device {
+    // TODO: Bulk create
     pub fn create_graphics_pipeline(
         self: &Arc<Self>,
         info: &GraphicsPipelineCreateInfo,

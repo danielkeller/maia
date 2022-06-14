@@ -34,6 +34,7 @@ impl Device {
     }
 }
 impl DeviceMemory {
+    // TODO: Bulk bind
     pub fn bind_buffer_memory(
         &self,
         buffer: BufferWithoutMemory,
