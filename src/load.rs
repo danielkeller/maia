@@ -404,6 +404,13 @@ pub struct DeviceFn {
     ) -> VkResult,
     pub end_command_buffer:
         unsafe extern "system" fn(Mut<VkCommandBuffer>) -> VkResult,
+    pub cmd_fill_buffer: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        Ref<VkBuffer>,
+        u64,
+        u64,
+        u32,
+    ),
     pub cmd_copy_buffer: unsafe extern "system" fn(
         Mut<VkCommandBuffer>,
         Ref<VkBuffer>,
@@ -591,6 +598,7 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         free_command_buffers: transmute(load("vkFreeCommandBuffers\0")),
         begin_command_buffer: transmute(load("vkBeginCommandBuffer\0")),
         end_command_buffer: transmute(load("vkEndCommandBuffer\0")),
+        cmd_fill_buffer: transmute(load("vkCmdFillBuffer\0")),
         cmd_copy_buffer: transmute(load("vkCmdCopyBuffer\0")),
         cmd_copy_buffer_to_image: transmute(load("vkCmdCopyBufferToImage\0")),
         cmd_blit_image: transmute(load("vkCmdBlitImage\0")),

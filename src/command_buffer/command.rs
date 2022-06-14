@@ -10,6 +10,42 @@ use crate::types::*;
 use super::{CommandRecording, RenderPassRecording};
 
 impl<'a> CommandRecording<'a> {
+    /// Offset and size are rounded down to the nearest multiple of 4.
+    pub fn fill_buffer(
+        &mut self,
+        dst: &Arc<Buffer>,
+        offset: u64,
+        size: Option<u64>,
+        data: u32,
+    ) -> Result<()> {
+        let offset = offset & !3;
+        let size = match size {
+            Some(size) => {
+                if !dst.bounds_check(offset, size) {
+                    return Err(Error::OutOfBounds);
+                }
+                size & !3
+            }
+            None => {
+                if !dst.bounds_check(offset, 0) {
+                    return Err(Error::OutOfBounds);
+                }
+                u64::MAX
+            }
+        };
+        self.add_resource(dst.clone());
+        unsafe {
+            (self.pool.res.device.fun.cmd_fill_buffer)(
+                self.buffer.handle.borrow_mut(),
+                dst.borrow(),
+                offset,
+                size,
+                data,
+            );
+        }
+        Ok(())
+    }
+
     pub fn copy_buffer(
         &mut self,
         src: &Arc<Buffer>,
@@ -667,7 +703,7 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
-// TODO: Fill buffer
+// TODO: Panic on non-matching device
 // TODO: Subpasses
 // TODO: Specialization constants, push constants
 // TODO: Pipeline cache
