@@ -236,7 +236,7 @@ fn main() -> anyhow::Result<()> {
     instance_exts
         .extend(ember::window::required_instance_extensions(&window)?.iter());
     instance_exts.extend(required_instance_extensions()?.iter());
-    let inst = vk::create_instance(&vk::InstanceCreateInfo {
+    let inst = vk::Instance::new(&vk::InstanceCreateInfo {
         enabled_extension_names: instance_exts.as_slice().into(),
         ..Default::default()
     })?;

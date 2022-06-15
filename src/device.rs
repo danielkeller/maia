@@ -1,17 +1,14 @@
-use std::ffi::c_void;
-use std::ptr::NonNull;
-
-use crate::error::{Error, Result};
+use crate::error::Result;
+use crate::instance::Instance;
 use crate::load::DeviceFn;
 use crate::physical_device::PhysicalDevice;
-use crate::queue::Queue;
 use crate::types::*;
 
 pub struct Device {
     handle: Handle<VkDevice>,
     pub(crate) fun: DeviceFn,
     physical_device: PhysicalDevice,
-    pub(crate) queues: Vec<u32>,
+    queues: Vec<u32>,
 }
 
 impl std::fmt::Debug for Device {
@@ -41,48 +38,55 @@ impl Drop for Device {
     }
 }
 
-impl Device {
-    pub(crate) fn new(
-        handle: Handle<VkDevice>,
-        physical_device: PhysicalDevice,
-        queues: Vec<u32>,
-    ) -> Arc<Self> {
-        let fun = DeviceFn::new(&physical_device.instance, handle.borrow());
-        Arc::new(Device { handle, fun, physical_device, queues })
+impl PhysicalDevice {
+    pub fn create_device(
+        &self,
+        info: &DeviceCreateInfo<'_>,
+    ) -> Result<Arc<Device>> {
+        let props = self.queue_family_properties();
+        let mut queues = vec![0; props.len()];
+        for q in info.queue_create_infos.as_slice() {
+            let i = q.queue_family_index as usize;
+            assert!(i < props.len(), "Queue family index out of bounds");
+            assert!(
+                q.queue_priorities.len() <= props[i].queue_count,
+                "Too many queues requested"
+            );
+            queues[i] = q.queue_priorities.len();
+        }
+
+        let mut handle = None;
+        unsafe {
+            (self.instance().fun.create_device)(
+                self.handle(),
+                info,
+                None,
+                &mut handle,
+            )?;
+        }
+        let handle = handle.unwrap();
+        let fun = DeviceFn::new(self.instance(), handle.borrow());
+        Ok(Arc::new(Device {
+            handle,
+            fun,
+            physical_device: self.clone(),
+            queues,
+        }))
     }
+}
+
+impl Device {
     pub fn handle(&self) -> Ref<VkDevice> {
         self.handle.borrow()
     }
     pub fn physical_device(&self) -> &PhysicalDevice {
         &self.physical_device
     }
-}
-
-impl Device {
-    /// Load device function. Panics if the string is not null-terminated or the
-    /// function was not found.
-    pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
-        self.physical_device.instance.load(self.handle(), name)
+    pub fn instance(&self) -> &Instance {
+        self.physical_device.instance()
     }
-
-    pub fn queue(
-        self: &Arc<Self>,
-        family_index: u32,
-        queue_index: u32,
-    ) -> Result<Queue> {
-        let i = family_index as usize;
-        if i > self.queues.len() || self.queues[i] <= queue_index {
-            return Err(Error::OutOfBounds);
-        }
-        let mut handle = None;
-        unsafe {
-            (self.fun.get_device_queue)(
-                self.handle(),
-                family_index,
-                queue_index,
-                &mut handle,
-            );
-        }
-        Ok(Queue::new(handle.unwrap(), self.clone()))
+    pub fn has_queue(&self, queue_family_index: u32, queue_index: u32) -> bool {
+        let i = queue_family_index as usize;
+        i < self.queues.len() && self.queues[i] >= queue_index
     }
 }

@@ -1,3 +1,4 @@
+use crate::device::Device;
 use crate::enums::Bool;
 use crate::enums::*;
 use crate::ffi::*;
@@ -114,7 +115,7 @@ impl InstanceFn {
 
 /// Load instance function. Panics if the string is not null-terminated or the
 /// function was not found.
-pub fn load(instance: Option<Ref<VkInstance>>, name: &str) -> NonNull<c_void> {
+fn load(instance: Option<Ref<VkInstance>>, name: &str) -> NonNull<c_void> {
     let ptr =
         unsafe { vkGetInstanceProcAddr(instance, name.try_into().unwrap()) };
     ptr.unwrap_or_else(|| {
@@ -635,16 +636,26 @@ impl DeviceFn {
 impl Instance {
     /// Load device function. Panics if the string is not null-terminated or the
     /// function was not found.
-    pub(crate) fn load(
-        &self,
-        device: Ref<VkDevice>,
-        name: &str,
-    ) -> NonNull<c_void> {
+    fn load(&self, device: Ref<VkDevice>, name: &str) -> NonNull<c_void> {
         let ptr = unsafe {
             (self.fun.get_device_proc_addr)(device, name.try_into().unwrap())
         };
         ptr.unwrap_or_else(|| {
             panic!("Could not load {:?}", &name[0..name.len() - 1])
         })
+    }
+
+    /// Load instance function. Panics if the string is not null-terminated or
+    /// the function was not found.
+    pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
+        crate::load::load(Some(self.handle()), name)
+    }
+}
+
+impl Device {
+    /// Load device function. Panics if the string is not null-terminated or the
+    /// function was not found.
+    pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
+        self.instance().load(self.handle(), name)
     }
 }

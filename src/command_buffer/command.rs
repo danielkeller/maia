@@ -705,5 +705,5 @@ impl<'a> CommandRecording<'a> {
 
 // TODO: Specialization constants, push constants
 // TODO: Pipeline cache
-// TODO: Reduce pub(crate)
+// TODO: Building/distributing instructions
 // TODO(maybe): Other kinds of command buffers

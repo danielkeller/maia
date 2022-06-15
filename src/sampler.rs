@@ -5,7 +5,7 @@ use crate::types::*;
 #[derive(Debug, Eq)]
 pub struct Sampler {
     handle: Handle<VkSampler>,
-    pub(crate) device: Arc<Device>,
+    device: Arc<Device>,
 }
 
 impl Device {
@@ -42,5 +42,8 @@ impl PartialEq for Sampler {
 impl Sampler {
     pub fn handle(&self) -> Ref<VkSampler> {
         self.handle.borrow()
+    }
+    pub fn device(&self) -> &Device {
+        &*self.device
     }
 }

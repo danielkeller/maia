@@ -7,7 +7,7 @@ use super::khr_surface::SurfaceKHR;
 use super::load::MetalSurfaceFn;
 
 pub struct EXTMetalSurface {
-    pub(crate) fun: MetalSurfaceFn,
+    fun: MetalSurfaceFn,
     instance: Arc<Instance>,
 }
 

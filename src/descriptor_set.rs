@@ -472,7 +472,7 @@ impl<'a> DescriptorSetUpdate<'a> {
             {
                 return Err(Error::InvalidArgument);
             }
-            assert_eq!(&*s.device, self.updates.device);
+            assert_eq!(s.device(), self.updates.device);
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
@@ -518,7 +518,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
-            assert_eq!(i.image.device(), self.updates.device);
+            assert_eq!(i.device(), self.updates.device);
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
@@ -603,7 +603,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
-            assert_eq!(i.image.device(), self.updates.device);
+            assert_eq!(i.device(), self.updates.device);
             if self.set.layout.bindings[binding].immutable_samplers.is_empty() {
                 return Err(Error::InvalidArgument);
             }

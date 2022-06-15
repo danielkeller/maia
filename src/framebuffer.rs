@@ -20,7 +20,7 @@ impl RenderPass {
         size: Extent3D,
     ) -> Result<Arc<Framebuffer>> {
         for iv in &attachments {
-            assert_eq!(iv.image.device(), &*self.device);
+            assert_eq!(iv.device(), self.device());
         }
         let vk_attachments: Vec<_> =
             attachments.iter().map(|iv| iv.handle()).collect();
@@ -36,8 +36,8 @@ impl RenderPass {
         };
         let mut handle = None;
         unsafe {
-            (self.device.fun.create_framebuffer)(
-                self.device.handle(),
+            (self.device().fun.create_framebuffer)(
+                self.device().handle(),
                 &vk_create_info,
                 None,
                 &mut handle,

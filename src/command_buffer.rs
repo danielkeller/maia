@@ -24,7 +24,7 @@ pub struct CommandPool {
 // Theoretically the arc could be on the outside, but this would encourage users
 // to store copies of it, causing confusing errors when they try to record only
 // to find it locked.
-pub struct CommandBuffer(pub(crate) Arc<CommandBufferLifetime>);
+pub struct CommandBuffer(Arc<CommandBufferLifetime>);
 
 pub struct CommandRecording<'a> {
     pool: &'a mut CommandPool,
@@ -38,7 +38,7 @@ pub struct RenderPassRecording<'a, 'rec> {
 }
 
 #[derive(Debug)]
-pub(crate) struct CommandBufferLifetime {
+struct CommandBufferLifetime {
     handle: Handle<VkCommandBuffer>,
     pool: Subobject<CommandPoolLifetime>,
     /// For buffers in the executable state, it will give an Arc. Otherwise the
@@ -69,8 +69,7 @@ impl Device {
         self: &Arc<Self>,
         queue_family_index: u32,
     ) -> Result<CommandPool> {
-        let i = queue_family_index as usize;
-        if i > self.queues.len() || self.queues[i] < 1 {
+        if !self.has_queue(queue_family_index, 1) {
             return Err(Error::OutOfBounds);
         }
         let mut handle = None;
@@ -223,11 +222,14 @@ impl CommandBuffer {
             None => Err(Error::SynchronizationError),
         }
     }
+    /// Prevent the command buffer from being freed or submitted to a queue
+    /// until the the value is dropped
+    pub fn lock_self(&self) -> Arc<impl Send + Sync + Debug> {
+        self.0.clone()
+    }
     /// Prevent the command pool from being cleared or destroyed until the value
     /// is dropped.
-    pub(crate) fn lock_resources(
-        &self,
-    ) -> Option<Arc<impl Send + Sync + Debug>> {
+    pub fn lock_resources(&self) -> Option<Arc<impl Send + Sync + Debug>> {
         self.0.recording.upgrade()
     }
 }

@@ -61,6 +61,9 @@ impl RenderPass {
     pub fn num_subpasses(&self) -> u32 {
         self.num_subpasses
     }
+    pub fn device(&self) -> &Device {
+        &*self.device
+    }
 }
 
 impl Drop for RenderPass {

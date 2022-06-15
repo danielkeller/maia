@@ -26,20 +26,8 @@ mod types;
 #[cfg(feature = "window")]
 pub mod window;
 
-use std::sync::Arc;
-
-use instance::Instance;
-
 use crate::error::Result;
 use crate::types::*;
-
-pub fn create_instance<'a>(
-    info: &'a InstanceCreateInfo<'a>,
-) -> Result<Arc<Instance>> {
-    let mut handle = None;
-    unsafe { (load::vk_create_instance())(info, None, &mut handle)? };
-    Ok(Instance::new(handle.unwrap()))
-}
 
 pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
     let mut len = 0;
@@ -66,7 +54,6 @@ pub mod vk {
     pub use crate::command_buffer::{
         CommandBuffer, CommandPool, CommandRecording, RenderPassRecording,
     };
-    pub use crate::create_instance;
     pub use crate::descriptor_set::{
         DescriptorBufferInfo, DescriptorSetLayout, DescriptorSetLayoutBinding,
         DescriptorSetUpdateBuilder,

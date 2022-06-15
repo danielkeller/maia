@@ -15,24 +15,54 @@ use crate::vk::PipelineStageFlags;
 pub struct Queue {
     handle: Handle<VkQueue>,
     device: Arc<Device>,
-    pub(crate) resources: CleanupQueue,
+    resources: CleanupQueue,
     scratch: Exclusive<bumpalo::Bump>,
 }
 
-impl Queue {
-    pub(crate) fn new(handle: Handle<VkQueue>, device: Arc<Device>) -> Self {
-        Self {
-            handle,
-            device,
+impl Device {
+    pub fn queue(
+        self: &Arc<Self>,
+        family_index: u32,
+        queue_index: u32,
+    ) -> Result<Queue> {
+        if !self.has_queue(family_index, queue_index) {
+            return Err(Error::OutOfBounds);
+        }
+        let mut handle = None;
+        unsafe {
+            (self.fun.get_device_queue)(
+                self.handle(),
+                family_index,
+                queue_index,
+                &mut handle,
+            );
+        }
+        Ok(Queue {
+            handle: handle.unwrap(),
+            device: self.clone(),
             resources: CleanupQueue::new(100),
             scratch: Exclusive::new(bumpalo::Bump::new()),
-        }
+        })
     }
+}
+
+impl Queue {
     pub fn handle(&self) -> Ref<VkQueue> {
         self.handle.borrow()
     }
     pub fn handle_mut(&mut self) -> Mut<VkQueue> {
         self.handle.borrow_mut()
+    }
+    /// Add an item to the queue's cleanup. The value will be dropped when a
+    /// fence is submitted and waited on.
+    pub fn add_resource(&mut self, value: Arc<dyn Send + Sync>) {
+        self.resources.push(value)
+    }
+    pub fn add_resources(
+        &mut self,
+        values: impl IntoIterator<Item = Arc<impl Send + Sync + 'static>>,
+    ) {
+        self.resources.extend(values)
     }
 }
 
@@ -124,7 +154,7 @@ impl Queue {
                 self.resources.push(sem.inner.clone());
             }
             for command in info.commands.iter() {
-                self.resources.push(command.0.clone());
+                self.resources.push(command.lock_self());
             }
             for sem in info.signal.iter_mut() {
                 sem.signaller = Some(SemaphoreSignaller::Queue(

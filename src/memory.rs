@@ -1,17 +1,17 @@
 use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
-use crate::subobject::Owner;
+use crate::subobject::{Owner, Subobject};
 use crate::types::*;
 use crate::vk::Device;
 
 #[derive(Debug)]
-pub(crate) struct MemoryPayload {
+pub struct MemoryLifetime {
     handle: Handle<VkDeviceMemory>,
-    pub(crate) device: Arc<Device>,
+    device: Arc<Device>,
 }
 
 #[derive(Debug)]
 pub struct DeviceMemory {
-    pub(crate) inner: Owner<MemoryPayload>,
+    inner: Owner<MemoryLifetime>,
     allocation_size: u64,
     memory_type_index: u32,
 }
@@ -43,7 +43,7 @@ impl Device {
         Ok(DeviceMemory {
             allocation_size,
             memory_type_index,
-            inner: Owner::new(MemoryPayload {
+            inner: Owner::new(MemoryLifetime {
                 handle: handle.unwrap(),
                 device: self.clone(),
             }),
@@ -51,7 +51,7 @@ impl Device {
     }
 }
 
-impl Drop for MemoryPayload {
+impl Drop for MemoryLifetime {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.free_memory)(
@@ -69,6 +69,13 @@ impl DeviceMemory {
     }
     pub fn handle_mut(&mut self) -> Mut<VkDeviceMemory> {
         self.inner.handle.borrow_mut()
+    }
+    pub fn device(&self) -> &Device {
+        &self.inner.device
+    }
+    /// Extend the lifetime of the memory until the returned object is dropped.
+    pub fn resource(&self) -> Subobject<MemoryLifetime> {
+        Subobject::new(&self.inner)
     }
     pub fn check(&self, offset: u64, requirements: MemoryRequirements) -> bool {
         let (end, overflow) = offset.overflowing_add(requirements.size);

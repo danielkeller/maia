@@ -33,10 +33,10 @@ const _: () = assert!(matches!(
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct NonNullDispatchableHandle(NonNull<c_void>);
+struct NonNullDispatchableHandle(NonNull<c_void>);
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
+struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
 
 impl Debug for NonNullDispatchableHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

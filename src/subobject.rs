@@ -27,12 +27,12 @@ impl<T> Owner<T> {
     pub fn new(value: T) -> Self {
         Self(Arc::new(UnsafeCell::new(value)))
     }
-    pub fn downgrade(this: &Self) -> WeakSubobject<T> {
-        WeakSubobject(Arc::downgrade(&this.0))
-    }
-    pub fn try_unwrap(this: Self) -> std::result::Result<T, Self> {
-        Arc::try_unwrap(this.0).map(UnsafeCell::into_inner).map_err(Owner)
-    }
+    // pub fn downgrade(this: &Self) -> WeakSubobject<T> {
+    //     WeakSubobject(Arc::downgrade(&this.0))
+    // }
+    // pub fn try_unwrap(this: Self) -> std::result::Result<T, Self> {
+    //     Arc::try_unwrap(this.0).map(UnsafeCell::into_inner).map_err(Owner)
+    // }
     pub fn ptr_eq(this: &Self, other: &Subobject<T>) -> bool {
         Arc::ptr_eq(&this.0, &other.0)
     }
@@ -42,18 +42,18 @@ impl<T> Subobject<T> {
     pub fn new(value: &Owner<T>) -> Subobject<T> {
         Subobject(value.0.clone())
     }
-    pub fn downgrade(this: &Self) -> WeakSubobject<T> {
-        WeakSubobject(Arc::downgrade(&this.0))
-    }
+    // pub fn downgrade(this: &Self) -> WeakSubobject<T> {
+    //     WeakSubobject(Arc::downgrade(&this.0))
+    // }
 }
 
 impl<T> WeakSubobject<T> {
-    pub fn new() -> Self {
-        Self(Weak::new())
-    }
-    pub fn upgrade(&self) -> Option<Subobject<T>> {
-        self.0.upgrade().map(Subobject)
-    }
+    // pub fn new() -> Self {
+    //     Self(Weak::new())
+    // }
+    // pub fn upgrade(&self) -> Option<Subobject<T>> {
+    //     self.0.upgrade().map(Subobject)
+    // }
 }
 
 // Safety: Only Owner can access the data

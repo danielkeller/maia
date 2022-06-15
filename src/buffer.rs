@@ -1,5 +1,5 @@
 use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
-use crate::memory::{DeviceMemory, MemoryPayload};
+use crate::memory::{DeviceMemory, MemoryLifetime};
 use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::Device;
@@ -14,7 +14,7 @@ pub struct BufferWithoutMemory {
 #[derive(Debug)]
 pub struct Buffer {
     inner: BufferWithoutMemory,
-    _memory: Subobject<MemoryPayload>,
+    _memory: Subobject<MemoryLifetime>,
 }
 
 impl Device {
@@ -40,9 +40,8 @@ impl DeviceMemory {
         buffer: BufferWithoutMemory,
         offset: u64,
     ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
-        if !Arc::ptr_eq(&self.inner.device, &buffer.device)
-            || !self.check(offset, buffer.memory_requirements())
-        {
+        assert_eq!(self.device(), &*buffer.device);
+        if !self.check(offset, buffer.memory_requirements()) {
             return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
         self.bind_buffer_impl(buffer, offset)
@@ -54,8 +53,8 @@ impl DeviceMemory {
         offset: u64,
     ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
         if let Err(err) = unsafe {
-            (self.inner.device.fun.bind_buffer_memory)(
-                self.inner.device.handle(),
+            (self.device().fun.bind_buffer_memory)(
+                self.device().handle(),
                 inner.handle.borrow_mut(),
                 self.handle(),
                 offset,
@@ -63,7 +62,7 @@ impl DeviceMemory {
         } {
             return Err(ErrorAndSelf(err.into(), inner));
         }
-        Ok(Arc::new(Buffer { inner, _memory: Subobject::new(&self.inner) }))
+        Ok(Arc::new(Buffer { inner, _memory: self.resource() }))
     }
 }
 

@@ -1,10 +1,6 @@
-use std::ffi::c_void;
-use std::ptr::NonNull;
-
 use crate::error::Result;
-use crate::ffi::ArrayMut;
+use crate::load;
 use crate::load::InstanceFn;
-use crate::physical_device::PhysicalDevice;
 use crate::types::*;
 
 pub struct Instance {
@@ -25,44 +21,14 @@ impl Drop for Instance {
 }
 
 impl Instance {
-    pub(crate) fn new(handle: Handle<VkInstance>) -> Arc<Self> {
+    pub fn new<'a>(info: &'a InstanceCreateInfo<'a>) -> Result<Arc<Self>> {
+        let mut handle = None;
+        unsafe { (load::vk_create_instance())(info, None, &mut handle)? };
+        let handle = handle.unwrap();
         let fun = InstanceFn::new(handle.borrow());
-        Arc::new(Instance { handle, fun })
+        Ok(Arc::new(Instance { handle, fun }))
     }
     pub fn handle(&self) -> Ref<VkInstance> {
         self.handle.borrow()
-    }
-}
-
-impl Instance {
-    /// Load instance function. Panics if the string is not null-terminated or
-    /// the function was not found.
-    pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
-        crate::load::load(Some(self.handle()), name)
-    }
-
-    pub fn enumerate_physical_devices(
-        self: &Arc<Self>,
-    ) -> Result<Vec<PhysicalDevice>> {
-        let mut len = 0;
-        let mut result = Vec::new();
-        unsafe {
-            (self.fun.enumerate_physical_devices)(
-                self.handle(),
-                &mut len,
-                None,
-            )?;
-            result.reserve(len as usize);
-            (self.fun.enumerate_physical_devices)(
-                self.handle(),
-                &mut len,
-                ArrayMut::from_slice(result.spare_capacity_mut()),
-            )?;
-            result.set_len(len as usize);
-        }
-        Ok(result
-            .into_iter()
-            .map(|handle| PhysicalDevice::new(handle, self.clone()))
-            .collect())
     }
 }

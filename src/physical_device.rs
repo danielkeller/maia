@@ -1,6 +1,5 @@
 use std::mem::MaybeUninit;
 
-use crate::device::Device;
 use crate::error::Result;
 use crate::ffi::ArrayMut;
 use crate::instance::Instance;
@@ -9,18 +8,42 @@ use crate::types::*;
 #[derive(Debug)]
 pub struct PhysicalDevice {
     handle: Handle<VkPhysicalDevice>,
-    pub(crate) instance: Arc<Instance>,
+    instance: Arc<Instance>,
+}
+
+impl Instance {
+    pub fn enumerate_physical_devices(
+        self: &Arc<Self>,
+    ) -> Result<Vec<PhysicalDevice>> {
+        let mut len = 0;
+        let mut result = Vec::new();
+        unsafe {
+            (self.fun.enumerate_physical_devices)(
+                self.handle(),
+                &mut len,
+                None,
+            )?;
+            result.reserve(len as usize);
+            (self.fun.enumerate_physical_devices)(
+                self.handle(),
+                &mut len,
+                ArrayMut::from_slice(result.spare_capacity_mut()),
+            )?;
+            result.set_len(len as usize);
+        }
+        Ok(result
+            .into_iter()
+            .map(|handle| PhysicalDevice { handle, instance: self.clone() })
+            .collect())
+    }
 }
 
 impl PhysicalDevice {
-    pub(crate) fn new(
-        handle: Handle<VkPhysicalDevice>,
-        instance: Arc<Instance>,
-    ) -> Self {
-        Self { handle, instance }
-    }
     pub fn handle(&self) -> Ref<VkPhysicalDevice> {
         self.handle.borrow()
+    }
+    pub fn instance(&self) -> &Instance {
+        &*self.instance
     }
 }
 
@@ -100,33 +123,5 @@ impl PhysicalDevice {
             result.set_len(len as usize);
         }
         Ok(result)
-    }
-
-    pub fn create_device(
-        &self,
-        info: &DeviceCreateInfo<'_>,
-    ) -> Result<Arc<Device>> {
-        let props = self.queue_family_properties();
-        let mut queues = vec![0; props.len()];
-        for q in info.queue_create_infos.as_slice() {
-            let i = q.queue_family_index as usize;
-            assert!(i < props.len(), "Queue family index out of bounds");
-            assert!(
-                q.queue_priorities.len() <= props[i].queue_count,
-                "Too many queues requested"
-            );
-            queues[i] = q.queue_priorities.len();
-        }
-
-        let mut handle = None;
-        unsafe {
-            (self.instance.fun.create_device)(
-                self.handle(),
-                info,
-                None,
-                &mut handle,
-            )?;
-        }
-        Ok(Device::new(handle.unwrap(), self.clone(), queues))
     }
 }

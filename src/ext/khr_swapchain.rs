@@ -142,7 +142,7 @@ impl KHRSwapchain {
             handle,
             fun,
             device: self.device.clone(),
-            _surface: Subobject::new(&surface.res),
+            _surface: surface.resource(),
         });
         let images = images
             .into_iter()
@@ -281,8 +281,8 @@ impl SwapchainKHR {
             },
         };
         *acquired = false;
-        queue.resources.push(wait.take_signaller());
-        queue.resources.push(wait.inner.clone());
+        queue.add_resource(wait.take_signaller());
+        queue.add_resource(wait.inner.clone());
         Ok(is_optimal)
     }
 }

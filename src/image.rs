@@ -1,7 +1,7 @@
 use crate::enums::*;
 use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
 use crate::ext::khr_swapchain::SwapchainImages;
-use crate::memory::{DeviceMemory, MemoryPayload};
+use crate::memory::{DeviceMemory, MemoryLifetime};
 use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::Device;
@@ -28,7 +28,7 @@ pub struct ImageWithoutMemory {
 #[derive(Debug)]
 pub struct Image {
     inner: ImageWithoutMemory,
-    _memory: Option<Subobject<MemoryPayload>>,
+    _memory: Option<Subobject<MemoryLifetime>>,
 }
 
 impl PartialEq for Image {
@@ -71,9 +71,8 @@ impl DeviceMemory {
         image: ImageWithoutMemory,
         offset: u64,
     ) -> ResultAndSelf<Arc<Image>, ImageWithoutMemory> {
-        if !Arc::ptr_eq(&self.inner.device, &image.device)
-            || !self.check(offset, image.memory_requirements())
-        {
+        assert_eq!(self.device(), &*image.device);
+        if !self.check(offset, image.memory_requirements()) {
             return Err(ErrorAndSelf(Error::InvalidArgument, image));
         }
         self.bind_image_impl(image, offset)
@@ -85,8 +84,8 @@ impl DeviceMemory {
         offset: u64,
     ) -> ResultAndSelf<Arc<Image>, ImageWithoutMemory> {
         if let Err(err) = unsafe {
-            (self.inner.device.fun.bind_image_memory)(
-                self.inner.device.handle(),
+            (self.device().fun.bind_image_memory)(
+                self.device().handle(),
                 inner.handle_mut(),
                 self.handle(),
                 offset,
@@ -94,10 +93,7 @@ impl DeviceMemory {
         } {
             return Err(ErrorAndSelf(err.into(), inner));
         }
-        Ok(Arc::new(Image {
-            inner,
-            _memory: Some(Subobject::new(&self.inner)),
-        }))
+        Ok(Arc::new(Image { inner, _memory: Some(self.resource()) }))
     }
 }
 
@@ -228,7 +224,7 @@ impl Image {
 #[derive(Debug)]
 pub struct ImageView {
     handle: Handle<VkImageView>,
-    pub(crate) image: Arc<Image>,
+    image: Arc<Image>,
 }
 
 impl PartialEq for ImageView {
@@ -297,5 +293,8 @@ impl Drop for ImageView {
 impl ImageView {
     pub fn handle(&self) -> Ref<VkImageView> {
         self.handle.borrow()
+    }
+    pub fn device(&self) -> &Device {
+        self.image.device()
     }
 }
