@@ -28,10 +28,10 @@ impl Queue {
             scratch: Exclusive::new(bumpalo::Bump::new()),
         }
     }
-    pub fn borrow(&self) -> Ref<VkQueue> {
+    pub fn handle(&self) -> Ref<VkQueue> {
         self.handle.borrow()
     }
-    pub fn borrow_mut(&mut self) -> Mut<VkQueue> {
+    pub fn handle_mut(&mut self) -> Mut<VkQueue> {
         self.handle.borrow_mut()
     }
 }
@@ -87,16 +87,16 @@ impl Queue {
             for c in info.commands.iter_mut() {
                 recordings
                     .push(c.lock_resources().ok_or(Error::InvalidArgument)?);
-                commands.push(c.borrow_mut()?);
+                commands.push(c.handle_mut()?);
             }
             let wait_semaphores = scratch.alloc_slice_fill_iter(
-                info.wait.iter().map(|(sem, _)| sem.borrow()),
+                info.wait.iter().map(|(sem, _)| sem.handle()),
             );
             let wait_stage_masks = scratch.alloc_slice_fill_iter(
                 info.wait.iter().map(|(_, mask)| *mask), //
             );
             let signal_semaphores = scratch.alloc_slice_fill_iter(
-                info.signal.iter().map(|sem| sem.borrow()),
+                info.signal.iter().map(|sem| sem.handle()),
             );
             vk_infos.push(VkSubmitInfo {
                 wait_semaphores: wait_semaphores.into(),
@@ -112,7 +112,7 @@ impl Queue {
                 self.handle.borrow_mut(),
                 vk_infos.len() as u32,
                 Array::from_slice(&vk_infos),
-                Some(fence.borrow_mut()),
+                Some(fence.handle_mut()),
             )?;
         }
         drop(vk_infos);

@@ -76,7 +76,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.create_command_pool)(
-                self.borrow(),
+                self.handle(),
                 &CommandPoolCreateInfo {
                     queue_family_index,
                     ..Default::default()
@@ -105,7 +105,7 @@ impl Drop for CommandPoolLifetime {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_command_pool)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -114,7 +114,7 @@ impl Drop for CommandPoolLifetime {
 }
 
 impl CommandPool {
-    pub fn borrow_mut(&mut self) -> Mut<VkCommandPool> {
+    pub fn handle_mut(&mut self) -> Mut<VkCommandPool> {
         self.res.handle.borrow_mut()
     }
 
@@ -130,7 +130,7 @@ impl CommandPool {
                 let res = &mut *self.res;
                 unsafe {
                     (res.device.fun.reset_command_pool)(
-                        res.device.borrow(),
+                        res.device.handle(),
                         res.handle.borrow_mut(),
                         flags,
                     )?;
@@ -148,7 +148,7 @@ impl CommandPool {
         let res = &mut *self.res;
         let handle = unsafe {
             (res.device.fun.allocate_command_buffers)(
-                res.device.borrow(),
+                res.device.handle(),
                 &CommandBufferAllocateInfo {
                     stype: Default::default(),
                     next: Default::default(),
@@ -175,10 +175,10 @@ impl CommandPool {
         let res = &mut *self.res;
         unsafe {
             (res.device.fun.free_command_buffers)(
-                res.device.borrow(),
+                res.device.handle(),
                 res.handle.borrow_mut(),
                 1,
-                &buffer.borrow_mut()?,
+                &buffer.handle_mut()?,
             );
         }
 
@@ -217,7 +217,7 @@ impl CommandPool {
 }
 
 impl CommandBuffer {
-    pub fn borrow_mut(&mut self) -> Result<Mut<VkCommandBuffer>> {
+    pub fn handle_mut(&mut self) -> Result<Mut<VkCommandBuffer>> {
         match Arc::get_mut(&mut self.0) {
             Some(inner) => Ok(inner.handle.borrow_mut()),
             None => Err(Error::SynchronizationError),
@@ -264,8 +264,8 @@ impl<'rec> CommandRecording<'rec> {
         let info = RenderPassBeginInfo {
             stype: Default::default(),
             next: Default::default(),
-            render_pass: render_pass.borrow(),
-            framebuffer: framebuffer.borrow(),
+            render_pass: render_pass.handle(),
+            framebuffer: framebuffer.handle(),
             render_area,
             clear_values: clear_values.into(),
         };

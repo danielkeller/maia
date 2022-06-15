@@ -15,7 +15,7 @@ impl Device {
     ) -> Result<Arc<Sampler>> {
         let mut handle = None;
         unsafe {
-            (self.fun.create_sampler)(self.borrow(), info, None, &mut handle)?;
+            (self.fun.create_sampler)(self.handle(), info, None, &mut handle)?;
         }
         Ok(Arc::new(Sampler { handle: handle.unwrap(), device: self.clone() }))
     }
@@ -25,7 +25,7 @@ impl Drop for Sampler {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_sampler)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -40,7 +40,7 @@ impl PartialEq for Sampler {
 }
 
 impl Sampler {
-    pub fn borrow(&self) -> Ref<VkSampler> {
+    pub fn handle(&self) -> Ref<VkSampler> {
         self.handle.borrow()
     }
 }

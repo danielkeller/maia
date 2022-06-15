@@ -50,7 +50,7 @@ impl Device {
         let fun = DeviceFn::new(&physical_device.instance, handle.borrow());
         Arc::new(Device { handle, fun, physical_device, queues })
     }
-    pub fn borrow(&self) -> Ref<VkDevice> {
+    pub fn handle(&self) -> Ref<VkDevice> {
         self.handle.borrow()
     }
     pub fn physical_device(&self) -> &PhysicalDevice {
@@ -62,7 +62,7 @@ impl Device {
     /// Load device function. Panics if the string is not null-terminated or the
     /// function was not found.
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
-        self.physical_device.instance.load(self.borrow(), name)
+        self.physical_device.instance.load(self.handle(), name)
     }
 
     pub fn queue(
@@ -77,7 +77,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.get_device_queue)(
-                self.borrow(),
+                self.handle(),
                 family_index,
                 queue_index,
                 &mut handle,

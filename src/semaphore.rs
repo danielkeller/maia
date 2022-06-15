@@ -25,7 +25,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.create_semaphore)(
-                self.borrow(),
+                self.handle(),
                 &Default::default(),
                 None,
                 &mut handle,
@@ -60,7 +60,7 @@ impl Drop for SemaphoreRAII {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_semaphore)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -69,10 +69,10 @@ impl Drop for SemaphoreRAII {
 }
 
 impl Semaphore {
-    pub fn borrow(&self) -> Ref<VkSemaphore> {
+    pub fn handle(&self) -> Ref<VkSemaphore> {
         self.inner.handle.borrow()
     }
-    pub fn borrow_mut(&mut self) -> Mut<VkSemaphore> {
+    pub fn handle_mut(&mut self) -> Mut<VkSemaphore> {
         // Safe because the outer structure is mutably borrowed, and handle is
         // private.
         unsafe { self.inner.handle.borrow_mut_unchecked() }

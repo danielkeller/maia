@@ -29,7 +29,7 @@ impl Instance {
         let fun = InstanceFn::new(handle.borrow());
         Arc::new(Instance { handle, fun })
     }
-    pub fn borrow(&self) -> Ref<VkInstance> {
+    pub fn handle(&self) -> Ref<VkInstance> {
         self.handle.borrow()
     }
 }
@@ -38,7 +38,7 @@ impl Instance {
     /// Load instance function. Panics if the string is not null-terminated or
     /// the function was not found.
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
-        crate::load::load(Some(self.borrow()), name)
+        crate::load::load(Some(self.handle()), name)
     }
 
     pub fn enumerate_physical_devices(
@@ -48,13 +48,13 @@ impl Instance {
         let mut result = Vec::new();
         unsafe {
             (self.fun.enumerate_physical_devices)(
-                self.borrow(),
+                self.handle(),
                 &mut len,
                 None,
             )?;
             result.reserve(len as usize);
             (self.fun.enumerate_physical_devices)(
-                self.borrow(),
+                self.handle(),
                 &mut len,
                 ArrayMut::from_slice(result.spare_capacity_mut()),
             )?;

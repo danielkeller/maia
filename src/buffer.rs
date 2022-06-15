@@ -24,7 +24,7 @@ impl Device {
     ) -> Result<BufferWithoutMemory> {
         let mut handle = None;
         unsafe {
-            (self.fun.create_buffer)(self.borrow(), info, None, &mut handle)?;
+            (self.fun.create_buffer)(self.handle(), info, None, &mut handle)?;
         }
         Ok(BufferWithoutMemory {
             handle: handle.unwrap(),
@@ -55,9 +55,9 @@ impl DeviceMemory {
     ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
         if let Err(err) = unsafe {
             (self.inner.device.fun.bind_buffer_memory)(
-                self.inner.device.borrow(),
+                self.inner.device.handle(),
                 inner.handle.borrow_mut(),
-                self.borrow(),
+                self.handle(),
                 offset,
             )
         } {
@@ -71,7 +71,7 @@ impl Drop for BufferWithoutMemory {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_buffer)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -80,7 +80,7 @@ impl Drop for BufferWithoutMemory {
 }
 
 impl Buffer {
-    pub fn borrow(&self) -> Ref<VkBuffer> {
+    pub fn handle(&self) -> Ref<VkBuffer> {
         self.inner.handle.borrow()
     }
     pub fn device(&self) -> &Device {
@@ -102,7 +102,7 @@ impl BufferWithoutMemory {
         let mut result = Default::default();
         unsafe {
             (self.device.fun.get_buffer_memory_requirements)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow(),
                 &mut result,
             );

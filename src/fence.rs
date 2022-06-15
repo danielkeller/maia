@@ -22,7 +22,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.create_fence)(
-                self.borrow(),
+                self.handle(),
                 &Default::default(),
                 None,
                 &mut handle,
@@ -37,7 +37,7 @@ impl Drop for Fence {
         if let Some(handle) = &mut self.handle {
             unsafe {
                 (self.device.fun.destroy_fence)(
-                    self.device.borrow(),
+                    self.device.handle(),
                     handle.borrow_mut(),
                     None,
                 )
@@ -47,7 +47,7 @@ impl Drop for Fence {
 }
 
 impl Fence {
-    pub fn borrow_mut(&mut self) -> Mut<VkFence> {
+    pub fn handle_mut(&mut self) -> Mut<VkFence> {
         self.handle.as_mut().unwrap().borrow_mut()
     }
     pub(crate) fn to_pending(mut self, resources: Cleanup) -> PendingFence {
@@ -60,13 +60,13 @@ impl Fence {
 }
 
 impl PendingFence {
-    pub fn borrow(&self) -> Ref<VkFence> {
+    pub fn handle(&self) -> Ref<VkFence> {
         self.handle.borrow()
     }
     pub fn wait(mut self) -> Result<Fence> {
         unsafe {
             (self.device.fun.wait_for_fences)(
-                self.device.borrow(),
+                self.device.handle(),
                 1,
                 (&[self.handle.borrow()]).into(),
                 true.into(),
@@ -76,7 +76,7 @@ impl PendingFence {
         self.resources.cleanup();
         unsafe {
             (self.device.fun.reset_fences)(
-                self.device.borrow(),
+                self.device.handle(),
                 1,
                 // Safe because the the outer structure is owned here
                 (&[self.handle.borrow_mut()]).into(),

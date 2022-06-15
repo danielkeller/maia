@@ -23,12 +23,12 @@ impl RenderPass {
             assert_eq!(iv.image.device(), &*self.device);
         }
         let vk_attachments: Vec<_> =
-            attachments.iter().map(|iv| iv.borrow()).collect();
+            attachments.iter().map(|iv| iv.handle()).collect();
         let vk_create_info = VkFramebufferCreateInfo {
             stype: Default::default(),
             next: Default::default(),
             flags,
-            render_pass: self.borrow(),
+            render_pass: self.handle(),
             attachments: (&vk_attachments).into(),
             width: size.width,
             height: size.height,
@@ -37,7 +37,7 @@ impl RenderPass {
         let mut handle = None;
         unsafe {
             (self.device.fun.create_framebuffer)(
-                self.device.borrow(),
+                self.device.handle(),
                 &vk_create_info,
                 None,
                 &mut handle,
@@ -52,7 +52,7 @@ impl RenderPass {
 }
 
 impl Framebuffer {
-    pub fn borrow(&self) -> Ref<VkFramebuffer> {
+    pub fn handle(&self) -> Ref<VkFramebuffer> {
         self.handle.borrow()
     }
 }
@@ -61,7 +61,7 @@ impl Drop for Framebuffer {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_framebuffer)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )

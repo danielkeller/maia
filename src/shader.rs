@@ -18,7 +18,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.create_shader_module)(
-                self.borrow(),
+                self.handle(),
                 &VkShaderModuleCreateInfo {
                     stype: Default::default(),
                     next: Default::default(),
@@ -37,7 +37,7 @@ impl Drop for ShaderModule {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_shader_module)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -46,7 +46,7 @@ impl Drop for ShaderModule {
 }
 
 impl ShaderModule {
-    pub fn borrow(&self) -> Ref<VkShaderModule> {
+    pub fn handle(&self) -> Ref<VkShaderModule> {
         self.handle.borrow()
     }
 }

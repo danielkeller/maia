@@ -30,7 +30,7 @@ impl Drop for SurfaceLifetime {
     fn drop(&mut self) {
         unsafe {
             (self.fun.destroy_surface_khr)(
-                self.instance.borrow(),
+                self.instance.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -52,10 +52,10 @@ impl SurfaceKHR {
         }
     }
 
-    pub fn borrow(&self) -> Ref<VkSurfaceKHR> {
+    pub fn handle(&self) -> Ref<VkSurfaceKHR> {
         self.res.handle.borrow()
     }
-    pub fn borrow_mut(&mut self) -> Mut<VkSurfaceKHR> {
+    pub fn handle_mut(&mut self) -> Mut<VkSurfaceKHR> {
         self.res.handle.borrow_mut()
     }
 
@@ -72,9 +72,9 @@ impl SurfaceKHR {
         );
         unsafe {
             (self.res.fun.get_physical_device_surface_support_khr)(
-                phy.borrow(),
+                phy.handle(),
                 queue_family,
-                self.borrow(),
+                self.handle(),
                 &mut result,
             )?;
         }
@@ -90,8 +90,8 @@ impl SurfaceKHR {
         let mut result = MaybeUninit::uninit();
         unsafe {
             (self.res.fun.get_physical_device_surface_capabilities_khr)(
-                phy.borrow(),
-                self.borrow(),
+                phy.handle(),
+                self.handle(),
                 &mut result,
             )?;
             Ok(result.assume_init())
@@ -107,15 +107,15 @@ impl SurfaceKHR {
         let mut result = vec![];
         unsafe {
             (self.res.fun.get_physical_device_surface_formats_khr)(
-                phy.borrow(),
-                self.borrow(),
+                phy.handle(),
+                self.handle(),
                 &mut len,
                 None,
             )?;
             result.reserve(len as usize);
             (self.res.fun.get_physical_device_surface_formats_khr)(
-                phy.borrow(),
-                self.borrow(),
+                phy.handle(),
+                self.handle(),
                 &mut len,
                 ArrayMut::from_slice(result.spare_capacity_mut()),
             )?;

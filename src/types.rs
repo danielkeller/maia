@@ -848,7 +848,7 @@ impl<'a> PipelineShaderStageCreateInfo<'a> {
             next: Default::default(),
             flags: Default::default(),
             stage: ShaderStage::VERTEX,
-            module: module.borrow(),
+            module: module.handle(),
             name: Self::MAIN,
             specialization_info: None,
         }
@@ -860,7 +860,7 @@ impl<'a> PipelineShaderStageCreateInfo<'a> {
             next: Default::default(),
             flags: Default::default(),
             stage: ShaderStage::FRAGMENT,
-            module: module.borrow(),
+            module: module.handle(),
             name: Self::MAIN,
             specialization_info: None,
         }

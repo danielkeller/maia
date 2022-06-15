@@ -39,7 +39,7 @@ impl Device {
                 }
             }
             (self.fun.create_render_pass)(
-                self.borrow(),
+                self.handle(),
                 info,
                 None,
                 &mut handle,
@@ -55,7 +55,7 @@ impl Device {
 }
 
 impl RenderPass {
-    pub fn borrow(&self) -> Ref<VkRenderPass> {
+    pub fn handle(&self) -> Ref<VkRenderPass> {
         self.handle.borrow()
     }
     pub fn num_subpasses(&self) -> u32 {
@@ -67,7 +67,7 @@ impl Drop for RenderPass {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_render_pass)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )

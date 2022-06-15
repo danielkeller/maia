@@ -29,7 +29,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.allocate_memory)(
-                self.borrow(),
+                self.handle(),
                 &MemoryAllocateInfo {
                     stype: Default::default(),
                     next: Default::default(),
@@ -55,7 +55,7 @@ impl Drop for MemoryPayload {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.free_memory)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -64,10 +64,10 @@ impl Drop for MemoryPayload {
 }
 
 impl DeviceMemory {
-    pub fn borrow(&self) -> Ref<VkDeviceMemory> {
+    pub fn handle(&self) -> Ref<VkDeviceMemory> {
         self.inner.handle.borrow()
     }
-    pub fn borrow_mut(&mut self) -> Mut<VkDeviceMemory> {
+    pub fn handle_mut(&mut self) -> Mut<VkDeviceMemory> {
         self.inner.handle.borrow_mut()
     }
     pub fn check(&self, offset: u64, requirements: MemoryRequirements) -> bool {
@@ -100,7 +100,7 @@ impl DeviceMemory {
         let mut ptr = std::ptr::null_mut();
         unsafe {
             if let Err(err) = (inner.device.fun.map_memory)(
-                inner.device.borrow(),
+                inner.device.handle(),
                 inner.handle.borrow_mut(),
                 offset,
                 size as u64,
@@ -128,7 +128,7 @@ impl MappedMemory {
         let inner = &mut *self.memory.inner;
         unsafe {
             (inner.device.fun.unmap_memory)(
-                inner.device.borrow(),
+                inner.device.handle(),
                 inner.handle.borrow_mut(),
             )
         }

@@ -45,7 +45,7 @@ impl Device {
         }
         let vk_samplers = bindings
             .iter()
-            .map(|b| b.immutable_samplers.iter().map(|s| s.borrow()).collect())
+            .map(|b| b.immutable_samplers.iter().map(|s| s.handle()).collect())
             .collect::<Vec<Vec<_>>>();
         let vk_bindings = bindings
             .iter()
@@ -61,7 +61,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.create_descriptor_set_layout)(
-                self.borrow(),
+                self.handle(),
                 &VkDescriptorSetLayoutCreateInfo {
                     bindings: vk_bindings.as_slice().into(),
                     ..Default::default()
@@ -83,7 +83,7 @@ impl Drop for DescriptorSetLayout {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_descriptor_set_layout)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -98,7 +98,7 @@ impl PartialEq for DescriptorSetLayout {
 }
 
 impl DescriptorSetLayout {
-    pub fn borrow(&self) -> Ref<VkDescriptorSetLayout> {
+    pub fn handle(&self) -> Ref<VkDescriptorSetLayout> {
         self.handle.borrow()
     }
     pub fn num_dynamic_offsets(&self) -> u32 {
@@ -136,7 +136,7 @@ impl Device {
         let mut handle = None;
         unsafe {
             (self.fun.create_descriptor_pool)(
-                self.borrow(),
+                self.handle(),
                 &DescriptorPoolCreateInfo {
                     max_sets,
                     pool_sizes: pool_sizes.into(),
@@ -159,7 +159,7 @@ impl Drop for DescriptorPoolLifetime {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_descriptor_pool)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -176,7 +176,7 @@ impl DescriptorPool {
         let res = &mut *self.res;
         unsafe {
             (res.device.fun.reset_descriptor_pool)(
-                res.device.borrow(),
+                res.device.handle(),
                 res.handle.borrow_mut(),
                 Default::default(),
             )?;
@@ -206,12 +206,12 @@ impl DescriptorPool {
         let res = &mut *self.res;
         let handle = unsafe {
             (res.device.fun.allocate_descriptor_sets)(
-                res.device.borrow(),
+                res.device.handle(),
                 &DescriptorSetAllocateInfo {
                     stype: Default::default(),
                     next: Default::default(),
                     descriptor_pool: res.handle.borrow_mut(),
-                    set_layouts: (&[layout.borrow()]).into(),
+                    set_layouts: (&[layout.handle()]).into(),
                 },
                 std::array::from_mut(&mut handle).into(),
             )?;
@@ -239,10 +239,10 @@ impl DescriptorPool {
 }
 
 impl DescriptorSet {
-    pub fn borrow(&self) -> Ref<VkDescriptorSet> {
+    pub fn handle(&self) -> Ref<VkDescriptorSet> {
         self.handle.borrow()
     }
-    pub fn borrow_mut(&mut self) -> Mut<VkDescriptorSet> {
+    pub fn handle_mut(&mut self) -> Mut<VkDescriptorSet> {
         self.handle.borrow_mut()
     }
     pub fn layout(&self) -> &Arc<DescriptorSetLayout> {
@@ -318,7 +318,7 @@ impl<'a> DescriptorSetUpdates<'a> {
         }
         unsafe {
             (self.device.fun.update_descriptor_sets)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.writes.len() as u32,
                 Array::from_slice(&self.writes),
                 self.copies.len() as u32,
@@ -381,7 +381,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         let buffer_infos =
             self.updates.bump.alloc_slice_fill_iter(buffers.iter().map(|b| {
                 VkDescriptorBufferInfo {
-                    buffer: b.buffer.borrow(),
+                    buffer: b.buffer.handle(),
                     offset: b.offset,
                     range: b.range,
                 }
@@ -483,7 +483,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         let image_info =
             self.updates.bump.alloc_slice_fill_iter(samplers.iter().map(|s| {
                 VkDescriptorImageInfo {
-                    sampler: Some(s.borrow()),
+                    sampler: Some(s.handle()),
                     ..Default::default()
                 }
             }));
@@ -528,7 +528,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         }
         let image_info = self.updates.bump.alloc_slice_fill_iter(
             images.iter().map(|&(i, image_layout)| VkDescriptorImageInfo {
-                image_view: Some(i.borrow()),
+                image_view: Some(i.handle()),
                 image_layout,
                 ..Default::default()
             }),
@@ -616,7 +616,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         }
         let image_info = self.updates.bump.alloc_slice_fill_iter(
             images.iter().map(|&(i, image_layout)| VkDescriptorImageInfo {
-                image_view: Some(i.borrow()),
+                image_view: Some(i.handle()),
                 image_layout,
                 ..Default::default()
             }),

@@ -37,7 +37,7 @@ impl<'a> CommandRecording<'a> {
         unsafe {
             (self.pool.res.device.fun.cmd_fill_buffer)(
                 self.buffer.handle.borrow_mut(),
-                dst.borrow(),
+                dst.handle(),
                 offset,
                 size,
                 data,
@@ -62,8 +62,8 @@ impl<'a> CommandRecording<'a> {
         unsafe {
             (self.pool.res.device.fun.cmd_copy_buffer)(
                 self.buffer.handle.borrow_mut(),
-                src.borrow(),
-                dst.borrow(),
+                src.handle(),
+                dst.handle(),
                 regions.len() as u32,
                 Array::from_slice(regions).ok_or(Error::InvalidArgument)?,
             );
@@ -102,8 +102,8 @@ impl<'a> CommandRecording<'a> {
         unsafe {
             (self.pool.res.device.fun.cmd_copy_buffer_to_image)(
                 self.buffer.handle.borrow_mut(),
-                src.borrow(),
-                dst.borrow(),
+                src.handle(),
+                dst.handle(),
                 dst_layout,
                 regions.len() as u32,
                 Array::from_slice(regions).ok_or(Error::InvalidArgument)?,
@@ -151,9 +151,9 @@ impl<'a> CommandRecording<'a> {
         unsafe {
             (self.pool.res.device.fun.cmd_blit_image)(
                 self.buffer.handle.borrow_mut(),
-                src.borrow(),
+                src.handle(),
                 src_layout,
-                dst.borrow(),
+                dst.handle(),
                 dst_layout,
                 regions.len() as u32,
                 Array::from_slice(regions).ok_or(Error::InvalidArgument)?,
@@ -178,7 +178,7 @@ impl<'a> CommandRecording<'a> {
         unsafe {
             (self.pool.res.device.fun.cmd_clear_color_image)(
                 self.buffer.handle.borrow_mut(),
-                image.borrow(),
+                image.handle(),
                 layout,
                 &color,
                 ranges.len() as u32,
@@ -210,7 +210,7 @@ impl<'a> BufferMemoryBarrier<'a> {
             dst_access_mask: self.dst_access_mask,
             src_queue_family_index: self.src_queue_family_index,
             dst_queue_family_index: self.dst_queue_family_index,
-            buffer: self.buffer.borrow(),
+            buffer: self.buffer.handle(),
             offset: self.offset,
             size: self.size,
         }
@@ -237,7 +237,7 @@ impl<'a> ImageMemoryBarrier<'a> {
             new_layout: self.new_layout,
             src_queue_family_index: self.src_queue_family_index,
             dst_queue_family_index: self.dst_queue_family_index,
-            image: self.image.borrow(),
+            image: self.image.handle(),
             subresource_range: self.subresource_range,
         }
     }
@@ -391,7 +391,7 @@ impl<'a> CommandRecording<'a> {
                 new_layout,
                 src_queue_family_index: Default::default(),
                 dst_queue_family_index: Default::default(),
-                image: image.borrow(),
+                image: image.handle(),
                 subresource_range: Default::default(),
             };
             (self.pool.res.device.fun.cmd_pipeline_barrier)(
@@ -431,7 +431,7 @@ impl<'a> CommandRecording<'a> {
             (self.pool.res.device.fun.cmd_bind_pipeline)(
                 self.buffer.handle.borrow_mut(),
                 bind_point,
-                pipeline.borrow(),
+                pipeline.handle(),
             )
         }
     }
@@ -498,7 +498,7 @@ impl<'a> CommandRecording<'a> {
         }
         let scratch = self.pool.scratch.get_mut();
         let buffers = scratch.alloc_slice_fill_iter(
-            buffers_offsets.iter().map(|&(b, _)| b.borrow()),
+            buffers_offsets.iter().map(|&(b, _)| b.handle()),
         );
         let offsets = scratch.alloc_slice_fill_iter(
             buffers_offsets.iter().map(|&(_, o)| o), //
@@ -526,7 +526,7 @@ impl<'a> CommandRecording<'a> {
         unsafe {
             (self.pool.res.device.fun.cmd_bind_index_buffer)(
                 self.buffer.handle.borrow_mut(),
-                buffer.borrow(),
+                buffer.handle(),
                 offset,
                 index_type,
             )
@@ -563,12 +563,12 @@ impl<'a> CommandRecording<'a> {
         }
         let scratch = self.pool.scratch.get_mut();
         let sets =
-            scratch.alloc_slice_fill_iter(sets.iter().map(|s| s.borrow()));
+            scratch.alloc_slice_fill_iter(sets.iter().map(|s| s.handle()));
         unsafe {
             (self.pool.res.device.fun.cmd_bind_descriptor_sets)(
                 self.buffer.handle.borrow_mut(),
                 pipeline_bind_point,
-                layout.borrow(),
+                layout.handle(),
                 first_set,
                 sets.len() as u32,
                 Array::from_slice(sets),
@@ -629,7 +629,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         unsafe {
             (self.rec.pool.res.device.fun.cmd_draw_indirect)(
                 self.rec.buffer.handle.borrow_mut(),
-                buffer.borrow(),
+                buffer.handle(),
                 offset,
                 draw_count,
                 stride,
@@ -666,7 +666,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         unsafe {
             (self.rec.pool.res.device.fun.cmd_draw_indexed_indirect)(
                 self.rec.buffer.handle.borrow_mut(),
-                buffer.borrow(),
+                buffer.handle(),
                 offset,
                 draw_count,
                 stride,
@@ -696,7 +696,7 @@ impl<'a> CommandRecording<'a> {
         unsafe {
             (self.pool.res.device.fun.cmd_dispatch_indirect)(
                 self.buffer.handle.borrow_mut(),
-                buffer.borrow(),
+                buffer.handle(),
                 offset,
             );
         }
@@ -705,4 +705,5 @@ impl<'a> CommandRecording<'a> {
 
 // TODO: Specialization constants, push constants
 // TODO: Pipeline cache
+// TODO: Reduce pub(crate)
 // TODO(maybe): Other kinds of command buffers

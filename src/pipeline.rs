@@ -25,9 +25,9 @@ impl Device {
         let mut handle = None;
         unsafe {
             let set_layouts =
-                &set_layouts.iter().map(|l| l.borrow()).collect::<Vec<_>>();
+                &set_layouts.iter().map(|l| l.handle()).collect::<Vec<_>>();
             (self.fun.create_pipeline_layout)(
-                self.borrow(),
+                self.handle(),
                 &PipelineLayoutCreateInfo {
                     flags,
                     set_layouts: set_layouts.into(),
@@ -50,7 +50,7 @@ impl Drop for PipelineLayout {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_pipeline_layout)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -59,7 +59,7 @@ impl Drop for PipelineLayout {
 }
 
 impl PipelineLayout {
-    pub fn borrow(&self) -> Ref<VkPipelineLayout> {
+    pub fn handle(&self) -> Ref<VkPipelineLayout> {
         self.handle.borrow()
     }
     pub fn layout(&self, binding: u32) -> Option<&Arc<DescriptorSetLayout>> {
@@ -126,8 +126,8 @@ impl Device {
             depth_stencil_state: info.depth_stencil_state,
             color_blend_state: info.color_blend_state,
             dynamic_state: info.dynamic_state,
-            layout: info.layout.borrow(),
-            render_pass: info.render_pass.borrow(),
+            layout: info.layout.handle(),
+            render_pass: info.render_pass.handle(),
             subpass: info.subpass,
             base_pipeline_handle: Default::default(),
             base_pipeline_index: Default::default(),
@@ -135,7 +135,7 @@ impl Device {
         let mut handle = MaybeUninit::uninit();
         unsafe {
             (self.fun.create_graphics_pipelines)(
-                self.borrow(),
+                self.handle(),
                 None,
                 1,
                 std::array::from_ref(&info).into(),
@@ -158,14 +158,14 @@ impl Device {
             next: Default::default(),
             flags: Default::default(),
             stage,
-            layout: layout.borrow(),
+            layout: layout.handle(),
             base_pipeline_handle: Default::default(),
             base_pipeline_index: Default::default(),
         };
         let mut handle = MaybeUninit::uninit();
         unsafe {
             (self.fun.create_compute_pipelines)(
-                self.borrow(),
+                self.handle(),
                 None,
                 1,
                 std::array::from_ref(&info).into(),
@@ -181,7 +181,7 @@ impl Device {
 }
 
 impl Pipeline {
-    pub fn borrow(&self) -> Ref<VkPipeline> {
+    pub fn handle(&self) -> Ref<VkPipeline> {
         self.handle.borrow()
     }
 }
@@ -190,7 +190,7 @@ impl Drop for Pipeline {
     fn drop(&mut self) {
         unsafe {
             (self.device.fun.destroy_pipeline)(
-                self.device.borrow(),
+                self.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )

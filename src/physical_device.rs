@@ -19,7 +19,7 @@ impl PhysicalDevice {
     ) -> Self {
         Self { handle, instance }
     }
-    pub fn borrow(&self) -> Ref<VkPhysicalDevice> {
+    pub fn handle(&self) -> Ref<VkPhysicalDevice> {
         self.handle.borrow()
     }
 }
@@ -40,7 +40,7 @@ impl PhysicalDevice {
         let mut result = MaybeUninit::uninit();
         unsafe {
             (self.instance.fun.get_physical_device_properties)(
-                self.borrow(),
+                self.handle(),
                 &mut result,
             );
             result.assume_init()
@@ -52,13 +52,13 @@ impl PhysicalDevice {
         let mut result = Vec::new();
         unsafe {
             (self.instance.fun.get_physical_device_queue_family_properties)(
-                self.borrow(),
+                self.handle(),
                 &mut len,
                 None,
             );
             result.reserve(len as usize);
             (self.instance.fun.get_physical_device_queue_family_properties)(
-                self.borrow(),
+                self.handle(),
                 &mut len,
                 ArrayMut::from_slice(result.spare_capacity_mut()),
             );
@@ -71,7 +71,7 @@ impl PhysicalDevice {
         let mut result = Default::default();
         unsafe {
             (self.instance.fun.get_physical_device_memory_properties)(
-                self.borrow(),
+                self.handle(),
                 &mut result,
             );
         }
@@ -85,14 +85,14 @@ impl PhysicalDevice {
         let mut result = Vec::new();
         unsafe {
             (self.instance.fun.enumerate_device_extension_properties)(
-                self.borrow(),
+                self.handle(),
                 None,
                 &mut len,
                 None,
             )?;
             result.reserve(len as usize);
             (self.instance.fun.enumerate_device_extension_properties)(
-                self.borrow(),
+                self.handle(),
                 None,
                 &mut len,
                 ArrayMut::from_slice(result.spare_capacity_mut()),
@@ -121,7 +121,7 @@ impl PhysicalDevice {
         let mut handle = None;
         unsafe {
             (self.instance.fun.create_device)(
-                self.borrow(),
+                self.handle(),
                 info,
                 None,
                 &mut handle,
