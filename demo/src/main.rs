@@ -256,13 +256,11 @@ fn main() -> anyhow::Result<()> {
 
     let device_extensions = required_device_extensions(&phy)?;
     let device = phy.create_device(&vk::DeviceCreateInfo {
-        queue_create_infos: vk::Slice_::from_slice(&[
-            vk::DeviceQueueCreateInfo {
-                queue_family_index: queue_family,
-                queue_priorities: (&[1.0]).into(),
-                ..Default::default()
-            },
-        ]),
+        queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
+            queue_family_index: queue_family,
+            queue_priorities: vk::slice(&[1.0]),
+            ..Default::default()
+        }]),
         enabled_extension_names: device_extensions.into(),
         ..Default::default()
     })?;
@@ -364,7 +362,7 @@ fn main() -> anyhow::Result<()> {
     let mut uniform_memory = memory.map(0, size_of::<UBO>())?;
 
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
-        attachments: vk::Slice_::from_slice(&[vk::AttachmentDescription {
+        attachments: vk::slice(&[vk::AttachmentDescription {
             format: vk::Format::B8G8R8A8_SRGB,
             load_op: vk::AttachmentLoadOp::CLEAR,
             store_op: vk::AttachmentStoreOp::STORE,
@@ -372,7 +370,7 @@ fn main() -> anyhow::Result<()> {
             final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
             ..Default::default()
         }]),
-        subpasses: vk::Slice::from_slice(&[vk::SubpassDescription {
+        subpasses: vk::slice(&[vk::SubpassDescription {
             color_attachments: &[vk::AttachmentReference {
                 attachment: 0,
                 layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
@@ -455,14 +453,14 @@ fn main() -> anyhow::Result<()> {
                 vk::PipelineShaderStageCreateInfo::fragment(&fragment_shader),
             ],
             vertex_input_state: &vk::PipelineVertexInputStateCreateInfo {
-                vertex_binding_descriptions: vk::Slice_::from_slice(&[
+                vertex_binding_descriptions: vk::slice(&[
                     vk::VertexInputBindingDescription {
                         binding: 0,
                         stride: size_of::<Vertex>() as u32,
                         input_rate: vk::VertexInputRate::VERTEX,
                     },
                 ]),
-                vertex_attribute_descriptions: vk::Slice::from_slice(&[
+                vertex_attribute_descriptions: vk::slice(&[
                     vk::VertexInputAttributeDescription {
                         location: 0,
                         binding: 0,
@@ -484,8 +482,8 @@ fn main() -> anyhow::Result<()> {
             },
             tessellation_state: None,
             viewport_state: &vk::PipelineViewportStateCreateInfo {
-                viewports: vk::Slice_::from_slice(&[Default::default()]),
-                scissors: vk::Slice::from_slice(&[vk::Rect2D {
+                viewports: vk::slice(&[Default::default()]),
+                scissors: vk::slice(&[vk::Rect2D {
                     offset: Default::default(),
                     extent: vk::Extent2D { width: 3840, height: 2160 },
                 }]),
@@ -496,9 +494,7 @@ fn main() -> anyhow::Result<()> {
             depth_stencil_state: None,
             color_blend_state: &Default::default(),
             dynamic_state: Some(&vk::PipelineDynamicStateCreateInfo {
-                dynamic_states: vk::Slice_::from_slice(&[
-                    vk::DynamicState::VIEWPORT,
-                ]),
+                dynamic_states: vk::slice(&[vk::DynamicState::VIEWPORT]),
                 ..Default::default()
             }),
             layout: &pipeline_layout,

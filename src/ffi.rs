@@ -165,7 +165,7 @@ pub struct UUID([u8; 16]);
 // Note: Be *very* careful about how this is aligned in the outer struct.
 
 /// An immutably borrowed contiguous sequence of T. Represented as a u32
-/// followed by a pointer.
+/// followed by a pointer. Create using the [slice] function.
 #[repr(C)]
 #[derive(Debug)]
 pub struct Slice<'a, T> {
@@ -182,7 +182,7 @@ impl<'a, T> Clone for Slice<'a, T> {
 }
 
 impl<'a, T> Slice<'a, T> {
-    pub fn from_slice(arr: &'a [T]) -> Self {
+    fn from_slice(arr: &'a [T]) -> Self {
         Slice {
             count: arr.len() as u32,
             ptr: arr.as_ptr(),
@@ -244,11 +244,11 @@ impl<'a, T> std::iter::IntoIterator for Slice<'a, T> {
 }
 
 /// An immutably borrowed contiguous sequence of T. Represented as a u32
-/// followed by a pointer. This type differs from Slice only in that it is
-/// aligned to a 4-byte boundary, for cases where the structure alignment of
-/// Slice puts the count member in the wrong place on 64 bit systems. This type
-/// does not use unaligned loads or stores and has no special alignment
-/// requirement itself.
+/// followed by a pointer. Create using the [slice] function. This type differs
+/// from Slice only in that it is aligned to a 4-byte boundary, for cases where
+/// the structure alignment of Slice puts the count member in the wrong place on
+/// 64 bit systems. This type does not use unaligned loads or stores and has no
+/// special alignment requirement itself.
 #[repr(C)]
 #[derive(Debug)]
 pub struct Slice_<'a, T> {
@@ -275,7 +275,7 @@ impl<'a, T> Default for Slice_<'a, T> {
 }
 
 impl<'a, T> Slice_<'a, T> {
-    pub fn from_slice(arr: &'a [T]) -> Self {
+    fn from_slice(arr: &'a [T]) -> Self {
         Self {
             count: arr.len() as u32,
             ptr: unsafe { std::mem::transmute(arr.as_ptr()) },
@@ -328,6 +328,27 @@ impl<'a, T> std::iter::IntoIterator for Slice_<'a, T> {
     type IntoIter = std::slice::Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
         self.as_slice().into_iter()
+    }
+}
+
+/// Create a Vulkan slice object ([Slice] or [Slice_]) from the passed value.
+/// Less awkward looking than calling [into()](Into::into) when using an array
+/// literal.
+#[inline]
+pub fn slice<'a, T, S: IsSlice<'a, T>>(value: &'a [T]) -> S {
+    IsSlice::to_slice_impl(value)
+}
+pub trait IsSlice<'a, T> {
+    fn to_slice_impl(value: &'a [T]) -> Self;
+}
+impl<'a, T> IsSlice<'a, T> for Slice<'a, T> {
+    fn to_slice_impl(value: &'a [T]) -> Self {
+        Self::from_slice(value)
+    }
+}
+impl<'a, T> IsSlice<'a, T> for Slice_<'a, T> {
+    fn to_slice_impl(value: &'a [T]) -> Self {
+        Self::from_slice(value)
     }
 }
 

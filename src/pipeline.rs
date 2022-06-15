@@ -112,6 +112,9 @@ impl Device {
                 return Err(Error::InvalidArgument);
             }
         }
+        for stage in info.stages {
+            check_specialization_constants(&stage)?;
+        }
         let info = VkGraphicsPipelineCreateInfo {
             stype: Default::default(),
             next: Default::default(),
@@ -153,6 +156,7 @@ impl Device {
         stage: PipelineShaderStageCreateInfo,
         layout: &PipelineLayout,
     ) -> Result<Arc<Pipeline>> {
+        check_specialization_constants(&stage)?;
         let info = ComputePipelineCreateInfo {
             stype: Default::default(),
             next: Default::default(),
@@ -196,4 +200,19 @@ impl Drop for Pipeline {
             )
         }
     }
+}
+
+fn check_specialization_constants<T>(
+    info: &PipelineShaderStageCreateInfo<T>,
+) -> Result<()> {
+    if let Some(spec) = &info.specialization_info {
+        for entry in spec.map_entries {
+            if spec.data.len() < entry.offset as usize
+                || spec.data.len() - (entry.offset as usize) < entry.size
+            {
+                return Err(Error::OutOfBounds);
+            }
+        }
+    }
+    Ok(())
 }
