@@ -1,9 +1,10 @@
 use std::collections::HashSet;
 use std::mem::MaybeUninit;
+use std::ops::Range;
 
 use crate::descriptor_set::DescriptorSetLayout;
 use crate::device::Device;
-use crate::enums::PipelineLayoutCreateFlags;
+use crate::enums::{PipelineLayoutCreateFlags, ShaderStageFlags};
 use crate::error::{Error, Result};
 use crate::ffi::*;
 use crate::render_pass::RenderPass;
@@ -12,6 +13,8 @@ use crate::types::*;
 pub struct PipelineLayout {
     handle: Handle<VkPipelineLayout>,
     set_layouts: Vec<Arc<DescriptorSetLayout>>,
+    push_constant_ranges: Vec<PushConstantRange>,
+    push_constant_voids: Vec<Range<u32>>,
     device: Arc<Device>,
 }
 
@@ -20,8 +23,14 @@ impl Device {
         self: &Arc<Self>,
         flags: PipelineLayoutCreateFlags,
         set_layouts: Vec<Arc<DescriptorSetLayout>>,
-        push_constant_ranges: &[PushConstantRange],
+        push_constant_ranges: Vec<PushConstantRange>,
     ) -> Result<Arc<PipelineLayout>> {
+        for range in &push_constant_ranges {
+            // TODO: Check device limits
+            if range.offset.overflowing_add(range.size).1 {
+                return Err(Error::OutOfBounds);
+            }
+        }
         let mut handle = None;
         unsafe {
             let set_layouts =
@@ -31,19 +40,43 @@ impl Device {
                 &PipelineLayoutCreateInfo {
                     flags,
                     set_layouts: set_layouts.into(),
-                    push_constant_ranges: Slice::from(push_constant_ranges),
+                    push_constant_ranges: slice(&push_constant_ranges),
                     ..Default::default()
                 },
                 None,
                 &mut handle,
             )?;
         }
+        let push_constant_voids = find_voids(&push_constant_ranges)?;
         Ok(Arc::new(PipelineLayout {
             handle: handle.unwrap(),
             set_layouts,
+            push_constant_ranges,
+            push_constant_voids,
             device: self.clone(),
         }))
     }
+}
+
+fn find_voids(ranges: &[PushConstantRange]) -> Result<Vec<Range<u32>>> {
+    let mut result = vec![0..u32::MAX];
+    for range in ranges {
+        let end =
+            range.offset.checked_add(range.size).ok_or(Error::OutOfBounds)?;
+        let mut result1 = vec![];
+        for void in result {
+            if range.offset > void.start && end < void.end {
+                result1.push(end..void.end);
+                result1.push(void.start..range.offset);
+            } else if range.offset > void.start {
+                result1.push(void.start..range.offset.min(void.end));
+            } else {
+                result1.push(void.start.max(end)..void.end);
+            }
+        }
+        result = result1;
+    }
+    Ok(result)
 }
 
 impl Drop for PipelineLayout {
@@ -64,6 +97,31 @@ impl PipelineLayout {
     }
     pub fn layout(&self, binding: u32) -> Option<&Arc<DescriptorSetLayout>> {
         self.set_layouts.get(binding as usize)
+    }
+    pub fn bounds_check_push_constants(
+        &self,
+        stage_flags: ShaderStageFlags,
+        offset: u32,
+        size: u32,
+    ) -> bool {
+        let (end, overflow) = offset.overflowing_add(size);
+        if overflow {
+            return false;
+        }
+        for void in &self.push_constant_voids {
+            if void.start < end && offset < void.end {
+                return false;
+            }
+        }
+        for range in &self.push_constant_ranges {
+            if range.offset < end
+                && offset < range.offset + range.size
+                && stage_flags & range.stage_flags != range.stage_flags
+            {
+                return false;
+            }
+        }
+        return true;
     }
 }
 

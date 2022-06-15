@@ -24,7 +24,7 @@ const INDEX_DATA: [u16; 6] = [0, 1, 2, 2, 1, 3];
 
 #[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
 #[repr(C)]
-struct UBO {
+struct MVP {
     model: Mat4,
     view: Mat4,
     proj: Mat4,
@@ -343,24 +343,6 @@ fn main() -> anyhow::Result<()> {
         ..Default::default()
     })?;
 
-    let uniform_buffer = device.create_buffer(&vk::BufferCreateInfo {
-        size: size_of::<UBO>() as u64,
-        usage: vk::BufferUsageFlags::UNIFORM_BUFFER,
-        ..Default::default()
-    })?;
-    let mem_size = uniform_buffer.memory_requirements().size;
-    let memory = device.allocate_memory(
-        mem_size as u64,
-        memory_type(
-            &phy,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL
-                | vk::MemoryPropertyFlags::HOST_VISIBLE,
-        ),
-    )?;
-    let uniform_buffer = memory.bind_buffer_memory(uniform_buffer, 0)?;
-
-    let mut uniform_memory = memory.map(0, size_of::<UBO>())?;
-
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
         attachments: vk::slice(&[vk::AttachmentDescription {
             format: vk::Format::B8G8R8A8_SRGB,
@@ -389,13 +371,6 @@ fn main() -> anyhow::Result<()> {
     let descriptor_set_layout = device.create_descriptor_set_layout(vec![
         vk::DescriptorSetLayoutBinding {
             binding: 0,
-            descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-            descriptor_count: 1,
-            stage_flags: vk::ShaderStageFlags::VERTEX,
-            immutable_samplers: vec![],
-        },
-        vk::DescriptorSetLayoutBinding {
-            binding: 1,
             descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
             descriptor_count: 1,
             stage_flags: vk::ShaderStageFlags::FRAGMENT,
@@ -406,16 +381,10 @@ fn main() -> anyhow::Result<()> {
     ])?;
     let mut descriptor_pool = device.create_descriptor_pool(
         1,
-        &[
-            vk::DescriptorPoolSize {
-                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
-                descriptor_count: 1,
-            },
-            vk::DescriptorPoolSize {
-                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-                descriptor_count: 1,
-            },
-        ],
+        &[vk::DescriptorPoolSize {
+            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+            descriptor_count: 1,
+        }],
     )?;
     let mut desc_set = descriptor_pool.allocate(&descriptor_set_layout)?;
 
@@ -423,17 +392,8 @@ fn main() -> anyhow::Result<()> {
     update
         .begin()
         .dst_set(&mut desc_set)
-        .uniform_buffers(
-            0,
-            0,
-            &[vk::DescriptorBufferInfo {
-                buffer: &uniform_buffer,
-                offset: 0,
-                range: u64::MAX,
-            }],
-        )?
         .combined_image_samplers(
-            1,
+            0,
             0,
             &[(&image_view, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)],
         )?
@@ -443,7 +403,11 @@ fn main() -> anyhow::Result<()> {
     let pipeline_layout = device.create_pipeline_layout(
         Default::default(),
         vec![descriptor_set_layout.clone()],
-        &[],
+        vec![vk::PushConstantRange {
+            stage_flags: vk::ShaderStageFlags::VERTEX,
+            offset: 0,
+            size: std::mem::size_of::<MVP>() as u32,
+        }],
     )?;
 
     let pipeline =
@@ -557,6 +521,20 @@ fn main() -> anyhow::Result<()> {
         let mut rec = cmd_pool.begin(buf)?;
         let time = Instant::now().duration_since(begin);
 
+        let mvp = MVP {
+            model: Mat4::from_rotation_y(time.as_secs_f32() * 2.0),
+            view: Mat4::look_at(
+                Vec3::new(1., 1., 1.),
+                Vec3::zero(),
+                Vec3::new(0., 1., 0.),
+            ),
+            proj: ultraviolet::projection::perspective_infinite_z_vk(
+                std::f32::consts::FRAC_PI_2,
+                draw_size.width as f32 / draw_size.height as f32,
+                0.1,
+            ),
+        };
+
         let mut pass = rec.begin_render_pass(
             &render_pass,
             &framebuffer,
@@ -589,24 +567,16 @@ fn main() -> anyhow::Result<()> {
             &[&desc_set],
             &[],
         )?;
+        pass.push_constants(
+            &pipeline_layout,
+            vk::ShaderStageFlags::VERTEX,
+            0,
+            bytemuck::bytes_of(&mvp),
+        )?;
         pass.draw_indexed(6, 1, 0, 0, 0);
         pass.end();
 
         let mut buf = rec.end()?;
-
-        *bytemuck::from_bytes_mut(uniform_memory.slice_mut()) = UBO {
-            model: Mat4::from_rotation_y(time.as_secs_f32() * 2.0),
-            view: Mat4::look_at(
-                Vec3::new(1., 1., 1.),
-                Vec3::zero(),
-                Vec3::new(0., 1., 0.),
-            ),
-            proj: ultraviolet::projection::perspective_infinite_z_vk(
-                std::f32::consts::FRAC_PI_2,
-                draw_size.width as f32 / draw_size.height as f32,
-                0.1,
-            ),
-        };
 
         let pending_fence = queue.submit(
             &mut [vk::SubmitInfo {

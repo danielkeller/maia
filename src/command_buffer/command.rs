@@ -600,6 +600,46 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
     }
 }
 
+impl<'a> CommandRecording<'a> {
+    pub fn push_constants(
+        &mut self,
+        layout: &PipelineLayout,
+        stage_flags: ShaderStageFlags,
+        offset: u32,
+        data: &[u8],
+    ) -> Result<()> {
+        if !layout.bounds_check_push_constants(
+            stage_flags,
+            offset,
+            data.len() as u32,
+        ) {
+            return Err(Error::OutOfBounds);
+        }
+        unsafe {
+            (self.pool.res.device.fun.cmd_push_constants)(
+                self.buffer.handle.borrow_mut(),
+                layout.handle(),
+                stage_flags,
+                offset,
+                data.len() as u32,
+                Array::from_slice(data).ok_or(Error::InvalidArgument)?,
+            );
+        }
+        Ok(())
+    }
+}
+impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+    pub fn push_constants(
+        &mut self,
+        layout: &PipelineLayout,
+        stage_flags: ShaderStageFlags,
+        offset: u32,
+        data: &[u8],
+    ) -> Result<()> {
+        self.rec.push_constants(layout, stage_flags, offset, data)
+    }
+}
+
 impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
     pub fn draw(
         &mut self,
@@ -703,7 +743,7 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
-// TODO: Specialization constants, push constants
+// TODO: Less use *
 // TODO: Pipeline cache
 // TODO: Building/distributing instructions
 // TODO(maybe): Other kinds of command buffers
