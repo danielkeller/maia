@@ -464,6 +464,7 @@ fn main() -> anyhow::Result<()> {
             layout: &pipeline_layout,
             render_pass: &render_pass,
             subpass: 0,
+            cache: None,
         })?;
 
     let mut framebuffers = HashMap::new();

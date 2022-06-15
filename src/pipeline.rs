@@ -145,6 +145,7 @@ pub struct GraphicsPipelineCreateInfo<'a> {
     pub layout: &'a PipelineLayout,
     pub render_pass: &'a RenderPass,
     pub subpass: u32,
+    pub cache: Option<&'a PipelineCache>,
 }
 
 impl Device {
@@ -173,7 +174,7 @@ impl Device {
         for stage in info.stages {
             check_specialization_constants(&stage)?;
         }
-        let info = VkGraphicsPipelineCreateInfo {
+        let vk_info = VkGraphicsPipelineCreateInfo {
             stype: Default::default(),
             next: Default::default(),
             flags: Default::default(),
@@ -197,9 +198,9 @@ impl Device {
         unsafe {
             (self.fun.create_graphics_pipelines)(
                 self.handle(),
-                None,
+                info.cache.map(|c| c.handle.borrow()),
                 1,
-                std::array::from_ref(&info).into(),
+                std::array::from_ref(&vk_info).into(),
                 None,
                 std::array::from_mut(&mut handle).into(),
             )?;
@@ -213,6 +214,7 @@ impl Device {
         self: &Arc<Self>,
         stage: PipelineShaderStageCreateInfo,
         layout: &PipelineLayout,
+        cache: Option<&PipelineCache>,
     ) -> Result<Arc<Pipeline>> {
         check_specialization_constants(&stage)?;
         let info = ComputePipelineCreateInfo {
@@ -228,7 +230,7 @@ impl Device {
         unsafe {
             (self.fun.create_compute_pipelines)(
                 self.handle(),
-                None,
+                cache.map(|c| c.handle.borrow()),
                 1,
                 std::array::from_ref(&info).into(),
                 None,
@@ -273,4 +275,78 @@ fn check_specialization_constants<T>(
         }
     }
     Ok(())
+}
+
+pub struct PipelineCache {
+    handle: Handle<VkPipelineCache>,
+    device: Arc<Device>,
+}
+
+impl Device {
+    /// Safety: 'data' must either be empty or have been retuned from a previous
+    /// call to [PipelineCache::data()].
+    pub unsafe fn create_pipeline_cache(
+        self: &Arc<Self>,
+        data: &[u8],
+    ) -> Result<PipelineCache> {
+        let mut handle = None;
+        let info = PipelineCacheCreateInfo {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            initial_data: data.into(),
+        };
+        (self.fun.create_pipeline_cache)(
+            self.handle(),
+            &info,
+            None,
+            &mut handle,
+        )?;
+        Ok(PipelineCache { handle: handle.unwrap(), device: self.clone() })
+    }
+}
+
+impl Drop for PipelineCache {
+    fn drop(&mut self) {
+        unsafe {
+            (self.device.fun.destroy_pipeline_cache)(
+                self.device.handle(),
+                self.handle.borrow_mut(),
+                None,
+            )
+        }
+    }
+}
+
+impl PipelineCache {
+    pub fn data(&self) -> Result<Vec<u8>> {
+        let mut len = 0;
+        let mut result = Vec::new();
+        loop {
+            unsafe {
+                (self.device.fun.get_pipeline_cache_data)(
+                    self.device.handle(),
+                    self.handle.borrow(),
+                    &mut len,
+                    None,
+                )?;
+                result.reserve(len);
+                let maybe_worked = (self.device.fun.get_pipeline_cache_data)(
+                    self.device.handle(),
+                    self.handle.borrow(),
+                    &mut len,
+                    ArrayMut::from_slice(result.spare_capacity_mut()),
+                );
+                if let Err(err) = maybe_worked {
+                    if let Error::Incomplete = err.into() {
+                        continue; // Racing pipeline creation
+                    }
+                }
+                maybe_worked?;
+                break;
+            }
+        }
+        unsafe { result.set_len(len) };
+        Ok(result)
+    }
 }

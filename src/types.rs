@@ -7,7 +7,7 @@ pub use std::sync::Arc;
 use std::num::NonZeroI32;
 
 #[repr(transparent)]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct VkError(pub NonZeroI32);
 
 impl std::fmt::Display for VkError {
@@ -810,6 +810,16 @@ pub struct VkShaderModuleCreateInfo<'a, Next = Null> {
     pub code: Bytes<'a>,
 }
 structure_type!(ShaderModuleCreateInfoType, 16);
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct PipelineCacheCreateInfo<'a, Next = Null> {
+    pub stype: ShaderModuleCreateInfoType,
+    pub next: Next,
+    pub flags: PipelineCacheCreateFlags,
+    pub initial_data: Bytes<'a>,
+}
+structure_type!(PipelineCacheCreateInfoType, 17);
 
 #[repr(C)]
 #[derive(Debug)]

@@ -267,6 +267,23 @@ pub struct DeviceFn {
         Mut<VkShaderModule>,
         Option<&'_ AllocationCallbacks>,
     ),
+    pub create_pipeline_cache: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &PipelineCacheCreateInfo,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkPipelineCache>>,
+    ) -> VkResult,
+    pub destroy_pipeline_cache: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkPipelineCache>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+    pub get_pipeline_cache_data: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Ref<VkPipelineCache>,
+        &mut usize,
+        Option<ArrayMut<MaybeUninit<u8>>>,
+    ) -> VkResult,
     pub create_framebuffer: unsafe extern "system" fn(
         Ref<VkDevice>,
         &VkFramebufferCreateInfo,
@@ -353,7 +370,7 @@ pub struct DeviceFn {
     ),
     pub create_graphics_pipelines: unsafe extern "system" fn(
         Ref<VkDevice>,
-        Option<Mut<VkPipelineCache>>,
+        Option<Ref<VkPipelineCache>>,
         u32,
         Array<VkGraphicsPipelineCreateInfo>,
         Option<&'_ AllocationCallbacks>,
@@ -361,7 +378,7 @@ pub struct DeviceFn {
     ) -> VkResult,
     pub create_compute_pipelines: unsafe extern "system" fn(
         Ref<VkDevice>,
-        Option<Mut<VkPipelineCache>>,
+        Option<Ref<VkPipelineCache>>,
         u32,
         Array<ComputePipelineCreateInfo>,
         Option<&'_ AllocationCallbacks>,
@@ -578,6 +595,9 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         destroy_image_view: transmute(load("vkDestroyImageView\0")),
         create_shader_module: transmute(load("vkCreateShaderModule\0")),
         destroy_shader_module: transmute(load("vkDestroyShaderModule\0")),
+        create_pipeline_cache: transmute(load("vkCreatePipelineCache\0")),
+        destroy_pipeline_cache: transmute(load("vkDestroyPipelineCache\0")),
+        get_pipeline_cache_data: transmute(load("vkGetPipelineCacheData\0")),
         create_framebuffer: transmute(load("vkCreateFramebuffer\0")),
         destroy_framebuffer: transmute(load("vkDestroyFramebuffer\0")),
         create_render_pass: transmute(load("vkCreateRenderPass\0")),

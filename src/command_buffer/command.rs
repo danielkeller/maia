@@ -744,6 +744,5 @@ impl<'a> CommandRecording<'a> {
 }
 
 // TODO: Less use *
-// TODO: Pipeline cache
 // TODO: Building/distributing instructions
 // TODO(maybe): Other kinds of command buffers

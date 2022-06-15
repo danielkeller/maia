@@ -1227,6 +1227,11 @@ flags!(ShaderModuleCreateFlags, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct PipelineCacheCreateFlags(u32);
+flags!(PipelineCacheCreateFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PipelineShaderStageCreateFlags(u32);
 impl PipelineShaderStageCreateFlags {
     pub const ALLOW_VARYING_SUBGROUP_SIZE: Self = Self(0x1);

@@ -8,6 +8,7 @@ pub enum Error {
     SynchronizationError,
     NotReady,
     Timeout,
+    Incomplete,
     OutOfHostMemory,
     InitializationFailed,
     ExtensionNotPresent,
@@ -31,6 +32,7 @@ impl From<VkError> for Error {
         match err.0.get() {
             1 => Self::NotReady,
             2 => Self::Timeout,
+            5 => Self::Incomplete,
             -1 => Self::OutOfHostMemory,
             -3 => Self::InitializationFailed,
             -4 => Self::DeviceLost,
