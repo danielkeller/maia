@@ -93,6 +93,10 @@ pub struct MappedMemory {
     ptr: *mut u8,
 }
 
+// Access to ptr is properly controlled with borrows
+unsafe impl Send for MappedMemory {}
+unsafe impl Sync for MappedMemory {}
+
 impl DeviceMemory {
     pub fn map(
         mut self,
