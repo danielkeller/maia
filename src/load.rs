@@ -482,6 +482,11 @@ pub struct DeviceFn {
     pub cmd_next_subpass:
         unsafe extern "system" fn(Mut<VkCommandBuffer>, SubpassContents),
     pub cmd_end_render_pass: unsafe extern "system" fn(Mut<VkCommandBuffer>),
+    pub cmd_execute_commands: unsafe extern "system" fn(
+        Mut<VkCommandBuffer>,
+        u32,
+        Array<Mut<VkCommandBuffer>>,
+    ),
     pub cmd_bind_pipeline: unsafe extern "system" fn(
         Mut<VkCommandBuffer>,
         PipelineBindPoint,
@@ -638,6 +643,7 @@ unsafe fn new_device_fn(inst: &Instance, device: Ref<VkDevice>) -> DeviceFn {
         cmd_begin_render_pass: transmute(load("vkCmdBeginRenderPass\0")),
         cmd_next_subpass: transmute(load("vkCmdNextSubpass\0")),
         cmd_end_render_pass: transmute(load("vkCmdEndRenderPass\0")),
+        cmd_execute_commands: transmute(load("vkCmdExecuteCommands\0")),
         cmd_bind_pipeline: transmute(load("vkCmdBindPipeline\0")),
         cmd_bind_vertex_buffers: transmute(load("vkCmdBindVertexBuffers\0")),
         cmd_bind_index_buffer: transmute(load("vkCmdBindIndexBuffer\0")),

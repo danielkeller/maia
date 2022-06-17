@@ -53,6 +53,7 @@ pub mod vk {
     };
     pub use crate::command_buffer::{
         CommandBuffer, CommandPool, CommandRecording, RenderPassRecording,
+        SecondaryCommandBuffer,
     };
     pub use crate::descriptor_set::{
         DescriptorBufferInfo, DescriptorSetLayout, DescriptorSetLayoutBinding,

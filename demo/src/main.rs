@@ -518,8 +518,6 @@ fn main() -> anyhow::Result<()> {
             })
             .clone()?;
 
-        let buf = cmd_pool.allocate()?;
-        let mut rec = cmd_pool.begin(buf)?;
         let time = Instant::now().duration_since(begin);
 
         let mvp = MVP {
@@ -536,7 +534,37 @@ fn main() -> anyhow::Result<()> {
             ),
         };
 
-        let mut pass = rec.begin_render_pass(
+        let subpass = cmd_pool.allocate_secondary()?;
+        let mut subpass = cmd_pool.begin_secondary(subpass, &render_pass, 0)?;
+        subpass.set_viewport(&vk::Viewport {
+            x: 0.0,
+            y: 0.0,
+            width: draw_size.width as f32,
+            height: draw_size.height as f32,
+            min_depth: 0.0,
+            max_depth: 1.0,
+        });
+        subpass.bind_pipeline(vk::PipelineBindPoint::GRAPHICS, &pipeline);
+        subpass.bind_vertex_buffers(0, &[(&vertex_buffer, 0)])?;
+        subpass.bind_index_buffer(&index_buffer, 0, vk::IndexType::UINT16);
+        subpass.bind_descriptor_sets(
+            vk::PipelineBindPoint::GRAPHICS,
+            &pipeline_layout,
+            0,
+            &[&desc_set],
+            &[],
+        )?;
+        subpass.push_constants(
+            &pipeline_layout,
+            vk::ShaderStageFlags::VERTEX,
+            0,
+            bytemuck::bytes_of(&mvp),
+        )?;
+        subpass.draw_indexed(6, 1, 0, 0, 0);
+        let mut subpass = subpass.end()?;
+
+        let cmd = cmd_pool.allocate()?;
+        let mut pass = cmd_pool.begin(cmd)?.begin_render_pass_secondary(
             &render_pass,
             &framebuffer,
             vk::Rect2D {
@@ -550,34 +578,8 @@ fn main() -> anyhow::Result<()> {
                 color: vk::ClearColorValue { f32: [0.1, 0.2, 0.3, 1.0] },
             }],
         );
-        pass.set_viewport(&vk::Viewport {
-            x: 0.0,
-            y: 0.0,
-            width: draw_size.width as f32,
-            height: draw_size.height as f32,
-            min_depth: 0.0,
-            max_depth: 1.0,
-        });
-        pass.bind_pipeline(vk::PipelineBindPoint::GRAPHICS, &pipeline);
-        pass.bind_vertex_buffers(0, &[(&vertex_buffer, 0)])?;
-        pass.bind_index_buffer(&index_buffer, 0, vk::IndexType::UINT16);
-        pass.bind_descriptor_sets(
-            vk::PipelineBindPoint::GRAPHICS,
-            &pipeline_layout,
-            0,
-            &[&desc_set],
-            &[],
-        )?;
-        pass.push_constants(
-            &pipeline_layout,
-            vk::ShaderStageFlags::VERTEX,
-            0,
-            bytemuck::bytes_of(&mvp),
-        )?;
-        pass.draw_indexed(6, 1, 0, 0, 0);
-        pass.end();
-
-        let mut buf = rec.end()?;
+        pass.execute_commands(&mut [&mut subpass])?;
+        let mut buf = pass.end()?.end()?;
 
         let pending_fence = queue.submit(
             &mut [vk::SubmitInfo {

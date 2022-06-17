@@ -1157,6 +1157,16 @@ impl CommandBufferLevel {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct QueryControlFlags(u32);
+flags!(QueryControlFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct QueryPipelineStatisticFlags(u32);
+flags!(QueryPipelineStatisticFlags, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct CommandBufferUsageFlags(u32);
 impl CommandBufferUsageFlags {
     pub const ONE_TIME_SUBMIT: Self = Self(0x1);

@@ -1429,12 +1429,26 @@ pub struct CommandBufferAllocateInfo<'a, Next = Null> {
 structure_type!(CommandBufferAllocateInfoType, 40);
 
 #[repr(C)]
+#[derive(Debug)]
+pub struct CommandBufferInheritanceInfo<'a, Next = Null> {
+    pub stype: CommandBufferInheritanceInfoType,
+    pub next: Next,
+    pub render_pass: Ref<'a, VkRenderPass>,
+    pub subpass: u32,
+    pub framebuffer: Option<Ref<'a, VkFramebuffer>>,
+    pub occlusion_query_enable: Bool,
+    pub query_flags: QueryControlFlags,
+    pub pipeline_statistics: QueryPipelineStatisticFlags,
+}
+structure_type!(CommandBufferInheritanceInfoType, 41);
+
+#[repr(C)]
 #[derive(Debug, Default)]
-pub struct CommandBufferBeginInfo<Next = Null> {
+pub struct CommandBufferBeginInfo<'a, Next = Null> {
     pub stype: CommandBufferBeginInfoType,
     pub next: Next,
     pub flags: CommandBufferUsageFlags,
-    pub inheritance_info: Null, //TODO
+    pub inheritance_info: Option<&'a CommandBufferInheritanceInfo<'a>>,
 }
 structure_type!(CommandBufferBeginInfoType, 42);
 

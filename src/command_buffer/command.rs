@@ -5,9 +5,13 @@ use crate::error::{Error, Result};
 use crate::ffi::Array;
 use crate::image::Image;
 use crate::pipeline::{Pipeline, PipelineLayout};
+use crate::subobject::Owner;
 use crate::types::*;
 
-use super::{CommandRecording, RenderPassRecording};
+use super::{
+    CommandRecording, ExternalRenderPassRecording, RenderPassRecording,
+    SecondaryCommandBuffer, SecondaryCommandRecording,
+};
 
 impl<'a> CommandRecording<'a> {
     /// Offset and size are rounded down to the nearest multiple of 4.
@@ -243,7 +247,64 @@ impl<'a> ImageMemoryBarrier<'a> {
     }
 }
 
-impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+impl<'a> RenderPassRecording<'a> {
+    pub fn pipeline_barrier(
+        &mut self,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        dependency_flags: DependencyFlags,
+        memory_barriers: &[MemoryBarrier],
+        buffer_memory_barriers: &[BufferMemoryBarrier],
+        image_memory_barriers: &[ImageMemoryBarrier],
+    ) {
+        self.rec.pipeline_barrier(
+            src_stage_mask,
+            dst_stage_mask,
+            dependency_flags,
+            memory_barriers,
+            buffer_memory_barriers,
+            image_memory_barriers,
+        )
+    }
+    /// A shortcut for simple memory barriers
+    pub fn memory_barrier(
+        &mut self,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags,
+    ) {
+        self.rec.memory_barrier(
+            src_stage_mask,
+            dst_stage_mask,
+            src_access_mask,
+            dst_access_mask,
+        )
+    }
+    /// A shortcut for simple image barriers
+    pub fn image_barrier(
+        &mut self,
+        image: &Arc<Image>,
+        src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags,
+        src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags,
+        old_layout: ImageLayout,
+        new_layout: ImageLayout,
+    ) {
+        self.rec.image_barrier(
+            image,
+            src_stage_mask,
+            dst_stage_mask,
+            src_access_mask,
+            dst_access_mask,
+            old_layout,
+            new_layout,
+        )
+    }
+}
+
+impl<'a> SecondaryCommandRecording<'a> {
     pub fn pipeline_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,
@@ -410,7 +471,17 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
-impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+impl<'a> RenderPassRecording<'a> {
+    pub fn bind_pipeline(
+        &mut self,
+        bind_point: PipelineBindPoint,
+        pipeline: &Arc<Pipeline>,
+    ) {
+        self.rec.bind_pipeline(bind_point, pipeline)
+    }
+}
+
+impl<'a> SecondaryCommandRecording<'a> {
     pub fn bind_pipeline(
         &mut self,
         bind_point: PipelineBindPoint,
@@ -436,7 +507,13 @@ impl<'a> CommandRecording<'a> {
         }
     }
 }
-impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+
+impl<'a> RenderPassRecording<'a> {
+    pub fn set_viewport(&mut self, viewport: &Viewport) {
+        self.rec.set_viewport(viewport)
+    }
+}
+impl<'a> SecondaryCommandRecording<'a> {
     pub fn set_viewport(&mut self, viewport: &Viewport) {
         self.rec.set_viewport(viewport)
     }
@@ -453,7 +530,13 @@ impl<'a> CommandRecording<'a> {
         }
     }
 }
-impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+
+impl<'a> RenderPassRecording<'a> {
+    pub fn set_scissor(&mut self, scissor: &Rect2D) {
+        self.rec.set_scissor(scissor)
+    }
+}
+impl<'a> SecondaryCommandRecording<'a> {
     pub fn set_scissor(&mut self, scissor: &Rect2D) {
         self.rec.set_scissor(scissor)
     }
@@ -470,7 +553,25 @@ impl<'a> CommandRecording<'a> {
         }
     }
 }
-impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+
+impl<'a> RenderPassRecording<'a> {
+    pub fn bind_vertex_buffers(
+        &mut self,
+        first_binding: u32,
+        buffers_offsets: &[(&Arc<Buffer>, u64)],
+    ) -> Result<()> {
+        self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
+    }
+    pub fn bind_index_buffer(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        index_type: IndexType,
+    ) {
+        self.rec.bind_index_buffer(buffer, offset, index_type)
+    }
+}
+impl<'a> SecondaryCommandRecording<'a> {
     pub fn bind_vertex_buffers(
         &mut self,
         first_binding: u32,
@@ -534,6 +635,42 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
+impl<'a> RenderPassRecording<'a> {
+    pub fn bind_descriptor_sets(
+        &mut self,
+        pipeline_bind_point: PipelineBindPoint,
+        layout: &PipelineLayout,
+        first_set: u32,
+        sets: &[&Arc<DescriptorSet>],
+        dynamic_offsets: &[u32],
+    ) -> Result<()> {
+        self.rec.bind_descriptor_sets(
+            pipeline_bind_point,
+            layout,
+            first_set,
+            sets,
+            dynamic_offsets,
+        )
+    }
+}
+impl<'a> SecondaryCommandRecording<'a> {
+    pub fn bind_descriptor_sets(
+        &mut self,
+        pipeline_bind_point: PipelineBindPoint,
+        layout: &PipelineLayout,
+        first_set: u32,
+        sets: &[&Arc<DescriptorSet>],
+        dynamic_offsets: &[u32],
+    ) -> Result<()> {
+        self.rec.bind_descriptor_sets(
+            pipeline_bind_point,
+            layout,
+            first_set,
+            sets,
+            dynamic_offsets,
+        )
+    }
+}
 impl<'a> CommandRecording<'a> {
     pub fn bind_descriptor_sets(
         &mut self,
@@ -581,25 +718,29 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
 }
-impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
-    pub fn bind_descriptor_sets(
+
+impl<'a> RenderPassRecording<'a> {
+    pub fn push_constants(
         &mut self,
-        pipeline_bind_point: PipelineBindPoint,
         layout: &PipelineLayout,
-        first_set: u32,
-        sets: &[&Arc<DescriptorSet>],
-        dynamic_offsets: &[u32],
+        stage_flags: ShaderStageFlags,
+        offset: u32,
+        data: &[u8],
     ) -> Result<()> {
-        self.rec.bind_descriptor_sets(
-            pipeline_bind_point,
-            layout,
-            first_set,
-            sets,
-            dynamic_offsets,
-        )
+        self.rec.push_constants(layout, stage_flags, offset, data)
     }
 }
-
+impl<'a> SecondaryCommandRecording<'a> {
+    pub fn push_constants(
+        &mut self,
+        layout: &PipelineLayout,
+        stage_flags: ShaderStageFlags,
+        offset: u32,
+        data: &[u8],
+    ) -> Result<()> {
+        self.rec.push_constants(layout, stage_flags, offset, data)
+    }
+}
 impl<'a> CommandRecording<'a> {
     pub fn push_constants(
         &mut self,
@@ -628,19 +769,8 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
 }
-impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
-    pub fn push_constants(
-        &mut self,
-        layout: &PipelineLayout,
-        stage_flags: ShaderStageFlags,
-        offset: u32,
-        data: &[u8],
-    ) -> Result<()> {
-        self.rec.push_constants(layout, stage_flags, offset, data)
-    }
-}
 
-impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
+impl<'a> RenderPassRecording<'a> {
     pub fn draw(
         &mut self,
         vertex_count: u32,
@@ -648,15 +778,12 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         first_vertex: u32,
         first_instance: u32,
     ) {
-        unsafe {
-            (self.rec.pool.res.device.fun.cmd_draw)(
-                self.rec.buffer.handle.borrow_mut(),
-                vertex_count,
-                instance_count,
-                first_vertex,
-                first_instance,
-            )
-        }
+        self.rec.draw(
+            vertex_count,
+            instance_count,
+            first_vertex,
+            first_instance,
+        )
     }
     pub fn draw_indirect(
         &mut self,
@@ -665,16 +792,7 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         draw_count: u32,
         stride: u32,
     ) {
-        self.rec.add_resource(buffer.clone());
-        unsafe {
-            (self.rec.pool.res.device.fun.cmd_draw_indirect)(
-                self.rec.buffer.handle.borrow_mut(),
-                buffer.handle(),
-                offset,
-                draw_count,
-                stride,
-            )
-        }
+        self.rec.draw_indirect(buffer, offset, draw_count, stride)
     }
     pub fn draw_indexed(
         &mut self,
@@ -684,16 +802,13 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         vertex_offset: i32,
         first_instance: u32,
     ) {
-        unsafe {
-            (self.rec.pool.res.device.fun.cmd_draw_indexed)(
-                self.rec.buffer.handle.borrow_mut(),
-                index_count,
-                instance_count,
-                first_index,
-                vertex_offset,
-                first_instance,
-            )
-        }
+        self.rec.draw_indexed(
+            index_count,
+            instance_count,
+            first_index,
+            vertex_offset,
+            first_instance,
+        )
     }
     pub fn draw_indexed_indirect(
         &mut self,
@@ -702,10 +817,125 @@ impl<'a, 'rec> RenderPassRecording<'a, 'rec> {
         draw_count: u32,
         stride: u32,
     ) {
-        self.rec.add_resource(buffer.clone());
+        self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
+    }
+}
+impl<'a> SecondaryCommandRecording<'a> {
+    pub fn draw(
+        &mut self,
+        vertex_count: u32,
+        instance_count: u32,
+        first_vertex: u32,
+        first_instance: u32,
+    ) {
+        self.rec.draw(
+            vertex_count,
+            instance_count,
+            first_vertex,
+            first_instance,
+        )
+    }
+    pub fn draw_indirect(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        draw_count: u32,
+        stride: u32,
+    ) {
+        self.rec.draw_indirect(buffer, offset, draw_count, stride)
+    }
+    pub fn draw_indexed(
+        &mut self,
+        index_count: u32,
+        instance_count: u32,
+        first_index: u32,
+        vertex_offset: i32,
+        first_instance: u32,
+    ) {
+        self.rec.draw_indexed(
+            index_count,
+            instance_count,
+            first_index,
+            vertex_offset,
+            first_instance,
+        )
+    }
+    pub fn draw_indexed_indirect(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        draw_count: u32,
+        stride: u32,
+    ) {
+        self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
+    }
+}
+impl<'a> CommandRecording<'a> {
+    fn draw(
+        &mut self,
+        vertex_count: u32,
+        instance_count: u32,
+        first_vertex: u32,
+        first_instance: u32,
+    ) {
         unsafe {
-            (self.rec.pool.res.device.fun.cmd_draw_indexed_indirect)(
-                self.rec.buffer.handle.borrow_mut(),
+            (self.pool.res.device.fun.cmd_draw)(
+                self.buffer.handle.borrow_mut(),
+                vertex_count,
+                instance_count,
+                first_vertex,
+                first_instance,
+            )
+        }
+    }
+    fn draw_indirect(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        draw_count: u32,
+        stride: u32,
+    ) {
+        self.add_resource(buffer.clone());
+        unsafe {
+            (self.pool.res.device.fun.cmd_draw_indirect)(
+                self.buffer.handle.borrow_mut(),
+                buffer.handle(),
+                offset,
+                draw_count,
+                stride,
+            )
+        }
+    }
+    fn draw_indexed(
+        &mut self,
+        index_count: u32,
+        instance_count: u32,
+        first_index: u32,
+        vertex_offset: i32,
+        first_instance: u32,
+    ) {
+        unsafe {
+            (self.pool.res.device.fun.cmd_draw_indexed)(
+                self.buffer.handle.borrow_mut(),
+                index_count,
+                instance_count,
+                first_index,
+                vertex_offset,
+                first_instance,
+            )
+        }
+    }
+    fn draw_indexed_indirect(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+        draw_count: u32,
+        stride: u32,
+    ) {
+        self.add_resource(buffer.clone());
+        unsafe {
+            (self.pool.res.device.fun.cmd_draw_indexed_indirect)(
+                self.buffer.handle.borrow_mut(),
                 buffer.handle(),
                 offset,
                 draw_count,
@@ -740,6 +970,38 @@ impl<'a> CommandRecording<'a> {
                 offset,
             );
         }
+    }
+}
+
+impl<'a> ExternalRenderPassRecording<'a> {
+    pub fn execute_commands(
+        &mut self,
+        commands: &mut [&mut SecondaryCommandBuffer],
+    ) -> Result<()> {
+        let scratch = self.rec.pool.scratch.get_mut();
+        let mut resources = bumpalo::vec![in scratch];
+        let mut handles = bumpalo::vec![in scratch];
+        for command in commands {
+            // Check that the buffer is recorded.
+            let res = command.lock_resources().ok_or(Error::InvalidArgument)?;
+            // Require that this pool be reset before the other pool.
+            if !Owner::ptr_eq(&self.rec.pool.res, &command.0.pool) {
+                resources.push(res as Arc<_>);
+            }
+            // Check that the buffer is not in use.
+            handles.push(command.handle_mut()?);
+        }
+
+        unsafe {
+            (self.rec.pool.res.device.fun.cmd_execute_commands)(
+                self.rec.buffer.handle.borrow_mut(),
+                handles.len() as u32,
+                Array::from_slice(&handles).ok_or(Error::InvalidArgument)?,
+            )
+        }
+
+        self.rec.pool.res.resources.extend(resources);
+        Ok(())
     }
 }
 
