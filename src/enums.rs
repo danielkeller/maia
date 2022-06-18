@@ -1624,7 +1624,7 @@ impl BorderColor {
 }
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub struct DescriptorType(u32);
 impl DescriptorType {
     pub const SAMPLER: Self = Self(0);

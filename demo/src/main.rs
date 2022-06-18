@@ -370,7 +370,6 @@ fn main() -> anyhow::Result<()> {
 
     let descriptor_set_layout = device.create_descriptor_set_layout(vec![
         vk::DescriptorSetLayoutBinding {
-            binding: 0,
             descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
             descriptor_count: 1,
             stage_flags: vk::ShaderStageFlags::FRAGMENT,

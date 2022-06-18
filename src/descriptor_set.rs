@@ -22,9 +22,8 @@ pub struct DescriptorSetLayout {
     device: Arc<Device>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct DescriptorSetLayoutBinding {
-    pub binding: u32,
     pub descriptor_type: DescriptorType,
     pub descriptor_count: u32,
     pub stage_flags: ShaderStageFlags,
@@ -50,8 +49,9 @@ impl Device {
         let vk_bindings = bindings
             .iter()
             .zip(vk_samplers.iter())
-            .map(|(b, s)| VkDescriptorSetLayoutBinding {
-                binding: b.binding,
+            .enumerate()
+            .map(|(i, (b, s))| VkDescriptorSetLayoutBinding {
+                binding: i as u32,
                 descriptor_type: b.descriptor_type,
                 descriptor_count: b.descriptor_count,
                 stage_flags: b.stage_flags,
