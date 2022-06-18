@@ -721,6 +721,7 @@ impl<'a> CommandRecording<'a> {
                 .map(|s| s.layout().num_dynamic_offsets())
                 .sum::<u32>()
                 != dynamic_offsets.len() as u32
+            || sets.iter().any(|s| !s.is_initialized())
         {
             return Err(Error::InvalidArgument);
         }

@@ -219,14 +219,7 @@ impl DescriptorPool {
         };
         let mut resources = vec![];
         for binding in &layout.bindings {
-            let len = if binding.descriptor_type
-                == DescriptorType::INLINE_UNIFORM_BLOCK
-            {
-                0
-            } else {
-                binding.descriptor_count as usize
-            };
-            resources.push(vec![None; len]);
+            resources.push(vec![None; binding.descriptor_count as usize]);
         }
         Ok(DescriptorSet {
             handle,
@@ -247,6 +240,9 @@ impl DescriptorSet {
     }
     pub fn layout(&self) -> &Arc<DescriptorSetLayout> {
         &self.layout
+    }
+    pub fn is_initialized(&self) -> bool {
+        self.resources.iter().all(|rs| rs.iter().all(|r| r.is_some()))
     }
 }
 

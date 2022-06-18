@@ -1639,7 +1639,8 @@ impl DescriptorType {
     pub const UNIFORM_BUFFER_DYNAMIC: Self = Self(8);
     pub const STORAGE_BUFFER_DYNAMIC: Self = Self(9);
     pub const INPUT_ATTACHMENT: Self = Self(10);
-    pub const INLINE_UNIFORM_BLOCK: Self = Self(1000138000);
+    // TODO: Extension object
+    // pub const INLINE_UNIFORM_BLOCK: Self = Self(1000138000);
 }
 
 impl Default for DescriptorType {
