@@ -5,6 +5,7 @@ use crate::error::{Error, Result};
 use crate::ffi::Array;
 use crate::image::Image;
 use crate::pipeline::{Pipeline, PipelineLayout};
+use crate::render_pass::RenderPass;
 use crate::subobject::Owner;
 use crate::types::*;
 
@@ -470,36 +471,29 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
-    pub fn bind_pipeline(
-        &mut self,
-        bind_point: PipelineBindPoint,
-        pipeline: &Arc<Pipeline>,
-    ) {
-        self.rec.bind_pipeline(bind_point, pipeline)
+    pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
+        self.rec.bind_pipeline(pipeline)
     }
 }
 
 impl<'a> SecondaryCommandRecording<'a> {
-    pub fn bind_pipeline(
-        &mut self,
-        bind_point: PipelineBindPoint,
-        pipeline: &Arc<Pipeline>,
-    ) {
-        self.rec.bind_pipeline(bind_point, pipeline)
+    pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
+        self.rec.bind_pipeline(pipeline)
     }
 }
 
 impl<'a> CommandRecording<'a> {
-    pub fn bind_pipeline(
-        &mut self,
-        bind_point: PipelineBindPoint,
-        pipeline: &Arc<Pipeline>,
-    ) {
-        if bind_point == PipelineBindPoint::GRAPHICS {
+    pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
+        if pipeline.render_pass().is_some() {
             self.graphics.pipeline = Some(pipeline.clone());
         } else {
             self.compute.pipeline = Some(pipeline.clone());
         }
+        let bind_point = if pipeline.render_pass().is_some() {
+            PipelineBindPoint::GRAPHICS
+        } else {
+            PipelineBindPoint::COMPUTE
+        };
         self.add_resource(pipeline.clone());
         unsafe {
             (self.pool.device.fun.cmd_bind_pipeline)(
@@ -825,6 +819,14 @@ impl<'a> Bindings<'a> {
         }
         return Err(Error::InvalidState);
     }
+    fn check_render_pass(&self, pass: &RenderPass) -> Result<()> {
+        if let Some(pipeline) = self.pipeline.as_ref() {
+            if pipeline.is_compatible_with(pass) {
+                return Ok(());
+            }
+        }
+        return Err(Error::InvalidState);
+    }
 }
 
 impl<'a> RenderPassRecording<'a> {
@@ -835,6 +837,7 @@ impl<'a> RenderPassRecording<'a> {
         first_vertex: u32,
         first_instance: u32,
     ) -> Result<()> {
+        self.rec.graphics.check_render_pass(&self.pass)?;
         self.rec.draw(
             vertex_count,
             instance_count,
@@ -849,6 +852,7 @@ impl<'a> RenderPassRecording<'a> {
         draw_count: u32,
         stride: u32,
     ) -> Result<()> {
+        self.rec.graphics.check_render_pass(&self.pass)?;
         self.rec.draw_indirect(buffer, offset, draw_count, stride)
     }
     pub fn draw_indexed(
@@ -859,6 +863,7 @@ impl<'a> RenderPassRecording<'a> {
         vertex_offset: i32,
         first_instance: u32,
     ) -> Result<()> {
+        self.rec.graphics.check_render_pass(&self.pass)?;
         self.rec.draw_indexed(
             index_count,
             instance_count,
@@ -874,6 +879,7 @@ impl<'a> RenderPassRecording<'a> {
         draw_count: u32,
         stride: u32,
     ) -> Result<()> {
+        self.rec.graphics.check_render_pass(&self.pass)?;
         self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
     }
 }
@@ -885,6 +891,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         first_vertex: u32,
         first_instance: u32,
     ) -> Result<()> {
+        self.rec.graphics.check_render_pass(&self.pass)?;
         self.rec.draw(
             vertex_count,
             instance_count,
@@ -899,6 +906,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         draw_count: u32,
         stride: u32,
     ) -> Result<()> {
+        self.rec.graphics.check_render_pass(&self.pass)?;
         self.rec.draw_indirect(buffer, offset, draw_count, stride)
     }
     pub fn draw_indexed(
@@ -909,6 +917,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         vertex_offset: i32,
         first_instance: u32,
     ) -> Result<()> {
+        self.rec.graphics.check_render_pass(&self.pass)?;
         self.rec.draw_indexed(
             index_count,
             instance_count,
@@ -924,6 +933,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         draw_count: u32,
         stride: u32,
     ) -> Result<()> {
+        self.rec.graphics.check_render_pass(&self.pass)?;
         self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
     }
 }
@@ -1054,10 +1064,15 @@ impl<'a> ExternalRenderPassRecording<'a> {
         let mut resources = bumpalo::vec![in self.rec.scratch];
         let mut handles = bumpalo::vec![in self.rec.scratch];
         for command in commands {
+            if !self.pass.compatible(command.pass.as_deref().unwrap())
+                || self.subpass != command.subpass
+            {
+                return Err(Error::InvalidArgument);
+            }
             // Check that the buffer is recorded.
             let res = command.lock_resources().ok_or(Error::InvalidArgument)?;
             // Require that this pool be reset before the other pool.
-            if !Owner::ptr_eq(self.rec.pool, &command.0.pool) {
+            if !Owner::ptr_eq(self.rec.pool, &command.buf.pool) {
                 resources.push(res as Arc<_>);
             }
             // Check that the buffer is not in use.

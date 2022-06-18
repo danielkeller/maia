@@ -130,6 +130,7 @@ impl PipelineLayout {
 pub struct Pipeline {
     handle: Handle<VkPipeline>,
     layout: Arc<PipelineLayout>,
+    render_pass: Option<Arc<RenderPass>>,
     device: Arc<Device>,
 }
 
@@ -145,7 +146,7 @@ pub struct GraphicsPipelineCreateInfo<'a> {
     pub color_blend_state: &'a PipelineColorBlendStateCreateInfo<'a>,
     pub dynamic_state: Option<&'a PipelineDynamicStateCreateInfo<'a>>,
     pub layout: &'a Arc<PipelineLayout>,
-    pub render_pass: &'a RenderPass,
+    pub render_pass: &'a Arc<RenderPass>,
     pub subpass: u32,
     pub cache: Option<&'a PipelineCache>,
 }
@@ -210,6 +211,7 @@ impl Device {
         Ok(Arc::new(Pipeline {
             handle: unsafe { handle.assume_init() },
             layout: info.layout.clone(),
+            render_pass: Some(info.render_pass.clone()),
             device: self.clone(),
         }))
     }
@@ -243,6 +245,7 @@ impl Device {
         Ok(Arc::new(Pipeline {
             handle: unsafe { handle.assume_init() },
             layout: layout.clone(),
+            render_pass: None,
             device: self.clone(),
         }))
     }
@@ -254,6 +257,12 @@ impl Pipeline {
     }
     pub fn layout(&self) -> &PipelineLayout {
         &*self.layout
+    }
+    pub fn render_pass(&self) -> Option<&RenderPass> {
+        self.render_pass.as_deref()
+    }
+    pub fn is_compatible_with(&self, pass: &RenderPass) -> bool {
+        self.render_pass.as_ref().map_or(false, |p| p.compatible(pass))
     }
 }
 

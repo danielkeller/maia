@@ -543,7 +543,7 @@ fn main() -> anyhow::Result<()> {
             min_depth: 0.0,
             max_depth: 1.0,
         });
-        subpass.bind_pipeline(vk::PipelineBindPoint::GRAPHICS, &pipeline);
+        subpass.bind_pipeline(&pipeline);
         subpass.bind_vertex_buffers(0, &[(&vertex_buffer, 0)])?;
         subpass.bind_index_buffer(&index_buffer, 0, vk::IndexType::UINT16);
         subpass.bind_descriptor_sets(
@@ -576,7 +576,7 @@ fn main() -> anyhow::Result<()> {
             &[vk::ClearValue {
                 color: vk::ClearColorValue { f32: [0.1, 0.2, 0.3, 1.0] },
             }],
-        );
+        )?;
         pass.execute_commands(&mut [&mut subpass])?;
         let mut buf = pass.end()?.end()?;
 

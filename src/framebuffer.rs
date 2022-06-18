@@ -1,4 +1,3 @@
-use crate::device::Device;
 use crate::enums::*;
 use crate::error::Result;
 use crate::image::ImageView;
@@ -9,12 +8,12 @@ use crate::types::*;
 pub struct Framebuffer {
     handle: Handle<VkFramebuffer>,
     _attachments: Vec<Arc<ImageView>>,
-    device: Arc<Device>,
+    render_pass: Arc<RenderPass>,
 }
 
 impl RenderPass {
     pub fn create_framebuffer(
-        &self,
+        self: &Arc<Self>,
         flags: FramebufferCreateFlags,
         attachments: Vec<Arc<ImageView>>,
         size: Extent3D,
@@ -46,7 +45,7 @@ impl RenderPass {
         Ok(Arc::new(Framebuffer {
             handle: handle.unwrap(),
             _attachments: attachments,
-            device: self.device.clone(),
+            render_pass: self.clone(),
         }))
     }
 }
@@ -55,13 +54,16 @@ impl Framebuffer {
     pub fn handle(&self) -> Ref<VkFramebuffer> {
         self.handle.borrow()
     }
+    pub fn is_compatible_with(&self, pass: &RenderPass) -> bool {
+        self.render_pass.compatible(pass)
+    }
 }
 
 impl Drop for Framebuffer {
     fn drop(&mut self) {
         unsafe {
-            (self.device.fun.destroy_framebuffer)(
-                self.device.handle(),
+            (self.render_pass.device.fun.destroy_framebuffer)(
+                self.render_pass.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )

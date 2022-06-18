@@ -30,7 +30,11 @@ pub struct CommandBuffer(Arc<CommandBufferLifetime>);
 
 #[must_use = "Leaks pool resources if not freed"]
 #[derive(Debug)]
-pub struct SecondaryCommandBuffer(Arc<CommandBufferLifetime>, u32);
+pub struct SecondaryCommandBuffer {
+    buf: Arc<CommandBufferLifetime>,
+    pass: Option<Arc<RenderPass>>,
+    subpass: u32,
+}
 
 struct Bindings<'a> {
     layout: bumpalo::collections::Vec<'a, Arc<DescriptorSetLayout>>,
@@ -50,19 +54,20 @@ pub struct CommandRecording<'a> {
 #[must_use = "Record render pass commands on this object"]
 pub struct RenderPassRecording<'a> {
     rec: CommandRecording<'a>,
-    num_subpasses: u32,
+    pass: Arc<RenderPass>,
     subpass: u32,
 }
 
 #[must_use = "Record secondary command buffers on this object"]
 pub struct ExternalRenderPassRecording<'a> {
     rec: CommandRecording<'a>,
-    num_subpasses: u32,
+    pass: Arc<RenderPass>,
     subpass: u32,
 }
 
 pub struct SecondaryCommandRecording<'a> {
     rec: CommandRecording<'a>,
+    pass: Arc<RenderPass>,
     subpass: u32,
 }
 
@@ -176,10 +181,11 @@ impl CommandPool {
     }
 
     pub fn allocate_secondary(&mut self) -> Result<SecondaryCommandBuffer> {
-        Ok(SecondaryCommandBuffer(
-            self.allocate_impl(CommandBufferLevel::SECONDARY)?,
-            0,
-        ))
+        Ok(SecondaryCommandBuffer {
+            buf: self.allocate_impl(CommandBufferLevel::SECONDARY)?,
+            pass: None,
+            subpass: 0,
+        })
     }
 
     fn allocate_impl(
@@ -220,7 +226,7 @@ impl CommandPool {
         &mut self,
         mut buffer: SecondaryCommandBuffer,
     ) -> Result<()> {
-        if !Owner::ptr_eq(&self.res, &buffer.0.pool) {
+        if !Owner::ptr_eq(&self.res, &buffer.buf.pool) {
             return Err(Error::InvalidArgument);
         }
         Ok(self.free_impl(buffer.handle_mut()?))
@@ -282,24 +288,24 @@ impl CommandPool {
     pub fn begin_secondary<'a>(
         &'a mut self,
         buffer: SecondaryCommandBuffer,
-        render_pass: &RenderPass,
+        render_pass: &Arc<RenderPass>,
         subpass: u32,
     ) -> ResultAndSelf<SecondaryCommandRecording<'a>, SecondaryCommandBuffer>
     {
         if subpass >= render_pass.num_subpasses() {
             return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
-        if !Owner::ptr_eq(&self.res, &buffer.0.pool)
+        if !Owner::ptr_eq(&self.res, &buffer.buf.pool)
             // In executable state
             || buffer.lock_resources().is_some()
         {
             return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
         // In pending state
-        let mut inner = Arc::try_unwrap(buffer.0).map_err(|arc| {
+        let mut inner = Arc::try_unwrap(buffer.buf).map_err(|arc| {
             ErrorAndSelf(
                 Error::SynchronizationError,
-                SecondaryCommandBuffer(arc, 0),
+                SecondaryCommandBuffer { buf: arc, pass: None, subpass: 0 },
             )
         })?;
         unsafe {
@@ -322,7 +328,11 @@ impl CommandPool {
             ) {
                 return Err(ErrorAndSelf(
                     err.into(),
-                    SecondaryCommandBuffer(Arc::new(inner), 0),
+                    SecondaryCommandBuffer {
+                        buf: Arc::new(inner),
+                        pass: None,
+                        subpass: 0,
+                    },
                 ));
             };
         }
@@ -337,6 +347,7 @@ impl CommandPool {
                 scratch,
                 buffer: inner,
             },
+            pass: render_pass.clone(),
             subpass,
         })
     }
@@ -363,7 +374,7 @@ impl CommandBuffer {
 
 impl SecondaryCommandBuffer {
     pub fn handle_mut(&mut self) -> Result<Mut<VkCommandBuffer>> {
-        match Arc::get_mut(&mut self.0) {
+        match Arc::get_mut(&mut self.buf) {
             Some(inner) => Ok(inner.handle.borrow_mut()),
             None => Err(Error::SynchronizationError),
         }
@@ -371,12 +382,12 @@ impl SecondaryCommandBuffer {
     /// Prevent the command buffer from being freed or submitted to a queue
     /// until the the value is dropped
     pub fn lock_self(&self) -> Arc<impl Send + Sync + Debug> {
-        self.0.clone()
+        self.buf.clone()
     }
     /// Prevent the command pool from being cleared or destroyed until the value
     /// is dropped.
     pub fn lock_resources(&self) -> Option<Arc<impl Send + Sync + Debug>> {
-        self.0.recording.upgrade()
+        self.buf.recording.upgrade()
     }
 }
 
@@ -417,7 +428,11 @@ impl<'a> SecondaryCommandRecording<'a> {
             )?;
         }
         self.rec.buffer.recording = Arc::downgrade(self.rec.recording);
-        Ok(SecondaryCommandBuffer(Arc::new(self.rec.buffer), self.subpass))
+        Ok(SecondaryCommandBuffer {
+            buf: Arc::new(self.rec.buffer),
+            pass: Some(self.pass),
+            subpass: self.subpass,
+        })
     }
 }
 
@@ -428,19 +443,19 @@ impl<'a> CommandRecording<'a> {
         framebuffer: &Arc<Framebuffer>,
         render_area: Rect2D,
         clear_values: &[ClearValue],
-    ) -> RenderPassRecording<'a> {
+    ) -> Result<RenderPassRecording<'a>> {
         self.begin_render_pass_impl(
             render_pass,
             framebuffer,
             render_area,
             clear_values,
             SubpassContents::INLINE,
-        );
-        RenderPassRecording {
+        )?;
+        Ok(RenderPassRecording {
             rec: self,
-            num_subpasses: render_pass.num_subpasses(),
+            pass: render_pass.clone(),
             subpass: 0,
-        }
+        })
     }
     pub fn begin_render_pass_secondary(
         mut self,
@@ -448,19 +463,22 @@ impl<'a> CommandRecording<'a> {
         framebuffer: &Arc<Framebuffer>,
         render_area: Rect2D,
         clear_values: &[ClearValue],
-    ) -> ExternalRenderPassRecording<'a> {
+    ) -> Result<ExternalRenderPassRecording<'a>> {
+        if !framebuffer.is_compatible_with(render_pass) {
+            return Err(Error::InvalidArgument);
+        }
         self.begin_render_pass_impl(
             render_pass,
             framebuffer,
             render_area,
             clear_values,
             SubpassContents::SECONDARY_COMMAND_BUFFERS,
-        );
-        ExternalRenderPassRecording {
+        )?;
+        Ok(ExternalRenderPassRecording {
             rec: self,
-            num_subpasses: render_pass.num_subpasses(),
+            pass: render_pass.clone(),
             subpass: 0,
-        }
+        })
     }
     fn begin_render_pass_impl(
         &mut self,
@@ -469,7 +487,10 @@ impl<'a> CommandRecording<'a> {
         render_area: Rect2D,
         clear_values: &[ClearValue],
         subpass_contents: SubpassContents,
-    ) {
+    ) -> Result<()> {
+        if !framebuffer.is_compatible_with(render_pass) {
+            return Err(Error::InvalidArgument);
+        }
         self.add_resource(render_pass.clone());
         self.add_resource(framebuffer.clone());
         let info = RenderPassBeginInfo {
@@ -487,12 +508,13 @@ impl<'a> CommandRecording<'a> {
                 subpass_contents,
             );
         }
+        Ok(())
     }
 }
 
 impl<'a> RenderPassRecording<'a> {
     pub fn next_subpass(&mut self) -> Result<()> {
-        if self.subpass >= self.num_subpasses - 1 {
+        if self.subpass >= self.pass.num_subpasses() - 1 {
             return Err(Error::OutOfBounds);
         }
         self.subpass += 1;
@@ -507,7 +529,7 @@ impl<'a> RenderPassRecording<'a> {
     pub fn next_subpass_secondary(
         mut self,
     ) -> Result<ExternalRenderPassRecording<'a>> {
-        if self.subpass >= self.num_subpasses - 1 {
+        if self.subpass >= self.pass.num_subpasses() - 1 {
             return Err(Error::OutOfBounds);
         }
         unsafe {
@@ -518,12 +540,12 @@ impl<'a> RenderPassRecording<'a> {
         }
         Ok(ExternalRenderPassRecording {
             rec: self.rec,
-            num_subpasses: self.num_subpasses,
+            pass: self.pass,
             subpass: self.subpass + 1,
         })
     }
     pub fn end(mut self) -> Result<CommandRecording<'a>> {
-        if self.subpass != self.num_subpasses - 1 {
+        if self.subpass != self.pass.num_subpasses() - 1 {
             return Err(Error::InvalidArgument);
         }
         unsafe {
@@ -537,7 +559,7 @@ impl<'a> RenderPassRecording<'a> {
 
 impl<'a> ExternalRenderPassRecording<'a> {
     pub fn next_subpass_secondary(&mut self) -> Result<()> {
-        if self.subpass >= self.num_subpasses - 1 {
+        if self.subpass >= self.pass.num_subpasses() - 1 {
             return Err(Error::OutOfBounds);
         }
         self.subpass += 1;
@@ -550,7 +572,7 @@ impl<'a> ExternalRenderPassRecording<'a> {
         Ok(())
     }
     pub fn next_subpass(mut self) -> Result<RenderPassRecording<'a>> {
-        if self.subpass >= self.num_subpasses - 1 {
+        if self.subpass >= self.pass.num_subpasses() - 1 {
             return Err(Error::OutOfBounds);
         }
         unsafe {
@@ -561,12 +583,12 @@ impl<'a> ExternalRenderPassRecording<'a> {
         }
         Ok(RenderPassRecording {
             rec: self.rec,
-            num_subpasses: self.num_subpasses,
+            pass: self.pass,
             subpass: self.subpass + 1,
         })
     }
     pub fn end(mut self) -> Result<CommandRecording<'a>> {
-        if self.subpass != self.num_subpasses - 1 {
+        if self.subpass != self.pass.num_subpasses() - 1 {
             return Err(Error::InvalidArgument);
         }
         unsafe {

@@ -1294,6 +1294,20 @@ pub struct VkCopyDescriptorSet<'a, Next = Null> {
 structure_type!(CopyDescriptorSetType, 35);
 
 #[repr(C)]
+#[derive(Debug)]
+pub struct VkFramebufferCreateInfo<'a, Next = Null> {
+    pub stype: FramebufferCreateInfoType,
+    pub next: Next,
+    pub flags: FramebufferCreateFlags,
+    pub render_pass: Ref<'a, VkRenderPass>,
+    pub attachments: Slice<'a, Ref<'a, VkImageView>>,
+    pub width: u32,
+    pub height: u32,
+    pub layers: u32,
+}
+structure_type!(FramebufferCreateInfoType, 37);
+
+#[repr(C)]
 #[derive(Debug, Default)]
 pub struct AttachmentDescription {
     pub flags: AttachmentDescriptionFlags,
@@ -1310,6 +1324,8 @@ pub struct AttachmentDescription {
 #[repr(C)]
 #[derive(Debug, Default)]
 pub struct AttachmentReference {
+    /// Either an index in the attachments member of [RenderPassCreateInfo] or
+    /// u32::MAX if unused
     pub attachment: u32,
     pub layout: ImageLayout,
 }
@@ -1330,8 +1346,6 @@ pub struct VkSubpassDescription<'a> {
 
 #[derive(Default)]
 pub struct SubpassDescription<'a> {
-    pub flags: SubpassDescriptionFlags,
-    pub pipeline_bind_point: PipelineBindPoint,
     pub input_attachments: &'a [AttachmentReference],
     pub color_attachments: &'a [AttachmentReference],
     /// Must be either empty or the same length as color_attachments
@@ -1356,8 +1370,8 @@ impl<'a> TryFrom<SubpassDescription<'a>> for VkSubpassDescription<'a> {
             return Err(Error::InvalidArgument);
         }
         Ok(Self {
-            flags: value.flags,
-            pipeline_bind_point: value.pipeline_bind_point,
+            flags: Default::default(),
+            pipeline_bind_point: PipelineBindPoint::GRAPHICS,
             input_attachments: value.input_attachments.into(),
             color_attachments: value.color_attachments.into(),
             resolve_attachments: Array::from_slice(value.resolve_attachments),
@@ -1370,7 +1384,7 @@ impl<'a> TryFrom<SubpassDescription<'a>> for VkSubpassDescription<'a> {
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SubpassDependency {
     pub src_subpass: u32,
     pub dst_subpass: u32,
@@ -1380,20 +1394,6 @@ pub struct SubpassDependency {
     pub dst_access_mask: AccessFlags,
     pub dependency_flags: DependencyFlags,
 }
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct VkFramebufferCreateInfo<'a, Next = Null> {
-    pub stype: FramebufferCreateInfoType,
-    pub next: Next,
-    pub flags: FramebufferCreateFlags,
-    pub render_pass: Ref<'a, VkRenderPass>,
-    pub attachments: Slice<'a, Ref<'a, VkImageView>>,
-    pub width: u32,
-    pub height: u32,
-    pub layers: u32,
-}
-structure_type!(FramebufferCreateInfoType, 37);
 
 #[repr(C)]
 #[derive(Debug, Default)]
