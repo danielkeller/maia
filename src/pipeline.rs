@@ -10,6 +10,7 @@ use crate::ffi::*;
 use crate::render_pass::RenderPass;
 use crate::types::*;
 
+#[derive(Debug)]
 pub struct PipelineLayout {
     handle: Handle<VkPipelineLayout>,
     set_layouts: Vec<Arc<DescriptorSetLayout>>,
@@ -95,8 +96,8 @@ impl PipelineLayout {
     pub fn handle(&self) -> Ref<VkPipelineLayout> {
         self.handle.borrow()
     }
-    pub fn layout(&self, binding: u32) -> Option<&Arc<DescriptorSetLayout>> {
-        self.set_layouts.get(binding as usize)
+    pub fn layouts(&self) -> &[Arc<DescriptorSetLayout>] {
+        &self.set_layouts
     }
     pub fn bounds_check_push_constants(
         &self,
@@ -128,6 +129,7 @@ impl PipelineLayout {
 #[derive(Debug)]
 pub struct Pipeline {
     handle: Handle<VkPipeline>,
+    layout: Arc<PipelineLayout>,
     device: Arc<Device>,
 }
 
@@ -142,7 +144,7 @@ pub struct GraphicsPipelineCreateInfo<'a> {
     pub depth_stencil_state: Option<&'a PipelineDepthStencilStateCreateInfo>,
     pub color_blend_state: &'a PipelineColorBlendStateCreateInfo<'a>,
     pub dynamic_state: Option<&'a PipelineDynamicStateCreateInfo<'a>>,
-    pub layout: &'a PipelineLayout,
+    pub layout: &'a Arc<PipelineLayout>,
     pub render_pass: &'a RenderPass,
     pub subpass: u32,
     pub cache: Option<&'a PipelineCache>,
@@ -207,13 +209,14 @@ impl Device {
         }
         Ok(Arc::new(Pipeline {
             handle: unsafe { handle.assume_init() },
+            layout: info.layout.clone(),
             device: self.clone(),
         }))
     }
     pub fn create_compute_pipeline(
         self: &Arc<Self>,
         stage: PipelineShaderStageCreateInfo,
-        layout: &PipelineLayout,
+        layout: &Arc<PipelineLayout>,
         cache: Option<&PipelineCache>,
     ) -> Result<Arc<Pipeline>> {
         check_specialization_constants(&stage)?;
@@ -239,6 +242,7 @@ impl Device {
         }
         Ok(Arc::new(Pipeline {
             handle: unsafe { handle.assume_init() },
+            layout: layout.clone(),
             device: self.clone(),
         }))
     }
@@ -247,6 +251,9 @@ impl Device {
 impl Pipeline {
     pub fn handle(&self) -> Ref<VkPipeline> {
         self.handle.borrow()
+    }
+    pub fn layout(&self) -> &PipelineLayout {
+        &*self.layout
     }
 }
 

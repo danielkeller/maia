@@ -24,11 +24,6 @@ impl<T> Exclusive<T> {
     pub const fn new(t: T) -> Self {
         Self { inner: t }
     }
-    /// Unwrap the value contained in the `Exclusive`
-    // #[must_use]
-    // pub fn into_inner(self) -> T {
-    //     self.inner
-    // }
     /// Get exclusive access to the underlying value.
     #[must_use]
     pub fn get_mut(&mut self) -> &mut T {

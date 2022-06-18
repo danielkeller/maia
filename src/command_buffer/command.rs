@@ -9,8 +9,8 @@ use crate::subobject::Owner;
 use crate::types::*;
 
 use super::{
-    CommandRecording, ExternalRenderPassRecording, RenderPassRecording,
-    SecondaryCommandBuffer, SecondaryCommandRecording,
+    Bindings, CommandRecording, ExternalRenderPassRecording,
+    RenderPassRecording, SecondaryCommandBuffer, SecondaryCommandRecording,
 };
 
 impl<'a> CommandRecording<'a> {
@@ -39,7 +39,7 @@ impl<'a> CommandRecording<'a> {
         };
         self.add_resource(dst.clone());
         unsafe {
-            (self.pool.res.device.fun.cmd_fill_buffer)(
+            (self.pool.device.fun.cmd_fill_buffer)(
                 self.buffer.handle.borrow_mut(),
                 dst.handle(),
                 offset,
@@ -64,7 +64,7 @@ impl<'a> CommandRecording<'a> {
             }
         }
         unsafe {
-            (self.pool.res.device.fun.cmd_copy_buffer)(
+            (self.pool.device.fun.cmd_copy_buffer)(
                 self.buffer.handle.borrow_mut(),
                 src.handle(),
                 dst.handle(),
@@ -104,7 +104,7 @@ impl<'a> CommandRecording<'a> {
             }
         }
         unsafe {
-            (self.pool.res.device.fun.cmd_copy_buffer_to_image)(
+            (self.pool.device.fun.cmd_copy_buffer_to_image)(
                 self.buffer.handle.borrow_mut(),
                 src.handle(),
                 dst.handle(),
@@ -153,7 +153,7 @@ impl<'a> CommandRecording<'a> {
             }
         }
         unsafe {
-            (self.pool.res.device.fun.cmd_blit_image)(
+            (self.pool.device.fun.cmd_blit_image)(
                 self.buffer.handle.borrow_mut(),
                 src.handle(),
                 src_layout,
@@ -180,7 +180,7 @@ impl<'a> CommandRecording<'a> {
     ) -> Result<()> {
         let array = Array::from_slice(ranges).ok_or(Error::InvalidArgument)?;
         unsafe {
-            (self.pool.res.device.fun.cmd_clear_color_image)(
+            (self.pool.device.fun.cmd_clear_color_image)(
                 self.buffer.handle.borrow_mut(),
                 image.handle(),
                 layout,
@@ -377,16 +377,15 @@ impl<'a> CommandRecording<'a> {
         for b in image_memory_barriers {
             self.add_resource(b.image.clone());
         }
-        let scratch = self.pool.scratch.get_mut();
-        let vk_buffer_barriers = scratch.alloc_slice_fill_iter(
+        let vk_buffer_barriers = self.scratch.alloc_slice_fill_iter(
             buffer_memory_barriers.iter().map(|b| b.vk()),
         );
-        let vk_image_barriers = scratch.alloc_slice_fill_iter(
+        let vk_image_barriers = self.scratch.alloc_slice_fill_iter(
             image_memory_barriers.iter().map(|b| b.vk()),
         );
 
         unsafe {
-            (self.pool.res.device.fun.cmd_pipeline_barrier)(
+            (self.pool.device.fun.cmd_pipeline_barrier)(
                 self.buffer.handle.borrow_mut(),
                 src_stage_mask,
                 dst_stage_mask,
@@ -399,7 +398,6 @@ impl<'a> CommandRecording<'a> {
                 Array::from_slice(vk_image_barriers),
             )
         }
-        scratch.reset();
     }
 
     /// A shortcut for simple memory barriers
@@ -411,7 +409,7 @@ impl<'a> CommandRecording<'a> {
         dst_access_mask: AccessFlags,
     ) {
         unsafe {
-            (self.pool.res.device.fun.cmd_pipeline_barrier)(
+            (self.pool.device.fun.cmd_pipeline_barrier)(
                 self.buffer.handle.borrow_mut(),
                 src_stage_mask,
                 dst_stage_mask,
@@ -455,7 +453,7 @@ impl<'a> CommandRecording<'a> {
                 image: image.handle(),
                 subresource_range: Default::default(),
             };
-            (self.pool.res.device.fun.cmd_pipeline_barrier)(
+            (self.pool.device.fun.cmd_pipeline_barrier)(
                 self.buffer.handle.borrow_mut(),
                 src_stage_mask,
                 dst_stage_mask,
@@ -497,9 +495,14 @@ impl<'a> CommandRecording<'a> {
         bind_point: PipelineBindPoint,
         pipeline: &Arc<Pipeline>,
     ) {
+        if bind_point == PipelineBindPoint::GRAPHICS {
+            self.graphics.pipeline = Some(pipeline.clone());
+        } else {
+            self.compute.pipeline = Some(pipeline.clone());
+        }
         self.add_resource(pipeline.clone());
         unsafe {
-            (self.pool.res.device.fun.cmd_bind_pipeline)(
+            (self.pool.device.fun.cmd_bind_pipeline)(
                 self.buffer.handle.borrow_mut(),
                 bind_point,
                 pipeline.handle(),
@@ -521,7 +524,7 @@ impl<'a> SecondaryCommandRecording<'a> {
 impl<'a> CommandRecording<'a> {
     pub fn set_viewport(&mut self, viewport: &Viewport) {
         unsafe {
-            (self.pool.res.device.fun.cmd_set_viewport)(
+            (self.pool.device.fun.cmd_set_viewport)(
                 self.buffer.handle.borrow_mut(),
                 0,
                 1,
@@ -544,7 +547,7 @@ impl<'a> SecondaryCommandRecording<'a> {
 impl<'a> CommandRecording<'a> {
     pub fn set_scissor(&mut self, scissor: &Rect2D) {
         unsafe {
-            (self.pool.res.device.fun.cmd_set_scissor)(
+            (self.pool.device.fun.cmd_set_scissor)(
                 self.buffer.handle.borrow_mut(),
                 0,
                 1,
@@ -597,16 +600,15 @@ impl<'a> CommandRecording<'a> {
         for &(buffer, _) in buffers_offsets {
             self.add_resource(buffer.clone());
         }
-        let scratch = self.pool.scratch.get_mut();
-        let buffers = scratch.alloc_slice_fill_iter(
+        let buffers = self.scratch.alloc_slice_fill_iter(
             buffers_offsets.iter().map(|&(b, _)| b.handle()),
         );
-        let offsets = scratch.alloc_slice_fill_iter(
+        let offsets = self.scratch.alloc_slice_fill_iter(
             buffers_offsets.iter().map(|&(_, o)| o), //
         );
 
         unsafe {
-            (self.pool.res.device.fun.cmd_bind_vertex_buffers)(
+            (self.pool.device.fun.cmd_bind_vertex_buffers)(
                 self.buffer.handle.borrow_mut(),
                 first_binding,
                 buffers.len() as u32,
@@ -614,7 +616,6 @@ impl<'a> CommandRecording<'a> {
                 Array::from_slice(&offsets).ok_or(Error::InvalidArgument)?,
             )
         }
-        scratch.reset();
         Ok(())
     }
     pub fn bind_index_buffer(
@@ -625,7 +626,7 @@ impl<'a> CommandRecording<'a> {
     ) {
         self.add_resource(buffer.clone());
         unsafe {
-            (self.pool.res.device.fun.cmd_bind_index_buffer)(
+            (self.pool.device.fun.cmd_bind_index_buffer)(
                 self.buffer.handle.borrow_mut(),
                 buffer.handle(),
                 offset,
@@ -671,6 +672,36 @@ impl<'a> SecondaryCommandRecording<'a> {
         )
     }
 }
+
+impl<'a> Bindings<'a> {
+    fn bind_descriptor_sets(
+        &mut self,
+        layout: &PipelineLayout,
+        begin: usize,
+        sets: usize,
+    ) {
+        let end = begin + sets;
+        let layouts = &layout.layouts()[0..end];
+        let i = self
+            .layout
+            .iter()
+            .zip(layouts.iter())
+            .position(|(a, b)| a != b)
+            .unwrap_or(self.layout.len().min(layouts.len()));
+        if i < end {
+            // Some bindings were invalidated
+            self.layout.clear();
+            self.layout.extend(layouts.iter().cloned());
+            self.inited.resize(i, false);
+            self.inited.resize(begin, false);
+            self.inited.resize(end, true);
+        } else {
+            self.inited.resize(self.inited.len().max(end), false);
+            self.inited[begin..end].fill(true);
+        }
+    }
+}
+
 impl<'a> CommandRecording<'a> {
     pub fn bind_descriptor_sets(
         &mut self,
@@ -680,40 +711,50 @@ impl<'a> CommandRecording<'a> {
         sets: &[&Arc<DescriptorSet>],
         dynamic_offsets: &[u32],
     ) -> Result<()> {
-        // Unfortunately, typechecking this against the pipeline is a bit of
-        // an issue, since only descriptors that are statically used are
-        // required to typecheck, which requires inspecting the spir-v. I'm
-        // inclined to say that this is out of scope for this crate, since the
-        // result of incompatible bindings is the shader reading garbage.
-        let mut num_dyn_offsets = 0;
-        for (i, set) in sets.iter().enumerate() {
-            if layout.layout(i as u32 + first_set) != Some(set.layout()) {
-                return Err(Error::InvalidArgument);
-            }
-            num_dyn_offsets += set.layout().num_dynamic_offsets();
-        }
-        if dynamic_offsets.len() != num_dyn_offsets as usize {
+        if sets.iter().map(|s| s.layout()).ne(layout
+            .layouts()
+            .iter()
+            .skip(first_set as usize)
+            .take(sets.len()))
+            || sets
+                .iter()
+                .map(|s| s.layout().num_dynamic_offsets())
+                .sum::<u32>()
+                != dynamic_offsets.len() as u32
+        {
             return Err(Error::InvalidArgument);
         }
+        if pipeline_bind_point == PipelineBindPoint::GRAPHICS {
+            self.graphics.bind_descriptor_sets(
+                layout,
+                first_set as usize,
+                sets.len(),
+            );
+        } else {
+            self.compute.bind_descriptor_sets(
+                layout,
+                first_set as usize,
+                sets.len(),
+            );
+        }
+
         for &set in sets {
             self.add_resource(set.clone());
         }
-        let scratch = self.pool.scratch.get_mut();
         let sets =
-            scratch.alloc_slice_fill_iter(sets.iter().map(|s| s.handle()));
+            self.scratch.alloc_slice_fill_iter(sets.iter().map(|s| s.handle()));
         unsafe {
-            (self.pool.res.device.fun.cmd_bind_descriptor_sets)(
+            (self.pool.device.fun.cmd_bind_descriptor_sets)(
                 self.buffer.handle.borrow_mut(),
                 pipeline_bind_point,
                 layout.handle(),
                 first_set,
                 sets.len() as u32,
                 Array::from_slice(sets),
-                num_dyn_offsets,
+                dynamic_offsets.len() as u32,
                 Array::from_slice(dynamic_offsets),
             )
         }
-        scratch.reset();
 
         Ok(())
     }
@@ -757,7 +798,7 @@ impl<'a> CommandRecording<'a> {
             return Err(Error::OutOfBounds);
         }
         unsafe {
-            (self.pool.res.device.fun.cmd_push_constants)(
+            (self.pool.device.fun.cmd_push_constants)(
                 self.buffer.handle.borrow_mut(),
                 layout.handle(),
                 stage_flags,
@@ -770,6 +811,21 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
+impl<'a> Bindings<'a> {
+    fn check(&self) -> Result<()> {
+        if let Some(pipeline) = self.pipeline.as_ref() {
+            let layouts = &pipeline.layout().layouts();
+            if self.layout.get(0..layouts.len()) == Some(layouts)
+                && self.inited.iter().take_while(|b| **b).count()
+                    >= layouts.len()
+            {
+                return Ok(());
+            }
+        }
+        return Err(Error::InvalidState);
+    }
+}
+
 impl<'a> RenderPassRecording<'a> {
     pub fn draw(
         &mut self,
@@ -777,7 +833,7 @@ impl<'a> RenderPassRecording<'a> {
         instance_count: u32,
         first_vertex: u32,
         first_instance: u32,
-    ) {
+    ) -> Result<()> {
         self.rec.draw(
             vertex_count,
             instance_count,
@@ -791,7 +847,7 @@ impl<'a> RenderPassRecording<'a> {
         offset: u64,
         draw_count: u32,
         stride: u32,
-    ) {
+    ) -> Result<()> {
         self.rec.draw_indirect(buffer, offset, draw_count, stride)
     }
     pub fn draw_indexed(
@@ -801,7 +857,7 @@ impl<'a> RenderPassRecording<'a> {
         first_index: u32,
         vertex_offset: i32,
         first_instance: u32,
-    ) {
+    ) -> Result<()> {
         self.rec.draw_indexed(
             index_count,
             instance_count,
@@ -816,7 +872,7 @@ impl<'a> RenderPassRecording<'a> {
         offset: u64,
         draw_count: u32,
         stride: u32,
-    ) {
+    ) -> Result<()> {
         self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
     }
 }
@@ -827,7 +883,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         instance_count: u32,
         first_vertex: u32,
         first_instance: u32,
-    ) {
+    ) -> Result<()> {
         self.rec.draw(
             vertex_count,
             instance_count,
@@ -841,7 +897,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         offset: u64,
         draw_count: u32,
         stride: u32,
-    ) {
+    ) -> Result<()> {
         self.rec.draw_indirect(buffer, offset, draw_count, stride)
     }
     pub fn draw_indexed(
@@ -851,7 +907,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         first_index: u32,
         vertex_offset: i32,
         first_instance: u32,
-    ) {
+    ) -> Result<()> {
         self.rec.draw_indexed(
             index_count,
             instance_count,
@@ -866,7 +922,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         offset: u64,
         draw_count: u32,
         stride: u32,
-    ) {
+    ) -> Result<()> {
         self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
     }
 }
@@ -877,9 +933,10 @@ impl<'a> CommandRecording<'a> {
         instance_count: u32,
         first_vertex: u32,
         first_instance: u32,
-    ) {
+    ) -> Result<()> {
+        self.graphics.check()?;
         unsafe {
-            (self.pool.res.device.fun.cmd_draw)(
+            (self.pool.device.fun.cmd_draw)(
                 self.buffer.handle.borrow_mut(),
                 vertex_count,
                 instance_count,
@@ -887,6 +944,7 @@ impl<'a> CommandRecording<'a> {
                 first_instance,
             )
         }
+        Ok(())
     }
     fn draw_indirect(
         &mut self,
@@ -894,10 +952,11 @@ impl<'a> CommandRecording<'a> {
         offset: u64,
         draw_count: u32,
         stride: u32,
-    ) {
+    ) -> Result<()> {
+        self.graphics.check()?;
         self.add_resource(buffer.clone());
         unsafe {
-            (self.pool.res.device.fun.cmd_draw_indirect)(
+            (self.pool.device.fun.cmd_draw_indirect)(
                 self.buffer.handle.borrow_mut(),
                 buffer.handle(),
                 offset,
@@ -905,6 +964,7 @@ impl<'a> CommandRecording<'a> {
                 stride,
             )
         }
+        Ok(())
     }
     fn draw_indexed(
         &mut self,
@@ -913,9 +973,10 @@ impl<'a> CommandRecording<'a> {
         first_index: u32,
         vertex_offset: i32,
         first_instance: u32,
-    ) {
+    ) -> Result<()> {
+        self.graphics.check()?;
         unsafe {
-            (self.pool.res.device.fun.cmd_draw_indexed)(
+            (self.pool.device.fun.cmd_draw_indexed)(
                 self.buffer.handle.borrow_mut(),
                 index_count,
                 instance_count,
@@ -924,6 +985,7 @@ impl<'a> CommandRecording<'a> {
                 first_instance,
             )
         }
+        Ok(())
     }
     fn draw_indexed_indirect(
         &mut self,
@@ -931,10 +993,11 @@ impl<'a> CommandRecording<'a> {
         offset: u64,
         draw_count: u32,
         stride: u32,
-    ) {
+    ) -> Result<()> {
+        self.graphics.check()?;
         self.add_resource(buffer.clone());
         unsafe {
-            (self.pool.res.device.fun.cmd_draw_indexed_indirect)(
+            (self.pool.device.fun.cmd_draw_indexed_indirect)(
                 self.buffer.handle.borrow_mut(),
                 buffer.handle(),
                 offset,
@@ -942,6 +1005,7 @@ impl<'a> CommandRecording<'a> {
                 stride,
             )
         }
+        Ok(())
     }
 }
 
@@ -951,25 +1015,33 @@ impl<'a> CommandRecording<'a> {
         group_count_x: u32,
         group_count_y: u32,
         group_count_z: u32,
-    ) {
+    ) -> Result<()> {
+        self.compute.check()?;
         unsafe {
-            (self.pool.res.device.fun.cmd_dispatch)(
+            (self.pool.device.fun.cmd_dispatch)(
                 self.buffer.handle.borrow_mut(),
                 group_count_x,
                 group_count_y,
                 group_count_z,
             );
         }
+        Ok(())
     }
-    pub fn dispatch_indirect(&mut self, buffer: &Arc<Buffer>, offset: u64) {
+    pub fn dispatch_indirect(
+        &mut self,
+        buffer: &Arc<Buffer>,
+        offset: u64,
+    ) -> Result<()> {
+        self.compute.check()?;
         self.add_resource(buffer.clone());
         unsafe {
-            (self.pool.res.device.fun.cmd_dispatch_indirect)(
+            (self.pool.device.fun.cmd_dispatch_indirect)(
                 self.buffer.handle.borrow_mut(),
                 buffer.handle(),
                 offset,
             );
         }
+        Ok(())
     }
 }
 
@@ -978,14 +1050,13 @@ impl<'a> ExternalRenderPassRecording<'a> {
         &mut self,
         commands: &mut [&mut SecondaryCommandBuffer],
     ) -> Result<()> {
-        let scratch = self.rec.pool.scratch.get_mut();
-        let mut resources = bumpalo::vec![in scratch];
-        let mut handles = bumpalo::vec![in scratch];
+        let mut resources = bumpalo::vec![in self.rec.scratch];
+        let mut handles = bumpalo::vec![in self.rec.scratch];
         for command in commands {
             // Check that the buffer is recorded.
             let res = command.lock_resources().ok_or(Error::InvalidArgument)?;
             // Require that this pool be reset before the other pool.
-            if !Owner::ptr_eq(&self.rec.pool.res, &command.0.pool) {
+            if !Owner::ptr_eq(self.rec.pool, &command.0.pool) {
                 resources.push(res as Arc<_>);
             }
             // Check that the buffer is not in use.
@@ -993,14 +1064,14 @@ impl<'a> ExternalRenderPassRecording<'a> {
         }
 
         unsafe {
-            (self.rec.pool.res.device.fun.cmd_execute_commands)(
+            (self.rec.pool.device.fun.cmd_execute_commands)(
                 self.rec.buffer.handle.borrow_mut(),
                 handles.len() as u32,
                 Array::from_slice(&handles).ok_or(Error::InvalidArgument)?,
             )
         }
 
-        self.rec.pool.res.resources.extend(resources);
+        self.rec.pool.resources.extend(resources);
         Ok(())
     }
 }

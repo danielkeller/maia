@@ -1624,7 +1624,7 @@ impl BorderColor {
 }
 
 #[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct DescriptorType(u32);
 impl DescriptorType {
     pub const SAMPLER: Self = Self(0);
@@ -1640,6 +1640,12 @@ impl DescriptorType {
     pub const STORAGE_BUFFER_DYNAMIC: Self = Self(9);
     pub const INPUT_ATTACHMENT: Self = Self(10);
     pub const INLINE_UNIFORM_BLOCK: Self = Self(1000138000);
+}
+
+impl Default for DescriptorType {
+    fn default() -> Self {
+        Self::UNIFORM_BUFFER
+    }
 }
 
 #[repr(transparent)]

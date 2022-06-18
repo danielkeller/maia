@@ -559,7 +559,7 @@ fn main() -> anyhow::Result<()> {
             0,
             bytemuck::bytes_of(&mvp),
         )?;
-        subpass.draw_indexed(6, 1, 0, 0, 0);
+        subpass.draw_indexed(6, 1, 0, 0, 0)?;
         let mut subpass = subpass.end()?;
 
         let cmd = cmd_pool.allocate()?;

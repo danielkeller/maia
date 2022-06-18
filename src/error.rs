@@ -1,9 +1,11 @@
 use crate::types::VkError;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[non_exhaustive]
 pub enum Error {
     Other,
     InvalidArgument,
+    InvalidState,
     OutOfBounds,
     SynchronizationError,
     NotReady,
