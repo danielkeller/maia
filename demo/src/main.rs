@@ -43,24 +43,14 @@ fn required_instance_extensions() -> anyhow::Result<&'static [vk::Str<'static>]>
     }
 }
 
-fn pick_physical_device(
-    mut phys: Vec<vk::PhysicalDevice>,
-) -> vk::PhysicalDevice {
-    for i in 0..phys.len() {
-        if phys[i].properties().device_type
-            == vk::PhysicalDeviceType::DISCRETE_GPU
-        {
-            return phys.swap_remove(i);
-        }
-    }
-    for i in 0..phys.len() {
-        if phys[i].properties().device_type
-            == vk::PhysicalDeviceType::INTEGRATED_GPU
-        {
-            return phys.swap_remove(i);
-        }
-    }
-    phys.swap_remove(0)
+fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
+    let discr = vk::PhysicalDeviceType::DISCRETE_GPU;
+    let int = vk::PhysicalDeviceType::INTEGRATED_GPU;
+    phys.iter()
+        .find(|p| p.properties().device_type == discr)
+        .or_else(|| phys.iter().find(|p| p.properties().device_type == int))
+        .unwrap_or(&phys[0])
+        .clone()
 }
 
 fn pick_queue_family(
@@ -243,7 +233,7 @@ fn main() -> anyhow::Result<()> {
 
     let surf = ember::window::create_surface(&inst, &window)?;
 
-    let phy = pick_physical_device(inst.enumerate_physical_devices()?);
+    let phy = pick_physical_device(&inst.enumerate_physical_devices()?);
     let queue_family = pick_queue_family(&phy, &surf)?;
     if !surf.surface_formats(&phy)?.iter().any(|f| {
         f == &vk::SurfaceFormatKHR {
@@ -267,19 +257,19 @@ fn main() -> anyhow::Result<()> {
     let mut queue = device.queue(0, 0)?;
 
     let mut acquire_sem = device.create_semaphore()?;
-    let mut present_sem = device.create_semaphore()?;
     let mut fence = Some(device.create_fence()?);
 
-    let mut swapchain_size = window.inner_size();
+    let window_size = window.inner_size();
+    let mut swapchain_size = vk::Extent2D {
+        width: window_size.width,
+        height: window_size.height,
+    };
     let mut swapchain = Some(device.khr_swapchain().create(
         vk::CreateSwapchainFrom::Surface(surf),
         vk::SwapchainCreateInfoKHR {
             min_image_count: 3,
             image_format: vk::Format::B8G8R8A8_SRGB,
-            image_extent: vk::Extent2D {
-                width: swapchain_size.width,
-                height: swapchain_size.height,
-            },
+            image_extent: swapchain_size,
             image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT
                 | vk::ImageUsageFlags::TRANSFER_DST,
             ..Default::default()
@@ -470,8 +460,7 @@ fn main() -> anyhow::Result<()> {
 
     let begin = Instant::now();
 
-    type DrawSize = winit::dpi::PhysicalSize<u32>;
-    let mut redraw = move |draw_size: DrawSize| -> anyhow::Result<()> {
+    let mut redraw = move |draw_size: vk::Extent2D| -> anyhow::Result<()> {
         if draw_size != swapchain_size {
             swapchain_size = draw_size;
             framebuffers.clear();
@@ -482,10 +471,7 @@ fn main() -> anyhow::Result<()> {
                 vk::SwapchainCreateInfoKHR {
                     min_image_count: 3,
                     image_format: vk::Format::B8G8R8A8_SRGB,
-                    image_extent: vk::Extent2D {
-                        width: swapchain_size.width,
-                        height: swapchain_size.height,
-                    },
+                    image_extent: swapchain_size,
                     image_usage: vk::ImageUsageFlags::COLOR_ATTACHMENT
                         | vk::ImageUsageFlags::TRANSFER_DST,
                     ..Default::default()
@@ -498,24 +484,20 @@ fn main() -> anyhow::Result<()> {
             .unwrap()
             .acquire_next_image(&mut acquire_sem, u64::MAX)?;
 
-        let framebuffer = framebuffers
-            .entry(img.clone())
-            .or_insert_with(|| {
-                let img_view = img.create_view(&vk::ImageViewCreateInfo {
-                    format: vk::Format::B8G8R8A8_SRGB,
-                    ..Default::default()
-                })?;
-                render_pass.create_framebuffer(
-                    Default::default(),
-                    vec![img_view],
-                    vk::Extent3D {
-                        width: swapchain_size.width,
-                        height: swapchain_size.height,
-                        depth: 1,
-                    },
-                )
-            })
-            .clone()?;
+        if !framebuffers.contains_key(&img) {
+            let img_view = img.create_view(&vk::ImageViewCreateInfo {
+                format: vk::Format::B8G8R8A8_SRGB,
+                ..Default::default()
+            })?;
+            let fb = render_pass.create_framebuffer(
+                Default::default(),
+                vec![img_view],
+                swapchain_size.into(),
+            )?;
+            let sem = device.create_semaphore()?;
+            framebuffers.insert(img.clone(), (fb, sem));
+        }
+        let (framebuffer, present_sem) = framebuffers.get_mut(&img).unwrap();
 
         let time = Instant::now().duration_since(begin);
 
@@ -566,7 +548,7 @@ fn main() -> anyhow::Result<()> {
         let mut pass = cmd_pool.begin(cmd)?.begin_render_pass_secondary(
             &render_pass,
             &framebuffer,
-            vk::Rect2D {
+            &vk::Rect2D {
                 offset: Default::default(),
                 extent: vk::Extent2D {
                     width: draw_size.width,
@@ -587,15 +569,11 @@ fn main() -> anyhow::Result<()> {
                     vk::PipelineStageFlags::TOP_OF_PIPE,
                 )],
                 commands: &mut [&mut buf],
-                signal: &mut [&mut present_sem],
+                signal: &mut [present_sem],
             }],
             fence.take().unwrap(),
         )?;
-        swapchain.as_mut().unwrap().present(
-            &mut queue,
-            &img,
-            &mut present_sem,
-        )?;
+        swapchain.as_mut().unwrap().present(&mut queue, &img, present_sem)?;
         fence = Some(pending_fence.wait()?);
         drop(buf);
         cmd_pool.reset(Default::default())?;
@@ -611,7 +589,12 @@ fn main() -> anyhow::Result<()> {
                 event: WindowEvent::CloseRequested, ..
             } => *control_flow = ControlFlow::Exit,
             Event::RedrawRequested(_) => {
-                if let Err(e) = redraw(window.inner_size()) {
+                let window_size = window.inner_size();
+                let window_size = vk::Extent2D {
+                    width: window_size.width,
+                    height: window_size.height,
+                };
+                if let Err(e) = redraw(window_size) {
                     println!("{:?}", e);
                     *control_flow = ControlFlow::Exit;
                 }

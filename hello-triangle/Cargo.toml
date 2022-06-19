@@ -1,0 +1,10 @@
+[package]
+name = "hello-triangle"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ember = { path = "..", features = [ "window" ] }
+winit = "0.26"
+bytemuck = { version = "1.0", features = [ "derive" ] }
+inline-spirv = "0.1"

@@ -222,14 +222,14 @@ macro_rules! structure_type {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Extent2D {
     pub width: u32,
     pub height: u32,
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Extent3D {
     pub width: u32,
     pub height: u32,
@@ -243,14 +243,14 @@ impl From<Extent2D> for Extent3D {
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Offset2D {
     pub x: i32,
     pub y: i32,
 }
 
 #[repr(C)]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Offset3D {
     pub x: i32,
     pub y: i32,
@@ -928,7 +928,7 @@ pub struct PipelineTessellationStateCreateInfo<Next = Null> {
 structure_type!(PipelineTesselationStateCreateInfoType, 21);
 
 #[repr(C)]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PipelineViewportStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineViewportStateCreateInfoType,
     pub next: Next,
@@ -937,6 +937,31 @@ pub struct PipelineViewportStateCreateInfo<'a, Next = Null> {
     pub scissors: Slice<'a, Rect2D>,
 }
 structure_type!(PipelineViewportStateCreateInfoType, 22);
+
+impl<'a> Default for PipelineViewportStateCreateInfo<'a> {
+    /// Viewport state appropriate for dynamic viewport and scissor
+    fn default() -> Self {
+        const DYN_VIEWPORT: Viewport = Viewport {
+            width: 0.,
+            height: 0.,
+            x: 0.,
+            y: 0.,
+            min_depth: 0.,
+            max_depth: 0.,
+        };
+        const DYN_SCISSOR: Rect2D = Rect2D {
+            offset: Offset2D { x: 0, y: 0 },
+            extent: Extent2D { width: 0, height: 0 },
+        };
+        Self {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            viewports: slice(&[DYN_VIEWPORT]),
+            scissors: slice(&[DYN_SCISSOR]),
+        }
+    }
+}
 
 #[repr(C)]
 #[derive(Debug)]

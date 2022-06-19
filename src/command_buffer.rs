@@ -441,7 +441,7 @@ impl<'a> CommandRecording<'a> {
         mut self,
         render_pass: &Arc<RenderPass>,
         framebuffer: &Arc<Framebuffer>,
-        render_area: Rect2D,
+        render_area: &Rect2D,
         clear_values: &[ClearValue],
     ) -> Result<RenderPassRecording<'a>> {
         self.begin_render_pass_impl(
@@ -461,7 +461,7 @@ impl<'a> CommandRecording<'a> {
         mut self,
         render_pass: &Arc<RenderPass>,
         framebuffer: &Arc<Framebuffer>,
-        render_area: Rect2D,
+        render_area: &Rect2D,
         clear_values: &[ClearValue],
     ) -> Result<ExternalRenderPassRecording<'a>> {
         if !framebuffer.is_compatible_with(render_pass) {
@@ -484,7 +484,7 @@ impl<'a> CommandRecording<'a> {
         &mut self,
         render_pass: &Arc<RenderPass>,
         framebuffer: &Arc<Framebuffer>,
-        render_area: Rect2D,
+        render_area: &Rect2D,
         clear_values: &[ClearValue],
         subpass_contents: SubpassContents,
     ) -> Result<()> {
@@ -498,7 +498,7 @@ impl<'a> CommandRecording<'a> {
             next: Default::default(),
             render_pass: render_pass.handle(),
             framebuffer: framebuffer.handle(),
-            render_area,
+            render_area: *render_area,
             clear_values: clear_values.into(),
         };
         unsafe {

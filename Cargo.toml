@@ -20,4 +20,4 @@ window = ["dep:raw-window-handle", "dep:raw-window-metal"]
 rand = "0.8"
 
 [workspace]
-members = ["demo"]
+members = ["demo", "hello-triangle"]

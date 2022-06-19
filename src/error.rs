@@ -63,5 +63,11 @@ impl<T> std::fmt::Display for ErrorAndSelf<T> {
         std::fmt::Debug::fmt(&self.0, f)
     }
 }
+impl<T> From<ErrorAndSelf<T>> for Error {
+    fn from(ErrorAndSelf(err, _): ErrorAndSelf<T>) -> Self {
+        err
+    }
+}
+
 impl<T> std::error::Error for ErrorAndSelf<T> {}
 pub type ResultAndSelf<T, S> = std::result::Result<T, ErrorAndSelf<S>>;
