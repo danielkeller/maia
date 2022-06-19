@@ -682,6 +682,7 @@ impl Instance {
 
     /// Loads instance function. Panics if the string is not null-terminated or
     /// the function was not found.
+    #[doc = crate::man_link!(vkGetInstanceProcAddr)]
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
         crate::load::load(Some(self.handle()), name)
     }
@@ -690,6 +691,7 @@ impl Instance {
 impl Device {
     /// Loads device function. Panics if the string is not null-terminated or the
     /// function was not found.
+    #[doc = crate::man_link!(vkGetDeviceProcAddr)]
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
         self.instance().load(self.handle(), name)
     }

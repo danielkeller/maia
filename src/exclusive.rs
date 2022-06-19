@@ -8,6 +8,8 @@ pub struct Exclusive<T> {
 
 // Safety: 'inner' is inaccessible from a shared ref
 unsafe impl<T> Sync for Exclusive<T> {}
+impl<T> std::panic::UnwindSafe for Exclusive<T> {}
+impl<T> std::panic::RefUnwindSafe for Exclusive<T> {}
 
 impl<T> std::fmt::Debug for Exclusive<T> {
     fn fmt(

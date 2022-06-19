@@ -6,11 +6,12 @@
 #![doc = "```"]
 
 mod instance;
+mod physical_device;
+mod device;
 mod buffer;
 mod cleanup_queue;
 mod command_buffer;
 mod descriptor_set;
-mod device;
 mod enums;
 mod error;
 mod exclusive;
@@ -20,7 +21,6 @@ mod framebuffer;
 mod image;
 mod load;
 mod memory;
-mod physical_device;
 mod pipeline;
 mod queue;
 mod render_pass;
@@ -67,11 +67,13 @@ pub mod vk {
         BufferMemoryBarrier, ImageMemoryBarrier,
     };
     pub use crate::command_buffer::{
-        CommandBuffer, CommandPool, CommandRecording, RenderPassRecording,
-        SecondaryCommandBuffer,
+        CommandBuffer, CommandPool, CommandRecording,
+        ExternalRenderPassRecording, RenderPassRecording,
+        SecondaryCommandBuffer, SecondaryCommandRecording,
     };
     pub use crate::descriptor_set::{
-        DescriptorBufferInfo, DescriptorSetLayout, DescriptorSetLayoutBinding,
+        DescriptorBufferInfo, DescriptorPool, DescriptorSet,
+        DescriptorSetLayout, DescriptorSetLayoutBinding,
         DescriptorSetUpdateBuilder,
     };
     pub use crate::device::Device;
@@ -95,6 +97,7 @@ pub mod vk {
     };
     pub use crate::queue::Queue;
     pub use crate::queue::SubmitInfo;
+    pub use crate::render_pass::RenderPass;
     pub use crate::sampler::Sampler;
     pub use crate::types::*;
 }

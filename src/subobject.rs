@@ -16,12 +16,18 @@ pub struct WeakSubobject<T: ?Sized>(Weak<UnsafeCell<T>>);
 
 unsafe impl<T: Send> Send for Owner<T> {}
 unsafe impl<T: Sync> Sync for Owner<T> {}
+impl<T: std::panic::UnwindSafe> std::panic::UnwindSafe for Owner<T> {}
+impl<T: std::panic::RefUnwindSafe> std::panic::RefUnwindSafe for Owner<T> {}
 
 unsafe impl<T: Send> Send for Subobject<T> {}
 unsafe impl<T> Sync for Subobject<T> {}
+impl<T> std::panic::UnwindSafe for Subobject<T> {}
+impl<T> std::panic::RefUnwindSafe for Subobject<T> {}
 
 unsafe impl<T: Send> Send for WeakSubobject<T> {}
 unsafe impl<T> Sync for WeakSubobject<T> {}
+impl<T> std::panic::UnwindSafe for WeakSubobject<T> {}
+impl<T> std::panic::RefUnwindSafe for WeakSubobject<T> {}
 
 impl<T> Owner<T> {
     pub fn new(value: T) -> Self {

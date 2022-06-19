@@ -2,23 +2,42 @@ use crate::types::VkError;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
+/// An error either from Vulkan or Ember.
+#[doc = crate::man_link!(VkResult)]
 pub enum Error {
+    /// Unknown Vulkan error.
     Other,
+    /// The arguments provided to the function were incorrect.
     InvalidArgument,
+    /// The object is misconfigured for the requested operation.
     InvalidState,
+    /// The given index was out of bounds of the object.
     OutOfBounds,
+    /// A required operation has not yet completed.
     SynchronizationError,
+    #[doc = crate::man_link!(VkResult)]
     NotReady,
+    #[doc = crate::man_link!(VkResult)]
     Timeout,
+    #[doc = crate::man_link!(VkResult)]
     Incomplete,
+    #[doc = crate::man_link!(VkResult)]
     OutOfHostMemory,
+    #[doc = crate::man_link!(VkResult)]
     InitializationFailed,
+    #[doc = crate::man_link!(VkResult)]
     ExtensionNotPresent,
+    #[doc = crate::man_link!(VkResult)]
     DeviceLost,
+    #[doc = crate::man_link!(VkResult)]
     SurfaceLostKHR,
+    #[doc = crate::man_link!(VkResult)]
     OutOfPoolMemory,
+    #[doc = crate::man_link!(VkResult)]
     SuboptimalHKR,
+    #[doc = crate::man_link!(VkResult)]
     OutOfDateKHR,
+    #[doc = crate::man_link!(VkResult)]
     FullScreenExclusiveModeLostEXT,
 }
 
@@ -51,6 +70,8 @@ impl From<VkError> for Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// For functions that take an argument by value and need to return it in case
+/// of an error.
 pub struct ErrorAndSelf<T>(pub Error, pub T);
 
 impl<T> std::fmt::Debug for ErrorAndSelf<T> {
@@ -70,4 +91,6 @@ impl<T> From<ErrorAndSelf<T>> for Error {
 }
 
 impl<T> std::error::Error for ErrorAndSelf<T> {}
+/// For functions that take an argument by value and need to return it in case
+/// of an error.
 pub type ResultAndSelf<T, S> = std::result::Result<T, ErrorAndSelf<S>>;

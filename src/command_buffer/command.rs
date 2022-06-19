@@ -15,7 +15,10 @@ use super::{
 };
 
 impl<'a> CommandRecording<'a> {
-    /// Offset and size are rounded down to the nearest multiple of 4.
+    /// The reference count of 'dst' is incremented. Offset and size are rounded
+    /// down to the nearest multiple of 4. Returns [Error::OutOfBounds] if they
+    /// are out of bounds.
+    #[doc = crate::man_link!(vkCmdFillBuffer)]
     pub fn fill_buffer(
         &mut self,
         dst: &Arc<Buffer>,
@@ -51,6 +54,9 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
 
+    /// The reference counts of 'src' and 'dst' are incremented.
+    /// Returns [Error::OutOfBounds] if a region is out of bounds.
+    #[doc = crate::man_link!(vkCmdCopyBuffer)]
     pub fn copy_buffer(
         &mut self,
         src: &Arc<Buffer>,
@@ -77,9 +83,11 @@ impl<'a> CommandRecording<'a> {
         self.add_resource(dst.clone());
         Ok(())
     }
-}
 
-impl<'a> CommandRecording<'a> {
+    /// The reference counts of 'src' and 'dst' are incremented.
+    /// Returns [Error::OutOfBounds] if a region is out of bounds. Returns
+    /// [Error::InvalidArgument] if 'regions' is empty.
+    #[doc = crate::man_link!(vkCmdCopyBufferToImage)]
     pub fn copy_buffer_to_image(
         &mut self,
         src: &Arc<Buffer>,
@@ -118,9 +126,11 @@ impl<'a> CommandRecording<'a> {
         self.add_resource(dst.clone());
         Ok(())
     }
-}
 
-impl<'a> CommandRecording<'a> {
+    /// The reference counts of 'src' and 'dst' are incremented.
+    /// Returns [Error::OutOfBounds] if a region is out of bounds. Returns
+    /// [Error::InvalidArgument] if 'regions' is empty.
+    #[doc = crate::man_link!(vkCmdBlitImage)]
     pub fn blit_image(
         &mut self,
         src: &Arc<Image>,
@@ -169,9 +179,10 @@ impl<'a> CommandRecording<'a> {
         self.add_resource(dst.clone());
         Ok(())
     }
-}
 
-impl<'a> CommandRecording<'a> {
+    /// The reference count of 'image' is incremented. Returns
+    /// [Error::InvalidArgument] if 'ranges' is empty.
+    #[doc = crate::man_link!(vkCmdClearColorImage)]
     pub fn clear_color_image(
         &mut self,
         image: &Arc<Image>,
@@ -249,6 +260,7 @@ impl<'a> ImageMemoryBarrier<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn pipeline_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,
@@ -268,6 +280,7 @@ impl<'a> RenderPassRecording<'a> {
         )
     }
     /// A shortcut for simple memory barriers
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn memory_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,
@@ -283,6 +296,7 @@ impl<'a> RenderPassRecording<'a> {
         )
     }
     /// A shortcut for simple image barriers
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn image_barrier(
         &mut self,
         image: &Arc<Image>,
@@ -306,6 +320,7 @@ impl<'a> RenderPassRecording<'a> {
 }
 
 impl<'a> SecondaryCommandRecording<'a> {
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn pipeline_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,
@@ -324,7 +339,8 @@ impl<'a> SecondaryCommandRecording<'a> {
             image_memory_barriers,
         )
     }
-    /// A shortcut for simple memory barriers
+    /// A shortcut for simple memory barriers.
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn memory_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,
@@ -339,7 +355,8 @@ impl<'a> SecondaryCommandRecording<'a> {
             dst_access_mask,
         )
     }
-    /// A shortcut for simple image barriers
+    /// A shortcut for simple image barriers.
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn image_barrier(
         &mut self,
         image: &Arc<Image>,
@@ -363,6 +380,7 @@ impl<'a> SecondaryCommandRecording<'a> {
 }
 
 impl<'a> CommandRecording<'a> {
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn pipeline_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,
@@ -401,7 +419,8 @@ impl<'a> CommandRecording<'a> {
         }
     }
 
-    /// A shortcut for simple memory barriers
+    /// A shortcut for simple memory barriers.
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn memory_barrier(
         &mut self,
         src_stage_mask: PipelineStageFlags,
@@ -429,7 +448,8 @@ impl<'a> CommandRecording<'a> {
         }
     }
 
-    /// A shortcut for simple image barriers
+    /// A shortcut for simple image barriers.
+    #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn image_barrier(
         &mut self,
         image: &Arc<Image>,
@@ -471,18 +491,27 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
+    /// Binds the pipeline to the appropriate bind point. The reference count of
+    /// 'pipeline' is incremented.
+    #[doc = crate::man_link!(vkCmdBindPipeline)]
     pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
         self.rec.bind_pipeline(pipeline)
     }
 }
 
 impl<'a> SecondaryCommandRecording<'a> {
+    /// Binds the pipeline to the appropriate bind point. The reference count of
+    /// 'pipeline' is incremented.
+    #[doc = crate::man_link!(vkCmdBindPipeline)]
     pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
         self.rec.bind_pipeline(pipeline)
     }
 }
 
 impl<'a> CommandRecording<'a> {
+    /// Binds the pipeline to the appropriate bind point. The reference count of
+    /// 'pipeline' is incremented.
+    #[doc = crate::man_link!(vkCmdBindPipeline)]
     pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
         if pipeline.render_pass().is_some() {
             self.graphics.pipeline = Some(pipeline.clone());
@@ -506,16 +535,19 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
+    #[doc = crate::man_link!(vkCmdSetViewport)]
     pub fn set_viewport(&mut self, viewport: &Viewport) {
         self.rec.set_viewport(viewport)
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
+    #[doc = crate::man_link!(vkCmdSetViewport)]
     pub fn set_viewport(&mut self, viewport: &Viewport) {
         self.rec.set_viewport(viewport)
     }
 }
 impl<'a> CommandRecording<'a> {
+    #[doc = crate::man_link!(vkCmdSetViewport)]
     pub fn set_viewport(&mut self, viewport: &Viewport) {
         unsafe {
             (self.pool.device.fun.cmd_set_viewport)(
@@ -529,16 +561,19 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
+    #[doc = crate::man_link!(vkCmdSetScissor)]
     pub fn set_scissor(&mut self, scissor: &Rect2D) {
         self.rec.set_scissor(scissor)
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
+    #[doc = crate::man_link!(vkCmdSetScissor)]
     pub fn set_scissor(&mut self, scissor: &Rect2D) {
         self.rec.set_scissor(scissor)
     }
 }
 impl<'a> CommandRecording<'a> {
+    #[doc = crate::man_link!(vkCmdSetScissor)]
     pub fn set_scissor(&mut self, scissor: &Rect2D) {
         unsafe {
             (self.pool.device.fun.cmd_set_scissor)(
@@ -552,6 +587,9 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
+    /// Reference counts of buffers are incremented. Returns
+    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self,
         first_binding: u32,
@@ -559,6 +597,9 @@ impl<'a> RenderPassRecording<'a> {
     ) -> Result<()> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
+    /// Reference count of 'buffer' is incremented. Returns
+    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self,
         buffer: &Arc<Buffer>,
@@ -569,6 +610,9 @@ impl<'a> RenderPassRecording<'a> {
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
+    /// Reference counts of buffers are incremented. Returns
+    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self,
         first_binding: u32,
@@ -576,6 +620,9 @@ impl<'a> SecondaryCommandRecording<'a> {
     ) -> Result<()> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
+    /// Reference count of 'buffer' is incremented. Returns
+    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self,
         buffer: &Arc<Buffer>,
@@ -586,6 +633,9 @@ impl<'a> SecondaryCommandRecording<'a> {
     }
 }
 impl<'a> CommandRecording<'a> {
+    /// Reference counts of buffers are incremented. Returns
+    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self,
         first_binding: u32,
@@ -612,6 +662,9 @@ impl<'a> CommandRecording<'a> {
         }
         Ok(())
     }
+    /// Reference count of 'buffer' is incremented. Returns
+    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self,
         buffer: &Arc<Buffer>,
@@ -631,6 +684,17 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
+    /// Returns [Error::InvalidArgument] if a member of 'sets' is not compatible
+    /// with the corresponding member of 'layout', if the length of
+    /// 'dynamic_offsets' is not correct for 'layout', or if any binding in any
+    /// of 'sets' is not initialized.
+    ///
+    /// If the value of the binding will not be used, create a dummy object of
+    /// the appropriate type and bind it.
+    ///
+    /// The reference count of each member of 'sets' is incremented.
+    ///
+    #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
         &mut self,
         pipeline_bind_point: PipelineBindPoint,
@@ -649,6 +713,17 @@ impl<'a> RenderPassRecording<'a> {
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
+    /// Returns [Error::InvalidArgument] if a member of 'sets' is not compatible
+    /// with the corresponding member of 'layout', if the length of
+    /// 'dynamic_offsets' is not correct for 'layout', or if any binding in any
+    /// of 'sets' is not initialized.
+    ///
+    /// If the value of the binding will not be used, create a dummy object of
+    /// the appropriate type and bind it.
+    ///
+    /// The reference count of each member of 'sets' is incremented.
+    ///
+    #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
         &mut self,
         pipeline_bind_point: PipelineBindPoint,
@@ -697,6 +772,17 @@ impl<'a> Bindings<'a> {
 }
 
 impl<'a> CommandRecording<'a> {
+    /// Returns [Error::InvalidArgument] if a member of 'sets' is not compatible
+    /// with the corresponding member of 'layout', if the length of
+    /// 'dynamic_offsets' is not correct for 'layout', or if any binding in any
+    /// of 'sets' is not initialized.
+    ///
+    /// If the value of the binding will not be used, create a dummy object of
+    /// the appropriate type and bind it.
+    ///
+    /// The reference count of each member of 'sets' is incremented.
+    ///
+    #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
         &mut self,
         pipeline_bind_point: PipelineBindPoint,
@@ -756,6 +842,10 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
+    /// Sets push constants. Returns [Error::OutOfBounds] if the data is out of
+    /// bounds for push contants in 'layout' or if 'stage_flags' is incorrect.
+    /// Returns [Error::InvalidArgument] if 'data' is empty.
+    #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self,
         layout: &PipelineLayout,
@@ -767,6 +857,10 @@ impl<'a> RenderPassRecording<'a> {
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
+    /// Sets push constants. Returns [Error::OutOfBounds] if the data is out of
+    /// bounds for push contants in 'layout' or if 'stage_flags' is incorrect.
+    /// Returns [Error::InvalidArgument] if 'data' is empty.
+    #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self,
         layout: &PipelineLayout,
@@ -778,6 +872,10 @@ impl<'a> SecondaryCommandRecording<'a> {
     }
 }
 impl<'a> CommandRecording<'a> {
+    /// Sets push constants. Returns [Error::OutOfBounds] if the data is out of
+    /// bounds for push contants in 'layout' or if 'stage_flags' is incorrect.
+    /// Returns [Error::InvalidArgument] if 'data' is empty.
+    #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self,
         layout: &PipelineLayout,
@@ -819,9 +917,9 @@ impl<'a> Bindings<'a> {
         }
         return Err(Error::InvalidState);
     }
-    fn check_render_pass(&self, pass: &RenderPass) -> Result<()> {
+    fn check_render_pass(&self, pass: &RenderPass, subpass: u32) -> Result<()> {
         if let Some(pipeline) = self.pipeline.as_ref() {
-            if pipeline.is_compatible_with(pass) {
+            if pipeline.is_compatible_with(pass, subpass) {
                 return Ok(());
             }
         }
@@ -829,7 +927,19 @@ impl<'a> Bindings<'a> {
     }
 }
 
+macro_rules! draw_state {
+    () => {
+        "Returns [Error::InvalidState] if the bound pipeline is not compatible 
+        with the current render pass and subpass, if the bound descriptor sets 
+        and bound graphics pipeline do not have a compatible layout, or if a 
+        descriptor set mentioned in the pipeline's layout is not bound."
+    }
+}
+
 impl<'a> RenderPassRecording<'a> {
+    #[doc = draw_state!()]
+    ///
+    #[doc = crate::man_link!(vkCmdDraw)]
     pub fn draw(
         &mut self,
         vertex_count: u32,
@@ -837,7 +947,7 @@ impl<'a> RenderPassRecording<'a> {
         first_vertex: u32,
         first_instance: u32,
     ) -> Result<()> {
-        self.rec.graphics.check_render_pass(&self.pass)?;
+        self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw(
             vertex_count,
             instance_count,
@@ -845,6 +955,11 @@ impl<'a> RenderPassRecording<'a> {
             first_instance,
         )
     }
+    #[doc = draw_state!()]
+    ///
+    /// The reference count of 'buffer' is incremented.
+    ///
+    #[doc = crate::man_link!(vkCmdDrawIndirect)]
     pub fn draw_indirect(
         &mut self,
         buffer: &Arc<Buffer>,
@@ -852,9 +967,12 @@ impl<'a> RenderPassRecording<'a> {
         draw_count: u32,
         stride: u32,
     ) -> Result<()> {
-        self.rec.graphics.check_render_pass(&self.pass)?;
+        self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw_indirect(buffer, offset, draw_count, stride)
     }
+    #[doc = draw_state!()]
+    ///
+    #[doc = crate::man_link!(vkCmdDrawIndexed)]
     pub fn draw_indexed(
         &mut self,
         index_count: u32,
@@ -863,7 +981,7 @@ impl<'a> RenderPassRecording<'a> {
         vertex_offset: i32,
         first_instance: u32,
     ) -> Result<()> {
-        self.rec.graphics.check_render_pass(&self.pass)?;
+        self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw_indexed(
             index_count,
             instance_count,
@@ -872,6 +990,11 @@ impl<'a> RenderPassRecording<'a> {
             first_instance,
         )
     }
+    #[doc = draw_state!()]
+    ///
+    /// The reference count of 'buffer' is incremented.
+    ///
+    #[doc = crate::man_link!(vkCmdDrawIndexedIndirect)]
     pub fn draw_indexed_indirect(
         &mut self,
         buffer: &Arc<Buffer>,
@@ -879,11 +1002,14 @@ impl<'a> RenderPassRecording<'a> {
         draw_count: u32,
         stride: u32,
     ) -> Result<()> {
-        self.rec.graphics.check_render_pass(&self.pass)?;
+        self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
+    #[doc = draw_state!()]
+    ///
+    #[doc = crate::man_link!(vkCmdDraw)]
     pub fn draw(
         &mut self,
         vertex_count: u32,
@@ -891,7 +1017,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         first_vertex: u32,
         first_instance: u32,
     ) -> Result<()> {
-        self.rec.graphics.check_render_pass(&self.pass)?;
+        self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw(
             vertex_count,
             instance_count,
@@ -899,6 +1025,11 @@ impl<'a> SecondaryCommandRecording<'a> {
             first_instance,
         )
     }
+    #[doc = draw_state!()]
+    ///
+    /// The reference count of 'buffer' is incremented.
+    ///
+    #[doc = crate::man_link!(vkCmdDrawIndirect)]
     pub fn draw_indirect(
         &mut self,
         buffer: &Arc<Buffer>,
@@ -906,9 +1037,12 @@ impl<'a> SecondaryCommandRecording<'a> {
         draw_count: u32,
         stride: u32,
     ) -> Result<()> {
-        self.rec.graphics.check_render_pass(&self.pass)?;
+        self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw_indirect(buffer, offset, draw_count, stride)
     }
+    #[doc = draw_state!()]
+    ///
+    #[doc = crate::man_link!(vkCmdDrawIndexed)]
     pub fn draw_indexed(
         &mut self,
         index_count: u32,
@@ -917,7 +1051,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         vertex_offset: i32,
         first_instance: u32,
     ) -> Result<()> {
-        self.rec.graphics.check_render_pass(&self.pass)?;
+        self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw_indexed(
             index_count,
             instance_count,
@@ -926,6 +1060,11 @@ impl<'a> SecondaryCommandRecording<'a> {
             first_instance,
         )
     }
+    #[doc = draw_state!()]
+    ///
+    /// The reference count of 'buffer' is incremented.
+    ///
+    #[doc = crate::man_link!(vkCmdDrawIndexedIndirect)]
     pub fn draw_indexed_indirect(
         &mut self,
         buffer: &Arc<Buffer>,
@@ -933,7 +1072,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         draw_count: u32,
         stride: u32,
     ) -> Result<()> {
-        self.rec.graphics.check_render_pass(&self.pass)?;
+        self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
     }
 }
@@ -1057,13 +1196,27 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> ExternalRenderPassRecording<'a> {
+    /// Returns [Error::InvalidArgument] if 'commands' is empty, if a member of
+    /// 'commands' is not in the executable state, or if a member of 'commands'
+    /// is not compatible with the current pass and subpass. Returns
+    /// [Error::SynchronizationError] if a member of 'commands' is currently
+    /// recorded to another command buffer.
+    ///
+    /// If a command was recorded from another pool, increments the reference
+    /// count of that pool. That is, this pool must be reset before the other
+    /// one can be. Note that this **does not** check for cycles of length
+    /// greater than one: Adding a secondary command buffer from pool A to a
+    /// primary from pool B, and a secondary from pool B to a primary from pool
+    /// A will leak both pools.
+    ///
+    #[doc = crate::man_link!(vkCmdExecuteCommands)]
     pub fn execute_commands(
         &mut self,
         commands: &mut [&mut SecondaryCommandBuffer],
     ) -> Result<()> {
         let mut resources = bumpalo::vec![in self.rec.scratch];
         let mut handles = bumpalo::vec![in self.rec.scratch];
-        for command in commands {
+        for command in commands.iter_mut() {
             if !self.pass.compatible(command.pass.as_deref().unwrap())
                 || self.subpass != command.subpass
             {
@@ -1087,7 +1240,12 @@ impl<'a> ExternalRenderPassRecording<'a> {
             )
         }
 
+        drop(handles);
         self.rec.pool.resources.extend(resources);
+        for command in commands {
+            // Prevent this buffer from being reused.
+            self.rec.pool.resources.push(command.buf.clone());
+        }
         Ok(())
     }
 }

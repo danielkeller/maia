@@ -4,6 +4,7 @@ use crate::load::DeviceFn;
 use crate::physical_device::PhysicalDevice;
 use crate::types::*;
 
+/// A logical device.
 pub struct Device {
     handle: Handle<VkDevice>,
     pub(crate) fun: DeviceFn,
@@ -39,6 +40,8 @@ impl Drop for Device {
 }
 
 impl PhysicalDevice {
+    /// Create a logical device for this physical device.
+    #[doc = crate::man_link!(vkCreateDevice)]
     pub fn create_device(
         &self,
         info: &DeviceCreateInfo<'_>,
@@ -76,15 +79,19 @@ impl PhysicalDevice {
 }
 
 impl Device {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkDevice> {
         self.handle.borrow()
     }
+    /// Returns the associated phyical device.
     pub fn physical_device(&self) -> &PhysicalDevice {
         &self.physical_device
     }
+    /// Returns the associated instance.
     pub fn instance(&self) -> &Instance {
         self.physical_device.instance()
     }
+    /// Returns true if a queue with this family index and index exists.
     pub fn has_queue(&self, queue_family_index: u32, queue_index: u32) -> bool {
         let i = queue_family_index as usize;
         i < self.queues.len() && self.queues[i] >= queue_index

@@ -8,6 +8,7 @@ use std::num::NonZeroI32;
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+/// A VkResult with a code other than VK_SUCCESS.
 pub struct VkError(pub NonZeroI32);
 
 impl std::fmt::Display for VkError {
@@ -17,6 +18,7 @@ impl std::fmt::Display for VkError {
 }
 impl std::error::Error for VkError {}
 
+#[doc = crate::man_link!(VkResult)]
 pub type VkResult = std::result::Result<(), VkError>;
 
 // Check that VkResult corresponds to Vulkan's definition. This allows wrapper
@@ -56,6 +58,8 @@ impl Debug for NonNullNonDispatchableHandle {
 // unneccesary.
 unsafe impl Send for NonNullDispatchableHandle {}
 unsafe impl Sync for NonNullDispatchableHandle {}
+impl std::panic::UnwindSafe for NonNullDispatchableHandle {}
+impl std::panic::RefUnwindSafe for NonNullDispatchableHandle {}
 
 /// Owned Vulkan handle.
 #[repr(transparent)]

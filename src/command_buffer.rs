@@ -15,12 +15,24 @@ use crate::types::*;
 
 pub mod command;
 
+/// A command pool.
+///
+/// Any resources that are recorded into command buffers allocated from the pool
+/// have their reference count incremented and held by the pool. To decrement
+/// the count and allow the resources to be freed, either call
+/// [reset()](CommandPool::reset()) or drop the pool and all buffers allocated
+/// from it.
 pub struct CommandPool {
     recording: Option<Arc<RecordedCommands>>,
     res: Owner<CommandPoolLifetime>,
     scratch: Exclusive<bumpalo::Bump>,
 }
 
+/// A primary command buffer.
+///
+/// **Note:** Dropping the CommandBuffer and not dropping the [CommandPool] it
+/// was allocated from will leak the pool's resources. Instead, pass it to
+/// [CommandPool::free()]
 #[must_use = "Leaks pool resources if not freed"]
 #[derive(Debug)]
 // Theoretically the arc could be on the outside, but this would encourage users
@@ -28,6 +40,11 @@ pub struct CommandPool {
 // to find it locked.
 pub struct CommandBuffer(Arc<CommandBufferLifetime>);
 
+/// A secondary command buffer.
+///
+/// **Note:** Dropping the CommandBuffer and not dropping the [CommandPool] it
+/// was allocated from will leak the pool's resources. Instead, pass it to
+/// [CommandPool::free_secondary()]
 #[must_use = "Leaks pool resources if not freed"]
 #[derive(Debug)]
 pub struct SecondaryCommandBuffer {
@@ -42,6 +59,7 @@ struct Bindings<'a> {
     pipeline: Option<Arc<Pipeline>>,
 }
 
+/// An in-progress command buffer recording, outside of a render pass.
 pub struct CommandRecording<'a> {
     pool: &'a mut Owner<CommandPoolLifetime>,
     recording: &'a Arc<RecordedCommands>,
@@ -51,6 +69,7 @@ pub struct CommandRecording<'a> {
     buffer: CommandBufferLifetime,
 }
 
+/// An in-progress command buffer recording, inside a render pass.
 #[must_use = "Record render pass commands on this object"]
 pub struct RenderPassRecording<'a> {
     rec: CommandRecording<'a>,
@@ -58,6 +77,8 @@ pub struct RenderPassRecording<'a> {
     subpass: u32,
 }
 
+/// An in-progress command buffer recording, inside a render pass whose contents
+/// is provided with secondary command buffers.
 #[must_use = "Record secondary command buffers on this object"]
 pub struct ExternalRenderPassRecording<'a> {
     rec: CommandRecording<'a>,
@@ -65,6 +86,7 @@ pub struct ExternalRenderPassRecording<'a> {
     subpass: u32,
 }
 
+/// An in-progress secondary command buffer recording, inside a render pass.
 pub struct SecondaryCommandRecording<'a> {
     rec: CommandRecording<'a>,
     pass: Arc<RenderPass>,
@@ -96,9 +118,14 @@ impl std::fmt::Debug for CommandPool {
     }
 }
 
+// We never put anything in here that uses interior mutability in 'Debug'
+impl std::panic::UnwindSafe for CommandPoolLifetime {}
+impl std::panic::RefUnwindSafe for CommandPoolLifetime {}
+
 impl Device {
-    // Don't take a create info, the different types of command pools need
-    // different interfaces and thus different constructors
+    /// Create a command pool. The pool is not transient, not protected, and its
+    /// buffers cannot be individually reset.
+    #[doc = crate::man_link!(vkCreateCommandPool)]
     pub fn create_command_pool(
         self: &Arc<Self>,
         queue_family_index: u32,
@@ -147,11 +174,15 @@ impl Drop for CommandPoolLifetime {
 }
 
 impl CommandPool {
+    /// Borrows the inner Vulkan handle.
     pub fn handle_mut(&mut self) -> Mut<VkCommandPool> {
         self.res.handle.borrow_mut()
     }
 
-    /// Return SynchronizationError if any command buffers are pending.
+    /// Return [Error::SynchronizationError] if any command buffers are pending.
+    /// To wait for commands to finish execution, call
+    /// [PendingFence::wait()](crate::vk::PendingFence::wait()) on a fence
+    /// passed to [Queue::submit()](crate::vk::Queue::submit())
     pub fn reset(&mut self, flags: CommandPoolResetFlags) -> Result<()> {
         match Arc::try_unwrap(self.recording.take().unwrap()) {
             // Buffer in pending state
@@ -176,10 +207,14 @@ impl CommandPool {
         }
     }
 
+    /// Allocate a new primary command buffer from the pool.
+    #[doc = crate::man_link!(vkAllocateCommandBuffers)]
     pub fn allocate(&mut self) -> Result<CommandBuffer> {
         Ok(CommandBuffer(self.allocate_impl(CommandBufferLevel::PRIMARY)?))
     }
 
+    /// Allocate a new secondary command buffer from the pool.
+    #[doc = crate::man_link!(vkAllocateCommandBuffers)]
     pub fn allocate_secondary(&mut self) -> Result<SecondaryCommandBuffer> {
         Ok(SecondaryCommandBuffer {
             buf: self.allocate_impl(CommandBufferLevel::SECONDARY)?,
@@ -215,6 +250,7 @@ impl CommandPool {
         }))
     }
 
+    #[doc = crate::man_link!(vkFreeCommandBuffers)]
     pub fn free(&mut self, mut buffer: CommandBuffer) -> Result<()> {
         if !Owner::ptr_eq(&self.res, &buffer.0.pool) {
             return Err(Error::InvalidArgument);
@@ -222,6 +258,7 @@ impl CommandPool {
         Ok(self.free_impl(buffer.handle_mut()?))
     }
 
+    #[doc = crate::man_link!(vkFreeCommandBuffers)]
     pub fn free_secondary(
         &mut self,
         mut buffer: SecondaryCommandBuffer,
@@ -244,8 +281,10 @@ impl CommandPool {
         }
     }
 
-    /// Returns InvalidArgument if the buffer does not belong to this pool or is
-    /// not in the initial state.
+    /// Returns [Error::InvalidArgument] if the buffer does not belong to this
+    /// pool or is in the executable state. Returns
+    /// [Error::SynchronizationError] if the buffer is in the pending state.
+    #[doc = crate::man_link!(vkBeginCommandBuffer)]
     pub fn begin<'a>(
         &'a mut self,
         buffer: CommandBuffer,
@@ -283,8 +322,10 @@ impl CommandPool {
         })
     }
 
-    /// Returns InvalidArgument if the buffer does not belong to this pool or is
-    /// not in the initial state.
+    /// Returns [Error::InvalidArgument] if the buffer does not belong to this
+    /// pool or is in the executable state. Returns
+    /// [Error::SynchronizationError] if the buffer is in the pending state.
+    #[doc = crate::man_link!(vkBeginCommandBuffer)]
     pub fn begin_secondary<'a>(
         &'a mut self,
         buffer: SecondaryCommandBuffer,
@@ -354,6 +395,8 @@ impl CommandPool {
 }
 
 impl CommandBuffer {
+    /// Attempts to borrow the inner Vulkan handle. Returns
+    /// [Error::SynchronizationError] if the buffer is in the pending state.
     pub fn handle_mut(&mut self) -> Result<Mut<VkCommandBuffer>> {
         match Arc::get_mut(&mut self.0) {
             Some(inner) => Ok(inner.handle.borrow_mut()),
@@ -373,6 +416,8 @@ impl CommandBuffer {
 }
 
 impl SecondaryCommandBuffer {
+    /// Attempts to borrow the inner Vulkan handle. Returns
+    /// [Error::SynchronizationError] if the buffer is in the pending state.
     pub fn handle_mut(&mut self) -> Result<Mut<VkCommandBuffer>> {
         match Arc::get_mut(&mut self.buf) {
             Some(inner) => Ok(inner.handle.borrow_mut()),
@@ -407,6 +452,7 @@ impl<'a> CommandRecording<'a> {
     }
     /// A failed call to vkEndCommandBuffer leaves the buffer in the invalid
     /// state, so it is dropped in that case.
+    #[doc = crate::man_link!(vkEndCommandBuffer)]
     pub fn end(mut self) -> Result<CommandBuffer> {
         unsafe {
             (self.pool.device.fun.end_command_buffer)(
@@ -421,6 +467,7 @@ impl<'a> CommandRecording<'a> {
 impl<'a> SecondaryCommandRecording<'a> {
     /// A failed call to vkEndCommandBuffer leaves the buffer in the invalid
     /// state, so it is dropped in that case.
+    #[doc = crate::man_link!(vkEndCommandBuffer)]
     pub fn end(mut self) -> Result<SecondaryCommandBuffer> {
         unsafe {
             (self.rec.pool.device.fun.end_command_buffer)(
@@ -437,6 +484,9 @@ impl<'a> SecondaryCommandRecording<'a> {
 }
 
 impl<'a> CommandRecording<'a> {
+    /// Begins a render pass recorded inline. Returns [Error::InvalidArgument]
+    /// if 'framebuffer' and 'render_pass' are not compatible.
+    #[doc = crate::man_link!(vkCmdBeginRenderPass)]
     pub fn begin_render_pass(
         mut self,
         render_pass: &Arc<RenderPass>,
@@ -457,6 +507,10 @@ impl<'a> CommandRecording<'a> {
             subpass: 0,
         })
     }
+    /// Begins a render pass recorded in secondary command buffers. Returns
+    /// [Error::InvalidArgument] if 'framebuffer' and 'render_pass' are not
+    /// compatible.
+    #[doc = crate::man_link!(vkCmdBeginRenderPass)]
     pub fn begin_render_pass_secondary(
         mut self,
         render_pass: &Arc<RenderPass>,
@@ -513,6 +567,9 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
+    /// Advance to the next subpass, recorded inline. Returns
+    /// [Error::OutOfBounds] if this is the last subpass.
+    #[doc = crate::man_link!(vkCmdNextSubpass)]
     pub fn next_subpass(&mut self) -> Result<()> {
         if self.subpass >= self.pass.num_subpasses() - 1 {
             return Err(Error::OutOfBounds);
@@ -526,6 +583,9 @@ impl<'a> RenderPassRecording<'a> {
         }
         Ok(())
     }
+    /// Advance to the next subpass, recorded in secondary command buffers.
+    /// Returns [Error::OutOfBounds] if this is the last subpass.
+    #[doc = crate::man_link!(vkCmdNextSubpass)]
     pub fn next_subpass_secondary(
         mut self,
     ) -> Result<ExternalRenderPassRecording<'a>> {
@@ -544,9 +604,12 @@ impl<'a> RenderPassRecording<'a> {
             subpass: self.subpass + 1,
         })
     }
+    /// Ends the render pass. Returns [Error::InvalidState] if this is not the
+    /// last subpass.
+    #[doc = crate::man_link!(vkCmdEndRenderPass)]
     pub fn end(mut self) -> Result<CommandRecording<'a>> {
         if self.subpass != self.pass.num_subpasses() - 1 {
-            return Err(Error::InvalidArgument);
+            return Err(Error::InvalidState);
         }
         unsafe {
             (self.rec.pool.device.fun.cmd_end_render_pass)(
@@ -558,6 +621,9 @@ impl<'a> RenderPassRecording<'a> {
 }
 
 impl<'a> ExternalRenderPassRecording<'a> {
+    /// Advance to the next subpass, recorded in secondary command buffers.
+    /// Returns [Error::OutOfBounds] if this is the last subpass.
+    #[doc = crate::man_link!(vkCmdNextSubpass)]
     pub fn next_subpass_secondary(&mut self) -> Result<()> {
         if self.subpass >= self.pass.num_subpasses() - 1 {
             return Err(Error::OutOfBounds);
@@ -571,6 +637,9 @@ impl<'a> ExternalRenderPassRecording<'a> {
         }
         Ok(())
     }
+    /// Advance to the next subpass, recorded inline. Returns
+    /// [Error::OutOfBounds] if this is the last subpass.
+    #[doc = crate::man_link!(vkCmdNextSubpass)]
     pub fn next_subpass(mut self) -> Result<RenderPassRecording<'a>> {
         if self.subpass >= self.pass.num_subpasses() - 1 {
             return Err(Error::OutOfBounds);
@@ -587,9 +656,12 @@ impl<'a> ExternalRenderPassRecording<'a> {
             subpass: self.subpass + 1,
         })
     }
+    /// Ends the render pass. Returns [Error::InvalidState] if this is not the
+    /// last subpass.
+    #[doc = crate::man_link!(vkCmdEndRenderPass)]
     pub fn end(mut self) -> Result<CommandRecording<'a>> {
         if self.subpass != self.pass.num_subpasses() - 1 {
-            return Err(Error::InvalidArgument);
+            return Err(Error::InvalidState);
         }
         unsafe {
             (self.rec.pool.device.fun.cmd_end_render_pass)(

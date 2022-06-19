@@ -131,6 +131,7 @@ pub struct Pipeline {
     handle: Handle<VkPipeline>,
     layout: Arc<PipelineLayout>,
     render_pass: Option<Arc<RenderPass>>,
+    subpass: u32,
     device: Arc<Device>,
 }
 
@@ -212,6 +213,7 @@ impl Device {
             handle: unsafe { handle.assume_init() },
             layout: info.layout.clone(),
             render_pass: Some(info.render_pass.clone()),
+            subpass: info.subpass,
             device: self.clone(),
         }))
     }
@@ -246,6 +248,7 @@ impl Device {
             handle: unsafe { handle.assume_init() },
             layout: layout.clone(),
             render_pass: None,
+            subpass: 0,
             device: self.clone(),
         }))
     }
@@ -261,8 +264,9 @@ impl Pipeline {
     pub fn render_pass(&self) -> Option<&RenderPass> {
         self.render_pass.as_deref()
     }
-    pub fn is_compatible_with(&self, pass: &RenderPass) -> bool {
+    pub fn is_compatible_with(&self, pass: &RenderPass, subpass: u32) -> bool {
         self.render_pass.as_ref().map_or(false, |p| p.compatible(pass))
+            && self.subpass == subpass
     }
 }
 

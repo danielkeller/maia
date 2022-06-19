@@ -4,6 +4,8 @@ use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::Device;
 
+/// A buffer with no memory. Call [DeviceMemory::bind_buffer_memory] to bind
+/// memory to the buffer.
 #[derive(Debug)]
 pub struct BufferWithoutMemory {
     handle: Handle<VkBuffer>,
@@ -11,6 +13,7 @@ pub struct BufferWithoutMemory {
     device: Arc<Device>,
 }
 
+/// A buffer with memory attached to it.
 #[derive(Debug)]
 pub struct Buffer {
     inner: BufferWithoutMemory,
@@ -18,6 +21,7 @@ pub struct Buffer {
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkCreateBuffer)]
     pub fn create_buffer(
         self: &Arc<Self>,
         info: &BufferCreateInfo<'_>,
@@ -35,6 +39,7 @@ impl Device {
 }
 impl DeviceMemory {
     // TODO: Bulk bind
+    #[doc = crate::man_link!(vkBindBufferMemory)]
     pub fn bind_buffer_memory(
         &self,
         buffer: BufferWithoutMemory,
@@ -79,24 +84,30 @@ impl Drop for BufferWithoutMemory {
 }
 
 impl Buffer {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkBuffer> {
         self.inner.handle.borrow()
     }
+    /// Returns the associated device.
     pub fn device(&self) -> &Device {
         &*self.inner.device
     }
+    /// Returns the buffer length in bytes.
     pub fn len(&self) -> u64 {
         self.inner.len
     }
+    /// Returns true if the offset and length are within the buffer's bounds.
     pub fn bounds_check(&self, offset: u64, len: u64) -> bool {
         self.len() >= offset && self.len() - offset >= len
     }
 }
 
 impl BufferWithoutMemory {
+    /// Borrows the inner Vulkan handle.
     pub fn borrow_mut(&mut self) -> Mut<VkBuffer> {
         self.handle.borrow_mut()
     }
+    #[doc = crate::man_link!(vkGetBufferMemoryRequirements)]
     pub fn memory_requirements(&self) -> MemoryRequirements {
         let mut result = Default::default();
         unsafe {
