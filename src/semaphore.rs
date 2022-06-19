@@ -4,6 +4,13 @@ use crate::error::Result;
 use crate::image::Image;
 use crate::types::*;
 
+/// A
+#[doc = crate::spec_link!("semaphore", "synchronization-semaphores")]
+pub struct Semaphore {
+    pub(crate) signaller: Option<SemaphoreSignaller>,
+    pub(crate) inner: Arc<SemaphoreRAII>,
+}
+
 #[derive(Debug)]
 pub(crate) enum SemaphoreSignaller {
     Swapchain(Arc<Image>),
@@ -15,12 +22,8 @@ pub(crate) struct SemaphoreRAII {
     device: Arc<Device>,
 }
 
-pub struct Semaphore {
-    pub(crate) signaller: Option<SemaphoreSignaller>,
-    pub(crate) inner: Arc<SemaphoreRAII>,
-}
-
 impl Device {
+    #[doc = crate::man_link!(vkCreateSemaphore)]
     pub fn create_semaphore(self: &Arc<Self>) -> Result<Semaphore> {
         let mut handle = None;
         unsafe {
@@ -42,6 +45,11 @@ impl Device {
 }
 
 impl Drop for Semaphore {
+    /// **Warning:** If a semaphore is passed to
+    /// [SwapchainKHR::acquire_next_image()](crate::vk::SwapchainKHR::acquire_next_image())
+    /// and then dropped without being waited on, the swapchain and semaphore
+    /// will be leaked, since there is no way to know when it can be safely
+    /// dropped other than waiting on it.
     fn drop(&mut self) {
         if let Some(SemaphoreSignaller::Swapchain(sc)) = self.signaller.take() {
             // Semaphore incorrectly dropped
@@ -69,9 +77,11 @@ impl Drop for SemaphoreRAII {
 }
 
 impl Semaphore {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkSemaphore> {
         self.inner.handle.borrow()
     }
+    /// Borrows the inner Vulkan handle.
     pub fn handle_mut(&mut self) -> Mut<VkSemaphore> {
         // Safe because the outer structure is mutably borrowed, and handle is
         // private.

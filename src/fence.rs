@@ -3,12 +3,18 @@ use crate::device::Device;
 use crate::error::Result;
 use crate::types::*;
 
+/// A
+#[doc = concat!(crate::spec_link!("fence", "synchronization-fences"), ".")]
+/// When submitted to a [Queue](crate::vk::Queue), becomes a [PendingFence].
 #[derive(Debug)]
 pub struct Fence {
     handle: Option<Handle<VkFence>>,
     device: Arc<Device>,
 }
 
+/// A
+#[doc = crate::spec_link!("fence", "synchronization-fences")]
+/// with a signal operation pending.
 #[derive(Debug)]
 #[must_use = "Dropping a pending fence leaks it."]
 pub struct PendingFence {
@@ -18,6 +24,7 @@ pub struct PendingFence {
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkCreateFence)]
     pub fn create_fence(self: &Arc<Self>) -> Result<Fence> {
         let mut handle = None;
         unsafe {
@@ -47,6 +54,7 @@ impl Drop for Fence {
 }
 
 impl Fence {
+    /// Borrows the inner Vulkan handle.
     pub fn handle_mut(&mut self) -> Mut<VkFence> {
         self.handle.as_mut().unwrap().borrow_mut()
     }
@@ -60,9 +68,14 @@ impl Fence {
 }
 
 impl PendingFence {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkFence> {
         self.handle.borrow()
     }
+    /// Waits for the fence, decrements the reference count of any objects
+    /// (including [CommandPools](crate::vk::CommandPool)) submitted to
+    /// the queue, and resets the fence.
+    #[doc = crate::man_link!(vkWaitForFences)]
     pub fn wait(mut self) -> Result<Fence> {
         unsafe {
             (self.device.fun.wait_for_fences)(

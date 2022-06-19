@@ -15,6 +15,8 @@ use crate::types::*;
 
 use bumpalo::collections::Vec as BumpVec;
 
+/// A
+#[doc = crate::spec_link!("descriptor set layout", "descriptorsets-setlayout")]
 #[derive(Debug, Eq)]
 pub struct DescriptorSetLayout {
     handle: Handle<VkDescriptorSetLayout>,
@@ -22,6 +24,16 @@ pub struct DescriptorSetLayout {
     device: Arc<Device>,
 }
 
+/// Note that unlike in Vulkan, the binding number is implicitly the index of
+/// the array that is passed into
+/// [create_descriptor_set_layout()](Device::create_descriptor_set_layout).
+/// If non-consecutive binding numbers are desired, create dummy descriptors to
+/// fill the gaps.
+///
+/// For [DescriptorType::COMBINED_IMAGE_SAMPLER], currently the use of
+/// immutable samplers is required.
+///
+#[doc = crate::man_link!(VkDescriptorSetLayoutBinding)]
 #[derive(Debug, PartialEq, Eq, Default)]
 pub struct DescriptorSetLayoutBinding {
     pub descriptor_type: DescriptorType,
@@ -31,13 +43,19 @@ pub struct DescriptorSetLayoutBinding {
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkDescriptorSetLayout)]
     pub fn create_descriptor_set_layout(
         self: &Arc<Self>,
         bindings: Vec<DescriptorSetLayoutBinding>,
     ) -> Result<Arc<DescriptorSetLayout>> {
         for b in &bindings {
-            if b.immutable_samplers.len() != 0
+            if !b.immutable_samplers.is_empty()
                 && b.immutable_samplers.len() as u32 != b.descriptor_count
+            {
+                return Err(Error::InvalidArgument);
+            }
+            if b.descriptor_type == DescriptorType::COMBINED_IMAGE_SAMPLER
+                && b.immutable_samplers.is_empty()
             {
                 return Err(Error::InvalidArgument);
             }
@@ -92,15 +110,18 @@ impl Drop for DescriptorSetLayout {
 }
 
 impl PartialEq for DescriptorSetLayout {
+    /// Compatible descriptor sets layouts are equal
     fn eq(&self, other: &Self) -> bool {
         self.bindings == other.bindings && self.device == other.device
     }
 }
 
 impl DescriptorSetLayout {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkDescriptorSetLayout> {
         self.handle.borrow()
     }
+    /// Returns the number of dynamic offsets the descriptor set will require.
     pub fn num_dynamic_offsets(&self) -> u32 {
         let mut result = 0;
         for b in &self.bindings {
@@ -122,12 +143,15 @@ struct DescriptorPoolLifetime {
 #[derive(Debug)]
 struct AllocatedSets;
 
+/// A
+#[doc = crate::spec_link!("descriptor pool", "descriptorsets-allocation")]
 pub struct DescriptorPool {
     res: Owner<DescriptorPoolLifetime>,
     allocated: Arc<AllocatedSets>,
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkCreateDescriptorPool)]
     pub fn create_descriptor_pool(
         self: &Arc<Device>,
         max_sets: u32,
@@ -168,7 +192,8 @@ impl Drop for DescriptorPoolLifetime {
 }
 
 impl DescriptorPool {
-    /// All descriptor sets allocated from the pool must have been dropped.
+    /// If all descriptor sets allocated from the pool have not been dropped,
+    /// returns [Error::SynchronizationError].
     pub fn reset(&mut self) -> Result<()> {
         if Arc::get_mut(&mut self.allocated).is_none() {
             return Err(Error::SynchronizationError);
@@ -185,6 +210,15 @@ impl DescriptorPool {
     }
 }
 
+/// A
+#[doc = concat!(crate::spec_link!("descriptor set", "descriptorsets-sets"), ".")]
+///
+/// Any resources that are written into the descriptor set have their reference
+/// count incremented and held by the set. To decrement the count and allow the
+/// resources to be freed, the descriptor set must be dropped. (Note that calling
+/// [bind_descriptor_sets()](crate::command_buffer::CommandRecording::bind_descriptor_sets)
+/// will prevent the set from being freed until the command pool is
+/// [reset](crate::command_buffer::CommandPool::reset).)
 #[derive(Debug)]
 pub struct DescriptorSet {
     handle: Handle<VkDescriptorSet>,
@@ -195,6 +229,7 @@ pub struct DescriptorSet {
 }
 
 impl DescriptorPool {
+    #[doc = crate::man_link!(vkAllocateDescriptorSets)]
     pub fn allocate(
         &mut self,
         layout: &Arc<DescriptorSetLayout>,
@@ -232,26 +267,35 @@ impl DescriptorPool {
 }
 
 impl DescriptorSet {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkDescriptorSet> {
         self.handle.borrow()
     }
+    /// Mutably borrows the inner Vulkan handle.
     pub fn handle_mut(&mut self) -> Mut<VkDescriptorSet> {
         self.handle.borrow_mut()
     }
+    /// Returns the set's layout.
     pub fn layout(&self) -> &Arc<DescriptorSetLayout> {
         &self.layout
     }
+    /// Returns true if every member of the set has had a value written to it.
     pub fn is_initialized(&self) -> bool {
         self.resources.iter().all(|rs| rs.iter().all(|r| r.is_some()))
     }
 }
 
+/// An object to build calls to vkUpdateDescriptorSets. It's best to re-use it
+/// as much as possible, since it holds onto some memory to avoid allocating.
+///  
+#[doc = crate::man_link!(vkUpdateDescriptorSets)]
 pub struct DescriptorSetUpdateBuilder {
     device: Arc<Device>,
     scratch: Exclusive<bumpalo::Bump>,
 }
 
 impl Device {
+    /// Create an object that builds calls to vkUpdateDescriptorSets.
     pub fn create_descriptor_set_update_builder(
         self: &Arc<Self>,
     ) -> DescriptorSetUpdateBuilder {
@@ -269,6 +313,7 @@ struct Resource {
     resource: Arc<dyn Send + Sync + Debug>,
 }
 
+/// A builder for a call to vkUpdateDescriptorSets.
 #[must_use = "This object does nothing until end() is called."]
 pub struct DescriptorSetUpdates<'a> {
     device: &'a Device,
@@ -280,6 +325,8 @@ pub struct DescriptorSetUpdates<'a> {
 }
 
 impl DescriptorSetUpdateBuilder {
+    /// Begin creating a call to vkUpdateDescriptorSets. Since these calls are
+    /// expensive, try to combine them as much as possible.
     pub fn begin<'a>(&'a mut self) -> DescriptorSetUpdates<'a> {
         let bump = &*self.scratch.get_mut();
         DescriptorSetUpdates {
@@ -293,6 +340,7 @@ impl DescriptorSetUpdateBuilder {
     }
 }
 
+/// A builder to update a single descriptor set.
 #[must_use = "This object does nothing until end() is called."]
 pub struct DescriptorSetUpdate<'a> {
     updates: DescriptorSetUpdates<'a>,
@@ -300,6 +348,7 @@ pub struct DescriptorSetUpdate<'a> {
 }
 
 impl<'a> DescriptorSetUpdates<'a> {
+    /// Add updates to the given set to the builder.
     pub fn dst_set(
         self,
         set: &'a mut DescriptorSet,
@@ -324,6 +373,7 @@ impl<'a> DescriptorSetUpdates<'a> {
     }
 }
 
+#[doc = crate::man_link!(VkDescriptorBufferInfo)]
 pub struct DescriptorBufferInfo<'a> {
     pub buffer: &'a Arc<Buffer>,
     pub offset: u64,
@@ -331,6 +381,13 @@ pub struct DescriptorBufferInfo<'a> {
 }
 
 impl<'a> DescriptorSetUpdate<'a> {
+    /// Finish the builder and call vkUpdateDescriptorSets.
+    #[doc = crate::man_link!(vkUpdateDescriptorSets)]
+    pub fn end(mut self) {
+        self.updates.dst_sets.push(self.set);
+        self.updates.end()
+    }
+
     fn set_ref(&mut self) -> Mut<'a, VkDescriptorSet> {
         // Safety: The set is kept mutably borrowed while the builder
         // is alive, and one call to vkUpdateDescriptorSets counts as
@@ -338,16 +395,13 @@ impl<'a> DescriptorSetUpdate<'a> {
         unsafe { self.set.handle.borrow_mut().reborrow_mut_unchecked() }
     }
 
+    /// Add updates to the given set to the builder.
     pub fn dst_set(
         mut self,
         set: &'a mut DescriptorSet,
     ) -> DescriptorSetUpdate<'a> {
         self.updates.dst_sets.push(self.set);
         self.updates.dst_set(set)
-    }
-    pub fn end(mut self) {
-        self.updates.dst_sets.push(self.set);
-        self.updates.end()
     }
 
     fn buffers_impl(
@@ -397,6 +451,9 @@ impl<'a> DescriptorSetUpdate<'a> {
         });
         Ok(self)
     }
+    /// Update uniform buffer bindings. Returns [Error::OutOfBounds] if there
+    /// are not enough bindings, and [Error::InvalidArgument] if some of the
+    /// bindings in the destination range are of a different type.
     pub fn uniform_buffers(
         self,
         dst_binding: u32,
@@ -410,6 +467,9 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::UNIFORM_BUFFER,
         )
     }
+    /// Update storage buffer bindings. Returns [Error::OutOfBounds] if there
+    /// are not enough bindings, and [Error::InvalidArgument] if some of the
+    /// bindings in the destination range are of a different type.
     pub fn storage_buffers(
         self,
         dst_binding: u32,
@@ -423,6 +483,9 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::STORAGE_BUFFER,
         )
     }
+    /// Update dynamic uniform buffer bindings. Returns [Error::OutOfBounds] if
+    /// there are not enough bindings, and [Error::InvalidArgument] if some of
+    /// the bindings in the destination range are of a different type.
     pub fn uniform_buffers_dynamic(
         self,
         dst_binding: u32,
@@ -436,6 +499,9 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::UNIFORM_BUFFER_DYNAMIC,
         )
     }
+    /// Update dynamic storage buffer bindings. Returns [Error::OutOfBounds] if
+    /// there are not enough bindings, and [Error::InvalidArgument] if some of
+    /// the bindings in the destination range are of a different type.
     pub fn storage_buffers_dynamic(
         self,
         dst_binding: u32,
@@ -450,6 +516,10 @@ impl<'a> DescriptorSetUpdate<'a> {
         )
     }
 
+    /// Update sampler bindings. Returns [Error::OutOfBounds] if
+    /// there are not enough bindings, and [Error::InvalidArgument] if some of
+    /// the bindings in the destination range are of a different type or already
+    /// have immutable samplers.
     pub fn samplers(
         mut self,
         dst_binding: u32,
@@ -544,6 +614,9 @@ impl<'a> DescriptorSetUpdate<'a> {
         });
         Ok(self)
     }
+    /// Update sampled image bindings. Returns [Error::OutOfBounds] if
+    /// there are not enough bindings, and [Error::InvalidArgument] if some of
+    /// the bindings in the destination range are of a different type.
     pub fn sampled_images(
         self,
         dst_binding: u32,
@@ -557,6 +630,9 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::SAMPLED_IMAGE,
         )
     }
+    /// Update storage image bindings. Returns [Error::OutOfBounds] if
+    /// there are not enough bindings, and [Error::InvalidArgument] if some of
+    /// the bindings in the destination range are of a different type.
     pub fn storage_images(
         self,
         dst_binding: u32,
@@ -570,6 +646,9 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::STORAGE_IMAGE,
         )
     }
+    /// Update input attachment bindings. Returns [Error::OutOfBounds] if
+    /// there are not enough bindings, and [Error::InvalidArgument] if some of
+    /// the bindings in the destination range are of a different type.
     pub fn input_attachments(
         self,
         dst_binding: u32,
@@ -584,7 +663,9 @@ impl<'a> DescriptorSetUpdate<'a> {
         )
     }
 
-    /// The samplers must be immutable to use this type
+    /// Update combined image-sampler bindings. Returns [Error::OutOfBounds] if
+    /// there are not enough bindings, and [Error::InvalidArgument] if some of
+    /// the bindings in the destination range are of a different type.
     pub fn combined_image_samplers(
         mut self,
         dst_binding: u32,
@@ -600,9 +681,6 @@ impl<'a> DescriptorSetUpdate<'a> {
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
             assert_eq!(i.device(), self.updates.device);
-            if self.set.layout.bindings[binding].immutable_samplers.is_empty() {
-                return Err(Error::InvalidArgument);
-            }
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,

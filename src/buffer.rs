@@ -13,7 +13,9 @@ pub struct BufferWithoutMemory {
     device: Arc<Device>,
 }
 
-/// A buffer with memory attached to it.
+/// A
+#[doc = crate::spec_link!("buffer", "resources-buffers")]
+/// with memory attached to it.
 #[derive(Debug)]
 pub struct Buffer {
     inner: BufferWithoutMemory,

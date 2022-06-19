@@ -8,12 +8,8 @@ use crate::vk::Device;
 
 use std::fmt::Debug;
 
-#[derive(Debug)]
-enum ImageOwner {
-    Swapchain(Subobject<SwapchainImages>),
-    Application,
-}
-
+/// An image with no memory. Call [DeviceMemory::bind_image_memory] to bind
+/// memory to the image.
 #[derive(Debug)]
 pub struct ImageWithoutMemory {
     handle: Handle<VkImage>,
@@ -25,10 +21,19 @@ pub struct ImageWithoutMemory {
     device: Arc<Device>,
 }
 
+/// An
+#[doc = crate::spec_link!("image", "resources-images")]
+/// with memory attached to it.
 #[derive(Debug)]
 pub struct Image {
     inner: ImageWithoutMemory,
     _memory: Option<Subobject<MemoryLifetime>>,
+}
+
+#[derive(Debug)]
+enum ImageOwner {
+    Swapchain(Subobject<SwapchainImages>),
+    Application,
 }
 
 impl PartialEq for Image {
@@ -46,6 +51,7 @@ impl std::hash::Hash for Image {
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkCreateImage)]
     pub fn create_image(
         self: &Arc<Self>,
         info: &ImageCreateInfo<'_>,
@@ -66,6 +72,7 @@ impl Device {
     }
 }
 impl DeviceMemory {
+    #[doc = crate::man_link!(vkBindImageMemory)]
     pub fn bind_image_memory(
         &self,
         image: ImageWithoutMemory,
@@ -112,9 +119,11 @@ impl Drop for ImageWithoutMemory {
 }
 
 impl ImageWithoutMemory {
+    /// Borrows the inner Vulkan handle.
     pub fn handle_mut(&mut self) -> Mut<VkImage> {
         self.handle.borrow_mut()
     }
+    #[doc = crate::man_link!(vkGetImageMemoryRequirements)]
     pub fn memory_requirements(&self) -> MemoryRequirements {
         let mut result = Default::default();
         unsafe {
@@ -170,15 +179,19 @@ impl Image {
         }
     }
 
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkImage> {
         self.inner.handle.borrow()
     }
+    /// Returns the associated device.
     pub fn device(&self) -> &Device {
         &*self.inner.device
     }
+    /// Returns the format of the image.
     pub fn format(&self) -> Format {
         self.inner.format
     }
+    /// Returns the extent of the image.
     pub fn extent(&self, mip_level: u32) -> Extent3D {
         let ex = self.inner.extent;
         Extent3D {
@@ -187,6 +200,7 @@ impl Image {
             depth: ex.depth >> mip_level,
         }
     }
+    /// Returns true if the given values are within the image's array layers.
     pub fn array_bounds_check(
         &self,
         base_array_layer: u32,
@@ -195,6 +209,8 @@ impl Image {
         self.inner.array_layers >= base_array_layer
             && self.inner.array_layers - base_array_layer >= layer_count
     }
+    /// Returns true if the given point is within the image at the given mip
+    /// level.
     pub fn offset_bounds_check(
         &self,
         mip_level: u32,
@@ -207,6 +223,8 @@ impl Image {
             && ex.height >= offset.y as u32
             && ex.depth >= offset.z as u32
     }
+    /// Returns true if the given rectangle is within the image at the given mip
+    /// level.
     pub fn bounds_check(
         &self,
         mip_level: u32,
@@ -221,6 +239,8 @@ impl Image {
     }
 }
 
+/// An
+#[doc = crate::spec_link!("image view", "resources-image-views")]
 #[derive(Debug)]
 pub struct ImageView {
     handle: Handle<VkImageView>,
@@ -241,6 +261,7 @@ impl std::hash::Hash for ImageView {
     }
 }
 
+#[doc = crate::man_link!(VkImageViewCreateInfo)]
 #[derive(Default)]
 pub struct ImageViewCreateInfo {
     pub flags: ImageViewCreateFlags,
@@ -251,6 +272,7 @@ pub struct ImageViewCreateInfo {
 }
 
 impl Image {
+    /// Create an image view of the image.
     pub fn create_view(
         self: &Arc<Self>,
         info: &ImageViewCreateInfo,
@@ -291,9 +313,11 @@ impl Drop for ImageView {
 }
 
 impl ImageView {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkImageView> {
         self.handle.borrow()
     }
+    /// Returns the associated device.
     pub fn device(&self) -> &Device {
         self.image.device()
     }

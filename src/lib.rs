@@ -8,7 +8,9 @@
 mod instance;
 mod physical_device;
 mod device;
+mod queue;
 mod buffer;
+mod image;
 mod cleanup_queue;
 mod command_buffer;
 mod descriptor_set;
@@ -16,16 +18,14 @@ mod enums;
 mod error;
 mod exclusive;
 mod fence;
+mod semaphore;
 mod ffi;
 mod framebuffer;
-mod image;
 mod load;
 mod memory;
 mod pipeline;
-mod queue;
 mod render_pass;
 mod sampler;
-mod semaphore;
 mod shader;
 mod subobject;
 mod types;
@@ -43,6 +43,12 @@ macro_rules! man_link{
     }
 }
 pub(crate) use man_link;
+macro_rules! spec_link{
+    ($text:literal, $hash:literal) => {
+        concat!("[", $text, "](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#", $hash, ")")
+    }
+}
+pub(crate) use spec_link;
 
 pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
     let mut len = 0;
@@ -73,15 +79,15 @@ pub mod vk {
     };
     pub use crate::descriptor_set::{
         DescriptorBufferInfo, DescriptorPool, DescriptorSet,
-        DescriptorSetLayout, DescriptorSetLayoutBinding,
-        DescriptorSetUpdateBuilder,
+        DescriptorSetLayout, DescriptorSetLayoutBinding, DescriptorSetUpdate,
+        DescriptorSetUpdateBuilder, DescriptorSetUpdates,
     };
     pub use crate::device::Device;
     pub use crate::enums::*;
     pub use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
     pub use crate::ext;
     pub use crate::ext::khr_swapchain::{
-        CreateSwapchainFrom, KHRSwapchain, SwapchainCreateInfoKHR,
+        CreateSwapchainFrom, KHRSwapchain, SwapchainCreateInfoKHR, SwapchainKHR,
     };
     pub use crate::fence::{Fence, PendingFence};
     pub use crate::ffi::*;
@@ -99,5 +105,6 @@ pub mod vk {
     pub use crate::queue::SubmitInfo;
     pub use crate::render_pass::RenderPass;
     pub use crate::sampler::Sampler;
+    pub use crate::semaphore::Semaphore;
     pub use crate::types::*;
 }

@@ -2,6 +2,7 @@ use crate::error::Result;
 use crate::instance::Instance;
 use crate::load::DeviceFn;
 use crate::physical_device::PhysicalDevice;
+use crate::queue::Queue;
 use crate::types::*;
 
 /// A logical device.
@@ -40,15 +41,16 @@ impl Drop for Device {
 }
 
 impl PhysicalDevice {
-    /// Create a logical device for this physical device.
+    /// Create a logical device for this physical device. Queues are returned in
+    /// the order requested in 'info.queue_create_infos'.
     #[doc = crate::man_link!(vkCreateDevice)]
     pub fn create_device(
         &self,
         info: &DeviceCreateInfo<'_>,
-    ) -> Result<Arc<Device>> {
+    ) -> Result<(Arc<Device>, Vec<Vec<Queue>>)> {
         let props = self.queue_family_properties();
         let mut queues = vec![0; props.len()];
-        for q in info.queue_create_infos.as_slice() {
+        for q in info.queue_create_infos {
             let i = q.queue_family_index as usize;
             assert!(i < props.len(), "Queue family index out of bounds");
             assert!(
@@ -69,12 +71,22 @@ impl PhysicalDevice {
         }
         let handle = handle.unwrap();
         let fun = DeviceFn::new(self.instance(), handle.borrow());
-        Ok(Arc::new(Device {
+        let device = Arc::new(Device {
             handle,
             fun,
             physical_device: self.clone(),
             queues,
-        }))
+        });
+        let queues = info
+            .queue_create_infos
+            .into_iter()
+            .map(|q| {
+                (0..q.queue_priorities.len())
+                    .map(|n| device.queue(q.queue_family_index, n))
+                    .collect()
+            })
+            .collect();
+        Ok((device, queues))
     }
 }
 

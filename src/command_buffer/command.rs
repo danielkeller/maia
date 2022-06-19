@@ -775,7 +775,7 @@ impl<'a> CommandRecording<'a> {
     /// Returns [Error::InvalidArgument] if a member of 'sets' is not compatible
     /// with the corresponding member of 'layout', if the length of
     /// 'dynamic_offsets' is not correct for 'layout', or if any binding in any
-    /// of 'sets' is not initialized.
+    /// of 'sets' is not [initialized](DescriptorSet::is_initialized).
     ///
     /// If the value of the binding will not be used, create a dummy object of
     /// the appropriate type and bind it.

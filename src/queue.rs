@@ -20,14 +20,11 @@ pub struct Queue {
 }
 
 impl Device {
-    pub fn queue(
+    pub(crate) fn queue(
         self: &Arc<Self>,
         family_index: u32,
         queue_index: u32,
-    ) -> Result<Queue> {
-        if !self.has_queue(family_index, queue_index) {
-            return Err(Error::OutOfBounds);
-        }
+    ) -> Queue {
         let mut handle = None;
         unsafe {
             (self.fun.get_device_queue)(
@@ -37,12 +34,12 @@ impl Device {
                 &mut handle,
             );
         }
-        Ok(Queue {
+        Queue {
             handle: handle.unwrap(),
             device: self.clone(),
             resources: CleanupQueue::new(100),
             scratch: Exclusive::new(bumpalo::Bump::new()),
-        })
+        }
     }
 }
 

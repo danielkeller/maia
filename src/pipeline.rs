@@ -304,7 +304,12 @@ pub struct PipelineCache {
 
 impl Device {
     /// Safety: 'data' must either be empty or have been retuned from a previous
-    /// call to [PipelineCache::data()].
+    /// call to [PipelineCache::data()]. Hilariously, this function is
+    /// actually impossible to make safe; Vulkan provides no way to validate the
+    /// cache data, and the data is generally written to a file where it could
+    /// be damaged or altered. Caveat emptor.
+    ///
+    #[doc = crate::man_link!(vkCreatePipelineCache)]
     pub unsafe fn create_pipeline_cache(
         self: &Arc<Self>,
         data: &[u8],

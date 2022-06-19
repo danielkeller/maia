@@ -35,6 +35,8 @@ impl std::fmt::Debug for QueueEntry {
 
 // Safety: Access to 'value' is guarded by 'guard'
 unsafe impl Sync for QueueEntry {}
+impl std::panic::UnwindSafe for QueueEntry {}
+impl std::panic::RefUnwindSafe for QueueEntry {}
 
 impl Default for QueueEntry {
     fn default() -> Self {
