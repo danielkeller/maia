@@ -1,7 +1,7 @@
 use crate::ffi::Str;
 
 mod ext_metal_surface;
-pub mod khr_surface;
+mod khr_surface;
 pub mod khr_swapchain;
 mod load;
 

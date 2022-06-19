@@ -11,6 +11,7 @@ mod device;
 mod queue;
 mod buffer;
 mod image;
+mod memory;
 mod cleanup_queue;
 mod command_buffer;
 mod descriptor_set;
@@ -22,11 +23,10 @@ mod semaphore;
 mod ffi;
 mod framebuffer;
 mod load;
-mod memory;
+mod shader;
 mod pipeline;
 mod render_pass;
 mod sampler;
-mod shader;
 mod subobject;
 mod types;
 #[cfg(any(feature = "window", doc))]
@@ -50,6 +50,7 @@ macro_rules! spec_link{
 }
 pub(crate) use spec_link;
 
+#[doc = crate::man_link!(vkEnumerateInstanceExtensionProperties)]
 pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
     let mut len = 0;
     let mut result = Vec::new();
@@ -91,12 +92,13 @@ pub mod vk {
     };
     pub use crate::fence::{Fence, PendingFence};
     pub use crate::ffi::*;
+    pub use crate::framebuffer::Framebuffer;
     pub use crate::image::{
         Image, ImageView, ImageViewCreateInfo, ImageWithoutMemory,
     };
     pub use crate::instance::Instance;
     pub use crate::instance_extension_properties;
-    pub use crate::memory::DeviceMemory;
+    pub use crate::memory::{DeviceMemory, MappedMemory};
     pub use crate::physical_device::PhysicalDevice;
     pub use crate::pipeline::{
         GraphicsPipelineCreateInfo, Pipeline, PipelineCache, PipelineLayout,
@@ -106,5 +108,6 @@ pub mod vk {
     pub use crate::render_pass::RenderPass;
     pub use crate::sampler::Sampler;
     pub use crate::semaphore::Semaphore;
+    pub use crate::shader::ShaderModule;
     pub use crate::types::*;
 }

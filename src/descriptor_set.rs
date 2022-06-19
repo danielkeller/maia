@@ -17,6 +17,8 @@ use bumpalo::collections::Vec as BumpVec;
 
 /// A
 #[doc = crate::spec_link!("descriptor set layout", "descriptorsets-setlayout")]
+///
+/// Create with [Device::create_descriptor_set_layout()]
 #[derive(Debug, Eq)]
 pub struct DescriptorSetLayout {
     handle: Handle<VkDescriptorSetLayout>,
@@ -145,6 +147,8 @@ struct AllocatedSets;
 
 /// A
 #[doc = crate::spec_link!("descriptor pool", "descriptorsets-allocation")]
+///ß
+/// Create with [Device::create_descriptor_pool()]
 pub struct DescriptorPool {
     res: Owner<DescriptorPoolLifetime>,
     allocated: Arc<AllocatedSets>,
@@ -219,6 +223,8 @@ impl DescriptorPool {
 /// [bind_descriptor_sets()](crate::command_buffer::CommandRecording::bind_descriptor_sets)
 /// will prevent the set from being freed until the command pool is
 /// [reset](crate::command_buffer::CommandPool::reset).)
+///
+/// Create with [DescriptorPool::allocate]
 #[derive(Debug)]
 pub struct DescriptorSet {
     handle: Handle<VkDescriptorSet>,

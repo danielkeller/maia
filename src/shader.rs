@@ -2,12 +2,17 @@ use crate::device::Device;
 use crate::error::{Error, Result};
 use crate::types::*;
 
+/// A
+#[doc = crate::spec_link!("shader module", "shaders")]
+///
+/// Create with [Device::create_shader_module]
 pub struct ShaderModule {
     handle: Handle<VkShaderModule>,
     device: Arc<Device>,
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkCreateShaderModule)]
     pub fn create_shader_module(
         self: &Arc<Self>,
         code: &[u32],
@@ -46,6 +51,7 @@ impl Drop for ShaderModule {
 }
 
 impl ShaderModule {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkShaderModule> {
         self.handle.borrow()
     }

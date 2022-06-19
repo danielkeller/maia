@@ -2,6 +2,10 @@ use crate::device::Device;
 use crate::error::Result;
 use crate::types::*;
 
+/// A
+#[doc = crate::spec_link!("sampler", "samplers")]
+///
+/// Create with [Device::create_sampler]
 #[derive(Debug, Eq)]
 pub struct Sampler {
     handle: Handle<VkSampler>,
@@ -9,6 +13,7 @@ pub struct Sampler {
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkCreateSampler)]
     pub fn create_sampler(
         self: &Arc<Self>,
         info: &SamplerCreateInfo,
@@ -40,9 +45,11 @@ impl PartialEq for Sampler {
 }
 
 impl Sampler {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkSampler> {
         self.handle.borrow()
     }
+    /// Returns the associated device.
     pub fn device(&self) -> &Device {
         &*self.device
     }

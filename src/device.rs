@@ -6,6 +6,8 @@ use crate::queue::Queue;
 use crate::types::*;
 
 /// A logical device.
+///
+/// Create with [PhysicalDevice::create_device()].
 pub struct Device {
     handle: Handle<VkDevice>,
     pub(crate) fun: DeviceFn,

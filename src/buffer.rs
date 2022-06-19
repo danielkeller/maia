@@ -6,6 +6,8 @@ use crate::vk::Device;
 
 /// A buffer with no memory. Call [DeviceMemory::bind_buffer_memory] to bind
 /// memory to the buffer.
+///
+/// Create with [Device::create_buffer].
 #[derive(Debug)]
 pub struct BufferWithoutMemory {
     handle: Handle<VkBuffer>,
@@ -16,6 +18,8 @@ pub struct BufferWithoutMemory {
 /// A
 #[doc = crate::spec_link!("buffer", "resources-buffers")]
 /// with memory attached to it.
+///
+/// Create with [DeviceMemory::bind_buffer_memory()]
 #[derive(Debug)]
 pub struct Buffer {
     inner: BufferWithoutMemory,

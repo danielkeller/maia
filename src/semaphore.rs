@@ -6,6 +6,8 @@ use crate::types::*;
 
 /// A
 #[doc = crate::spec_link!("semaphore", "synchronization-semaphores")]
+///
+/// Create with [Device::create_semaphore]
 pub struct Semaphore {
     pub(crate) signaller: Option<SemaphoreSignaller>,
     pub(crate) inner: Arc<SemaphoreRAII>,

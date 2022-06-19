@@ -3,6 +3,7 @@ use crate::load;
 use crate::load::InstanceFn;
 use crate::types::*;
 
+/// A driver instance.
 pub struct Instance {
     handle: Handle<VkInstance>,
     pub(crate) fun: InstanceFn,

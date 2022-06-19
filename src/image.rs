@@ -8,8 +8,10 @@ use crate::vk::Device;
 
 use std::fmt::Debug;
 
-/// An image with no memory. Call [DeviceMemory::bind_image_memory] to bind
+/// An image with no memory. Call [DeviceMemory::bind_image_memory()] to bind
 /// memory to the image.
+///
+/// Create with [Device::create_image()]
 #[derive(Debug)]
 pub struct ImageWithoutMemory {
     handle: Handle<VkImage>,
@@ -24,6 +26,8 @@ pub struct ImageWithoutMemory {
 /// An
 #[doc = crate::spec_link!("image", "resources-images")]
 /// with memory attached to it.
+///
+/// Create with [DeviceMemory::bind_image_memory()].
 #[derive(Debug)]
 pub struct Image {
     inner: ImageWithoutMemory,

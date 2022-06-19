@@ -6,6 +6,8 @@ use crate::types::*;
 /// A
 #[doc = concat!(crate::spec_link!("fence", "synchronization-fences"), ".")]
 /// When submitted to a [Queue](crate::vk::Queue), becomes a [PendingFence].
+///
+/// Create with [Device::create_fence()]
 #[derive(Debug)]
 pub struct Fence {
     handle: Option<Handle<VkFence>>,

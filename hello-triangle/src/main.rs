@@ -1,16 +1,9 @@
 use ember::vk;
 
-#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
-#[repr(C)]
-struct Vertex {
-    pos: [f32; 4],
-    color: [f32; 4],
-}
-
-const VERTEX_DATA: [Vertex; 3] = [
-    Vertex { pos: [0.0, -0.7, 0., 1.], color: [0., 0., 1., 1.] },
-    Vertex { pos: [-0.7, 0.7, 0., 1.], color: [1., 0., 0., 1.] },
-    Vertex { pos: [0.7, 0.7, 0., 1.], color: [0., 1., 0., 1.] },
+const VERTEX_DATA: [[[f32; 4]; 2]; 3] = [
+    [[0.0, -0.7, 0., 1.], [0., 0., 1., 1.]],
+    [[-0.7, 0.7, 0., 1.], [1., 0., 0., 1.]],
+    [[0.7, 0.7, 0., 1.], [0., 1., 0., 1.]],
 ];
 
 // Add extension required by MoltenVK, if available
@@ -190,7 +183,7 @@ fn main() -> vk::Result<()> {
                 vertex_binding_descriptions: vk::slice(&[
                     vk::VertexInputBindingDescription {
                         binding: 0,
-                        stride: std::mem::size_of::<Vertex>() as u32,
+                        stride: std::mem::size_of_val(&VERTEX_DATA[0]) as u32,
                         input_rate: vk::VertexInputRate::VERTEX,
                     },
                 ]),

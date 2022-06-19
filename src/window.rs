@@ -3,12 +3,13 @@ use std::sync::Arc;
 
 use crate::error::{Error, Result};
 use crate::ext;
-use crate::ext::khr_surface::SurfaceKHR;
+use crate::ext::SurfaceKHR;
 use crate::ffi::*;
 use crate::instance::Instance;
 use crate::types::*;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
+/// Return the required instance extensions to use WSI on the current platform.
 pub fn required_instance_extensions(
     window: &impl HasRawWindowHandle,
 ) -> Result<&'static [Str<'static>]> {
@@ -84,6 +85,8 @@ pub fn required_instance_extensions(
     }
 }
 
+/// Create a surface for 'window' with the appropriate extension for the current
+/// platform.
 pub fn create_surface(
     instance: &Arc<Instance>,
     window: &impl HasRawWindowHandle,

@@ -10,6 +10,10 @@ use crate::ffi::*;
 use crate::render_pass::RenderPass;
 use crate::types::*;
 
+/// A
+#[doc = crate::spec_link!("pipeline layout", "descriptorsets-pipelinelayout")]
+///
+/// Create with [Device::create_pipeline_layout].
 #[derive(Debug)]
 pub struct PipelineLayout {
     handle: Handle<VkPipelineLayout>,
@@ -20,6 +24,7 @@ pub struct PipelineLayout {
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkCreatePipelineLayout)]
     pub fn create_pipeline_layout(
         self: &Arc<Self>,
         flags: PipelineLayoutCreateFlags,
@@ -93,12 +98,16 @@ impl Drop for PipelineLayout {
 }
 
 impl PipelineLayout {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkPipelineLayout> {
         self.handle.borrow()
     }
+    /// Returns the list of descriptor set layouts.
     pub fn layouts(&self) -> &[Arc<DescriptorSetLayout>] {
         &self.set_layouts
     }
+    /// Checks that the push constants are in bounds and 'stage_flags' are
+    /// correct.
     pub fn bounds_check_push_constants(
         &self,
         stage_flags: ShaderStageFlags,
@@ -126,7 +135,12 @@ impl PipelineLayout {
     }
 }
 
+/// A
+#[doc = crate::spec_link!("pipeline", "pipelines")]
 #[derive(Debug)]
+///
+/// Create with [Device::create_graphics_pipeline()] or
+/// [Device::create_compute_pipeline()].
 pub struct Pipeline {
     handle: Handle<VkPipeline>,
     layout: Arc<PipelineLayout>,
@@ -135,6 +149,7 @@ pub struct Pipeline {
     device: Arc<Device>,
 }
 
+#[doc = crate::man_link!(VkGraphicsPipelineCreateInfo)]
 pub struct GraphicsPipelineCreateInfo<'a> {
     pub stages: &'a [PipelineShaderStageCreateInfo<'a>],
     pub vertex_input_state: &'a PipelineVertexInputStateCreateInfo<'a>,
@@ -154,6 +169,12 @@ pub struct GraphicsPipelineCreateInfo<'a> {
 
 impl Device {
     // TODO: Bulk create
+    /// Returns [Error::OutOfBounds] if 'info.subpass' is out of bounds of
+    /// 'info.render_pass', or the specialization constants are out of bounds.
+    /// Returns [Error::InvalidArgument] if any vertex input binding number are
+    /// repeated, any vertex attribute locations are repeated, or any vertex
+    /// attributes refer to a nonexistent binding.
+    #[doc = crate::man_link!(vkCreateGraphicsPipeline)]
     pub fn create_graphics_pipeline(
         self: &Arc<Self>,
         info: &GraphicsPipelineCreateInfo,
@@ -217,6 +238,9 @@ impl Device {
             device: self.clone(),
         }))
     }
+    /// Returns [Error::OutOfBounds] if the specialization constants are out of
+    /// bounds.
+    #[doc = crate::man_link!(vkCreateComputePipeline)]
     pub fn create_compute_pipeline(
         self: &Arc<Self>,
         stage: PipelineShaderStageCreateInfo,
@@ -255,15 +279,21 @@ impl Device {
 }
 
 impl Pipeline {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkPipeline> {
         self.handle.borrow()
     }
+    /// Returns the pipeline layout.
     pub fn layout(&self) -> &PipelineLayout {
         &*self.layout
     }
+    /// Returns the render pass the pipeline was created with, if it is a
+    /// graphics pipeline.
     pub fn render_pass(&self) -> Option<&RenderPass> {
         self.render_pass.as_deref()
     }
+    /// Returns true if the pipeline is compatible with the given render pass
+    /// and subpass.
     pub fn is_compatible_with(&self, pass: &RenderPass, subpass: u32) -> bool {
         self.render_pass.as_ref().map_or(false, |p| p.compatible(pass))
             && self.subpass == subpass
@@ -297,6 +327,10 @@ fn check_specialization_constants<T>(
     Ok(())
 }
 
+/// A
+#[doc = crate::spec_link!("pipeline cache", "pipelines-cache")]
+///
+/// Create with [Device::create_pipeline_cache()]
 pub struct PipelineCache {
     handle: Handle<VkPipelineCache>,
     device: Arc<Device>,
@@ -344,6 +378,7 @@ impl Drop for PipelineCache {
 }
 
 impl PipelineCache {
+    /// Returns the data in the pipeline cache.
     pub fn data(&self) -> Result<Vec<u8>> {
         let mut len = 0;
         let mut result = Vec::new();

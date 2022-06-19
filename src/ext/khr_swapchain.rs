@@ -12,12 +12,17 @@ use super::khr_surface::SurfaceLifetime;
 use super::load::{SwapchainDeviceFn, SwapchainKHRFn};
 use super::SurfaceKHR;
 
+/// A KHR_swapchain extension object.
+///
+/// Create with [Device::khr_swapchain].
 pub struct KHRSwapchain {
     fun: SwapchainDeviceFn,
     device: Arc<Device>,
 }
 
 impl Device {
+    /// Create a [KHRSwapchain] extension object. Panics if the extension
+    /// functions can't be loaded.
     pub fn khr_swapchain(self: &Arc<Self>) -> KHRSwapchain {
         KHRSwapchain {
             fun: SwapchainDeviceFn::new(self),
@@ -26,11 +31,13 @@ impl Device {
     }
 }
 
+/// Whether to pass a previous swapchain to create the new one from.
 pub enum CreateSwapchainFrom {
     OldSwapchain(SwapchainKHR),
     Surface(SurfaceKHR),
 }
 
+#[doc = crate::man_link!(VkSwapchainCreateInfoKHR)]
 pub struct SwapchainCreateInfoKHR<'a> {
     pub flags: SwapchainCreateFlagsKHR,
     pub min_image_count: u32,
@@ -68,9 +75,10 @@ impl<'a> Default for SwapchainCreateInfoKHR<'a> {
 }
 
 impl KHRSwapchain {
-    /// If create_from is OldSwapchain(), images in that swapchain that aren't
-    /// acquired by the application are deleted. If any references remain to
-    /// those images, returns SynchronizationError.
+    /// If create_from is [CreateSwapchainFrom::OldSwapchain], images in that
+    /// swapchain that aren't acquired by the application are deleted. If any
+    /// references remain to those images, returns [Error::SynchronizationError].
+    #[doc = crate::man_link!(vkCreateSwapchainKHR)]
     pub fn create(
         &self,
         create_from: CreateSwapchainFrom,
@@ -192,6 +200,10 @@ impl std::fmt::Debug for SwapchainImages {
     }
 }
 
+/// A
+#[doc = crate::spec_link!("swapchain", "_wsi_swapchain")]
+///
+/// Create with [KHRSwapchain::create()].
 #[derive(Debug)]
 pub struct SwapchainKHR {
     images: Vec<(Arc<Image>, bool)>,
@@ -199,6 +211,7 @@ pub struct SwapchainKHR {
     surface: SurfaceKHR,
 }
 
+/// Whether the swapchain images are still optimal.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum ImageOptimality {
     Optimal,
@@ -206,13 +219,22 @@ pub enum ImageOptimality {
 }
 
 impl SwapchainKHR {
+    /// Borrows the inner Vulkan handle.
     pub fn handle_mut(&mut self) -> Mut<VkSwapchainKHR> {
         self.res.handle.borrow_mut()
     }
+    /// Returns the associated surface.
     pub fn surface(&self) -> &SurfaceKHR {
         &self.surface
     }
 
+    /// Acquires the next swapchain image. [Error::SuboptimalHKR] is returned
+    /// in the [Ok] variant.
+    ///
+    /// **Warning:** If 'signal' is dropped without being waited on, it and the
+    /// swapchain will be leaked.
+    ///
+    #[doc = crate::man_link!(vkAcquireNextImageKHR)]
     pub fn acquire_next_image(
         &mut self,
         signal: &mut Semaphore,
@@ -244,6 +266,9 @@ impl SwapchainKHR {
         Ok((image, is_optimal))
     }
 
+    /// Present the image. Returns [Error::InvalidArgument] if 'wait' has no
+    /// signal operation pending, or if the image did not come from this
+    /// swapchain.
     pub fn present(
         &mut self,
         queue: &mut Queue,

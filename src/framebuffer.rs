@@ -4,6 +4,10 @@ use crate::image::ImageView;
 use crate::render_pass::RenderPass;
 use crate::types::*;
 
+/// A
+#[doc = crate::spec_link!("framebuffer", "_framebuffers")]
+///
+/// Create with [RenderPass::create_framebuffer()].
 #[derive(Debug)]
 pub struct Framebuffer {
     handle: Handle<VkFramebuffer>,
@@ -12,6 +16,7 @@ pub struct Framebuffer {
 }
 
 impl RenderPass {
+    #[doc = crate::man_link!(vkCreateFrameuffer)]
     pub fn create_framebuffer(
         self: &Arc<Self>,
         flags: FramebufferCreateFlags,
@@ -51,9 +56,11 @@ impl RenderPass {
 }
 
 impl Framebuffer {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkFramebuffer> {
         self.handle.borrow()
     }
+    /// Returns true if this framebuffer is compatible with 'pass'
     pub fn is_compatible_with(&self, pass: &RenderPass) -> bool {
         self.render_pass.compatible(pass)
     }

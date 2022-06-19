@@ -9,6 +9,10 @@ pub struct MemoryLifetime {
     device: Arc<Device>,
 }
 
+/// A piece of
+#[doc = crate::spec_link!("device memory", "memory-device")]
+///
+/// Create with [Device::allocate_memory()]
 #[derive(Debug)]
 pub struct DeviceMemory {
     inner: Owner<MemoryLifetime>,
@@ -17,6 +21,9 @@ pub struct DeviceMemory {
 }
 
 impl Device {
+    /// Returns [Error::OutOfBounds] if no memory type exists with the given
+    /// index.
+    #[doc = crate::man_link!(vkAllocateMemory)]
     pub fn allocate_memory(
         self: &Arc<Self>,
         allocation_size: u64,
@@ -63,29 +70,7 @@ impl Drop for MemoryLifetime {
     }
 }
 
-impl DeviceMemory {
-    pub fn handle(&self) -> Ref<VkDeviceMemory> {
-        self.inner.handle.borrow()
-    }
-    pub fn handle_mut(&mut self) -> Mut<VkDeviceMemory> {
-        self.inner.handle.borrow_mut()
-    }
-    pub fn device(&self) -> &Device {
-        &self.inner.device
-    }
-    /// Extend the lifetime of the memory until the returned object is dropped.
-    pub fn resource(&self) -> Subobject<MemoryLifetime> {
-        Subobject::new(&self.inner)
-    }
-    pub fn check(&self, offset: u64, requirements: MemoryRequirements) -> bool {
-        let (end, overflow) = offset.overflowing_add(requirements.size);
-        (1 << self.memory_type_index) & requirements.memory_type_bits != 0
-            && offset & (requirements.alignment - 1) == 0
-            && !overflow
-            && end <= self.allocation_size
-    }
-}
-
+/// A [DeviceMemory] which has been mapped and can be written to
 pub struct MappedMemory {
     memory: DeviceMemory,
     _offset: u64,
@@ -96,8 +81,12 @@ pub struct MappedMemory {
 // Access to ptr is properly controlled with borrows
 unsafe impl Send for MappedMemory {}
 unsafe impl Sync for MappedMemory {}
+impl std::panic::UnwindSafe for MappedMemory {}
+impl std::panic::RefUnwindSafe for MappedMemory {}
 
 impl DeviceMemory {
+    /// Map the memory so it can be written to. Returns [Error::OutOfBounds] if
+    /// 'offset' and 'size' are out of bounds.
     pub fn map(
         mut self,
         offset: u64,
@@ -123,6 +112,7 @@ impl DeviceMemory {
         }
         Ok(MappedMemory { memory: self, _offset: offset, size, ptr })
     }
+    /// Returns the size of the memory in bytes.
     pub fn len(&self) -> u64 {
         self.allocation_size
     }
@@ -145,21 +135,54 @@ impl MappedMemory {
         }
     }
 
+    /// Unmaps the memory
     pub fn unmap(mut self) -> DeviceMemory {
         self.unmap_impl();
         let no_drop = std::mem::ManuallyDrop::new(self);
         unsafe { std::ptr::addr_of!(no_drop.memory).read() }
     }
 
+    /// Gets the associated memory object
     pub fn memory(&self) -> &DeviceMemory {
         &self.memory
     }
 
+    /// Returns the memory's contents. It may be garbage (although it won't be
+    /// uninitialized).
     pub fn slice(&self) -> &[u8] {
         unsafe { std::slice::from_raw_parts(self.ptr, self.size) }
     }
 
+    /// Returns a mutable view of the memory's contents. It may be garbage
+    /// (although it won't be uninitialized).
     pub fn slice_mut(&mut self) -> &mut [u8] {
         unsafe { std::slice::from_raw_parts_mut(self.ptr, self.size) }
+    }
+}
+
+impl DeviceMemory {
+    /// Borrows the inner Vulkan handle.
+    pub fn handle(&self) -> Ref<VkDeviceMemory> {
+        self.inner.handle.borrow()
+    }
+    /// Borrows the inner Vulkan handle.
+    pub fn handle_mut(&mut self) -> Mut<VkDeviceMemory> {
+        self.inner.handle.borrow_mut()
+    }
+    /// Returns the associated device.
+    pub fn device(&self) -> &Device {
+        &self.inner.device
+    }
+    /// Extend the lifetime of the memory until the returned object is dropped.
+    pub fn resource(&self) -> Subobject<MemoryLifetime> {
+        Subobject::new(&self.inner)
+    }
+    /// Check if the memory meets 'requirements' at the given offset.
+    pub fn check(&self, offset: u64, requirements: MemoryRequirements) -> bool {
+        let (end, overflow) = offset.overflowing_add(requirements.size);
+        (1 << self.memory_type_index) & requirements.memory_type_bits != 0
+            && offset & (requirements.alignment - 1) == 0
+            && !overflow
+            && end <= self.allocation_size
     }
 }

@@ -3,6 +3,10 @@ use crate::enums::*;
 use crate::error::{Error, Result};
 use crate::types::*;
 
+/// A
+#[doc = crate::spec_link!("render pass", "renderpass")]
+///
+/// Create with [Device::create_render_pass()].
 #[derive(Debug)]
 pub struct RenderPass {
     handle: Handle<VkRenderPass>,
@@ -11,6 +15,7 @@ pub struct RenderPass {
 }
 
 impl Device {
+    #[doc = crate::man_link!(vkCreateRenderPass)]
     pub fn create_render_pass(
         self: &Arc<Device>,
         info: &RenderPassCreateInfo,
@@ -31,15 +36,19 @@ impl Device {
 }
 
 impl RenderPass {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkRenderPass> {
         self.handle.borrow()
     }
+    /// Returns the number of subpasses.
     pub fn num_subpasses(&self) -> u32 {
         self.compat.subpasses.len() as u32
     }
+    /// Returns the associated device.
     pub fn device(&self) -> &Device {
         &*self.device
     }
+    /// Returns true if this render pass is compatible with 'other'
     pub fn compatible(&self, other: &Self) -> bool {
         std::ptr::eq(self, other) || self.compat == other.compat
     }

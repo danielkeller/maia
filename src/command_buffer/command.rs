@@ -208,6 +208,7 @@ impl<'a> CommandRecording<'a> {
     }
 }
 
+#[doc = crate::man_link!(VkBufferMemoryBarrier)]
 pub struct BufferMemoryBarrier<'a> {
     pub src_access_mask: AccessFlags,
     pub dst_access_mask: AccessFlags,
@@ -232,6 +233,8 @@ impl<'a> BufferMemoryBarrier<'a> {
         }
     }
 }
+
+#[doc = crate::man_link!(VkImageMemoryBarrier)]
 pub struct ImageMemoryBarrier<'a> {
     pub src_access_mask: AccessFlags,
     pub dst_access_mask: AccessFlags,

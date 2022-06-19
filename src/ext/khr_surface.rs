@@ -15,6 +15,10 @@ pub struct SurfaceLifetime {
     instance: Arc<Instance>,
 }
 
+/// A
+#[doc = crate::spec_link!("surface", "_wsi_surface")]
+///
+/// Create with [crate::window::create_surface()].
 #[derive(Debug)]
 pub struct SurfaceKHR {
     inner: Owner<SurfaceLifetime>,
@@ -39,6 +43,7 @@ impl Drop for SurfaceLifetime {
 }
 
 impl SurfaceKHR {
+    /// Create a surface from an existing handle.
     pub fn new(handle: Handle<VkSurfaceKHR>, instance: Arc<Instance>) -> Self {
         Self {
             inner: Owner::new(SurfaceLifetime {
@@ -49,9 +54,11 @@ impl SurfaceKHR {
         }
     }
 
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkSurfaceKHR> {
         self.inner.handle.borrow()
     }
+    /// Borrows the inner Vulkan handle.
     pub fn handle_mut(&mut self) -> Mut<VkSurfaceKHR> {
         self.inner.handle.borrow_mut()
     }
@@ -60,6 +67,9 @@ impl SurfaceKHR {
         Subobject::new(&self.inner)
     }
 
+    /// Returns true if the surface supports 'phy' on 'queue_family'. Returns
+    /// [Error::OutOfBounds] if 'queue_family' is out of bounds.
+    #[doc = crate::man_link!(vkGetPhysicalDeviceSurfaceSupportKHR)]
     pub fn support(
         &self,
         phy: &PhysicalDevice,
@@ -81,6 +91,7 @@ impl SurfaceKHR {
         Ok(result.into())
     }
 
+    #[doc = crate::man_link!(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)]
     pub fn capabilities(
         &self,
         phy: &PhysicalDevice,
@@ -98,6 +109,7 @@ impl SurfaceKHR {
         }
     }
 
+    #[doc = crate::man_link!(vkGetPhysicalDeviceSurfaceFormatsKHR)]
     pub fn surface_formats(
         &self,
         phy: &PhysicalDevice,

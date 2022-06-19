@@ -6,6 +6,8 @@ use crate::instance::Instance;
 use super::khr_surface::SurfaceKHR;
 use super::load::MetalSurfaceFn;
 
+/// An EXT_metal_surface extension object. Create with
+/// [Instance::ext_metal_surface()]
 pub struct EXTMetalSurface {
     fun: MetalSurfaceFn,
     instance: Arc<Instance>,

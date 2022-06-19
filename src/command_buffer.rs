@@ -22,6 +22,8 @@ pub mod command;
 /// the count and allow the resources to be freed, either call
 /// [reset()](CommandPool::reset()) or drop the pool and all buffers allocated
 /// from it.
+///
+/// Create with [Device::create_command_pool()]
 pub struct CommandPool {
     recording: Option<Arc<RecordedCommands>>,
     res: Owner<CommandPoolLifetime>,
@@ -33,6 +35,8 @@ pub struct CommandPool {
 /// **Note:** Dropping the CommandBuffer and not dropping the [CommandPool] it
 /// was allocated from will leak the pool's resources. Instead, pass it to
 /// [CommandPool::free()]
+///
+/// Create with [CommandPool::allocate()]
 #[must_use = "Leaks pool resources if not freed"]
 #[derive(Debug)]
 // Theoretically the arc could be on the outside, but this would encourage users
@@ -45,6 +49,8 @@ pub struct CommandBuffer(Arc<CommandBufferLifetime>);
 /// **Note:** Dropping the CommandBuffer and not dropping the [CommandPool] it
 /// was allocated from will leak the pool's resources. Instead, pass it to
 /// [CommandPool::free_secondary()]
+///
+/// Create with [CommandPool::allocate_secondary()]
 #[must_use = "Leaks pool resources if not freed"]
 #[derive(Debug)]
 pub struct SecondaryCommandBuffer {
