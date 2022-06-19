@@ -41,7 +41,7 @@ impl RenderPass {
         &*self.device
     }
     pub fn compatible(&self, other: &Self) -> bool {
-        self.compat == other.compat
+        std::ptr::eq(self, other) || self.compat == other.compat
     }
 }
 
