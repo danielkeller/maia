@@ -2,7 +2,7 @@ use crate::enums::*;
 use crate::error::Error;
 use crate::ffi::*;
 use std::fmt::Debug;
-pub use std::sync::Arc;
+pub(crate) use std::sync::Arc;
 
 use std::num::NonZeroI32;
 
@@ -57,7 +57,7 @@ impl Debug for NonNullNonDispatchableHandle {
 unsafe impl Send for NonNullDispatchableHandle {}
 unsafe impl Sync for NonNullDispatchableHandle {}
 
-/// Owned Vulkan handle
+/// Owned Vulkan handle.
 #[repr(transparent)]
 #[derive(PartialEq, Eq, Hash)]
 pub struct Handle<T> {
@@ -87,7 +87,8 @@ impl<T: Copy> Handle<T> {
     }
 }
 
-/// Borrowed Vulkan handle
+/// Borrowed Vulkan handle. Has the same representation as a Vulkan handle but
+/// carries a lifetime.
 #[repr(transparent)]
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub struct Ref<'a, T> {
@@ -100,7 +101,8 @@ impl<T: Debug> Debug for Ref<'_, T> {
     }
 }
 
-/// Mutably borrowed Vulkan handle
+/// Mutably borrowed Vulkan handle. Has the same representation as a Vulkan handle but
+/// carries a lifetime.
 #[repr(transparent)]
 pub struct Mut<'a, T> {
     _value: T,
@@ -128,89 +130,53 @@ impl<'a, T: Copy> Mut<'a, T> {
     }
 }
 
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkInstance(NonNullDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkPhysicalDevice(NonNullDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkDevice(NonNullDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkQueue(NonNullDispatchableHandle);
+macro_rules! raw_handle {
+    ($name:ident($kind:ident)) => {
+        #[repr(transparent)]
+        #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        /// Raw Vulkan handle. Used either in owned form ([Handle]), borrowed
+        /// form ([Ref]), or exclusive borrowed form ([Mut]).
+        pub struct $name($kind);
+    };
+}
 
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkDeviceMemory(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkSemaphore(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkFence(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkSampler(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkDescriptorSetLayout(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkDescriptorPool(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkDescriptorSet(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkPipelineLayout(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkPipelineCache(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkPipeline(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkBuffer(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkBufferView(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkImage(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkImageView(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkFramebuffer(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkRenderPass(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkShaderModule(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkCommandPool(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkCommandBuffer(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkSurfaceKHR(NonNullNonDispatchableHandle);
-#[repr(transparent)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct VkSwapchainKHR(NonNullNonDispatchableHandle);
+raw_handle!(VkInstance(NonNullDispatchableHandle));
+raw_handle!(VkPhysicalDevice(NonNullDispatchableHandle));
+raw_handle!(VkDevice(NonNullDispatchableHandle));
+raw_handle!(VkQueue(NonNullDispatchableHandle));
+
+raw_handle!(VkDeviceMemory(NonNullNonDispatchableHandle));
+raw_handle!(VkSemaphore(NonNullNonDispatchableHandle));
+raw_handle!(VkFence(NonNullNonDispatchableHandle));
+raw_handle!(VkSampler(NonNullNonDispatchableHandle));
+raw_handle!(VkDescriptorSetLayout(NonNullNonDispatchableHandle));
+raw_handle!(VkDescriptorPool(NonNullNonDispatchableHandle));
+raw_handle!(VkDescriptorSet(NonNullNonDispatchableHandle));
+raw_handle!(VkPipelineLayout(NonNullNonDispatchableHandle));
+raw_handle!(VkPipelineCache(NonNullNonDispatchableHandle));
+raw_handle!(VkPipeline(NonNullNonDispatchableHandle));
+raw_handle!(VkBuffer(NonNullNonDispatchableHandle));
+raw_handle!(VkBufferView(NonNullNonDispatchableHandle));
+raw_handle!(VkImage(NonNullNonDispatchableHandle));
+raw_handle!(VkImageView(NonNullNonDispatchableHandle));
+raw_handle!(VkFramebuffer(NonNullNonDispatchableHandle));
+raw_handle!(VkRenderPass(NonNullNonDispatchableHandle));
+raw_handle!(VkShaderModule(NonNullNonDispatchableHandle));
+raw_handle!(VkCommandPool(NonNullNonDispatchableHandle));
+raw_handle!(VkCommandBuffer(NonNullNonDispatchableHandle));
+raw_handle!(VkSurfaceKHR(NonNullNonDispatchableHandle));
+raw_handle!(VkSwapchainKHR(NonNullNonDispatchableHandle));
 
 /// u32 with only one allowed value
 macro_rules! structure_type {
     ($name: ident, $value: literal) => {
         #[repr(u32)]
         #[derive(Debug)]
+        /// [Structure type](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/VkStructureType.html) constant
+        #[doc = concat!("(", stringify!($value), ")")]
         pub enum $name {
+            #[doc = "Has the value "]
+            #[doc = stringify!($value)]
             Value = $value,
         }
         impl Default for $name {
@@ -266,6 +232,7 @@ pub struct Rect2D {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
+#[doc = crate::man_link!(VkClearColorValue)]
 pub union ClearColorValue {
     pub f32: [f32; 4],
     pub i32: [i32; 4],
@@ -280,6 +247,7 @@ impl Default for ClearColorValue {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
+#[doc = crate::man_link!(VkClearDepthStencilValue)]
 pub struct ClearDepthStencilValue {
     pub depth: f32,
     pub stencil: u32,
@@ -291,6 +259,7 @@ pub struct ClearDepthStencilValue {
 
 #[repr(C)]
 #[derive(Clone, Copy)]
+#[doc = crate::man_link!(VkClearValue)]
 pub union ClearValue {
     pub color: ClearColorValue,
     pub depth_stencil: ClearDepthStencilValue,
@@ -305,6 +274,7 @@ impl Default for ClearValue {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
+#[doc = crate::man_link!(VkImageSubresourceRange)]
 pub struct ImageSubresourceRange {
     pub aspect_mask: ImageAspectFlags,
     pub base_mip_level: u32,
@@ -328,6 +298,7 @@ impl Default for ImageSubresourceRange {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
+#[doc = crate::man_link!(VkImageSubresourceLayers)]
 pub struct ImageSubresourceLayers {
     pub aspect_mask: ImageAspectFlags,
     pub mip_level: u32,
@@ -349,6 +320,7 @@ impl Default for ImageSubresourceLayers {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
+#[doc = crate::man_link!(VkImageBlit)]
 pub struct ImageBlit {
     pub src_subresource: ImageSubresourceLayers,
     pub src_offsets: [Offset3D; 2],
@@ -358,6 +330,7 @@ pub struct ImageBlit {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
+#[doc = crate::man_link!(VkComponentMapping)]
 pub struct ComponentMapping {
     pub r: ComponentSwizzle,
     pub g: ComponentSwizzle,
@@ -367,6 +340,7 @@ pub struct ComponentMapping {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Default)]
+#[doc = crate::man_link!(VkViewport)]
 pub struct Viewport {
     pub x: f32,
     pub y: f32,
@@ -378,6 +352,7 @@ pub struct Viewport {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
+#[doc = crate::man_link!(VkMemoryType)]
 pub struct MemoryType {
     pub property_flags: MemoryPropertyFlags,
     pub heap_index: u32,
@@ -385,6 +360,7 @@ pub struct MemoryType {
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
+#[doc = crate::man_link!(VkMemoryHeap)]
 pub struct MemoryHeap {
     pub size: u64,
     pub flags: MemoryHeapFlags,
@@ -392,6 +368,7 @@ pub struct MemoryHeap {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkPhysicalDeviceMemoryProperties)]
 pub struct PhysicalDeviceMemoryProperties {
     pub memory_types: InlineSlice<MemoryType, 32>,
     pub memory_heaps: InlineSlice<MemoryHeap, 16>,
@@ -399,6 +376,7 @@ pub struct PhysicalDeviceMemoryProperties {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkMemoryRequirements)]
 pub struct MemoryRequirements {
     pub size: u64,
     pub alignment: u64,
@@ -407,6 +385,7 @@ pub struct MemoryRequirements {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkBufferCopy)]
 pub struct BufferCopy {
     pub src_offset: u64,
     pub dst_offset: u64,
@@ -415,6 +394,7 @@ pub struct BufferCopy {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkBufferImageCopy)]
 pub struct BufferImageCopy {
     pub buffer_offset: u64,
     pub buffer_row_length: u32,
@@ -424,10 +404,12 @@ pub struct BufferImageCopy {
     pub image_extent: Extent3D,
 }
 
+/// Not implemented
 pub enum AllocationCallbacks {}
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkInstanceCreateInfo)]
 pub struct InstanceCreateInfo<'a, Next = Null, AINext = Null> {
     pub stype: InstanceCreateInfoType,
     pub next: Next,
@@ -440,6 +422,7 @@ structure_type!(InstanceCreateInfoType, 1);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkApplicationInfo)]
 pub struct ApplicationInfo<'a, Next> {
     pub stype: ApplicationInfoType,
     pub next: Next,
@@ -453,6 +436,7 @@ structure_type!(ApplicationInfoType, 0);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkExtensionProperties)]
 pub struct ExtensionProperties {
     pub extension_name: CharArray<MAX_EXTENSION_NAME_SIZE>,
     pub spec_version: u32,
@@ -462,6 +446,7 @@ pub const MAX_EXTENSION_NAME_SIZE: usize = 256;
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPhysicalDeviceProperties)]
 pub struct PhysicalDeviceProperties {
     pub api_version: u32,
     pub driver_version: u32,
@@ -478,6 +463,7 @@ pub const MAX_PHYSICAL_DEVICE_NAME_SIZE: usize = 256;
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPhysicalDeviceLimits)]
 pub struct PhysicalDeviceLimits {
     pub max_image_dimension_1d: u32,
     pub max_image_dimension_2d: u32,
@@ -589,6 +575,7 @@ pub struct PhysicalDeviceLimits {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPhysicalDeviceSparseProperties)]
 pub struct PhysicalDeviceSparseProperties {
     pub residency_standard_2d_block_shape: Bool,
     pub residency_standard_2d_multisample_block_shape: Bool,
@@ -599,6 +586,7 @@ pub struct PhysicalDeviceSparseProperties {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkQueueFamilyProperties)]
 pub struct QueueFamilyProperties {
     pub queue_flags: QueueFlags,
     pub queue_count: u32,
@@ -608,6 +596,7 @@ pub struct QueueFamilyProperties {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkDeviceCreateInfo)]
 pub struct DeviceCreateInfo<'a, Next = Null> {
     pub stype: DeviceCreateInfoType,
     pub next: Next,
@@ -619,10 +608,9 @@ pub struct DeviceCreateInfo<'a, Next = Null> {
 }
 structure_type!(DeviceCreateInfoType, 3);
 
-pub enum DeviceCreateInfoExtension {}
-
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkDeviceQueueCreateInfo)]
 pub struct DeviceQueueCreateInfo<'a, Next = Null> {
     pub stype: DeviceQueueCreateInfoType,
     pub next: Next,
@@ -634,6 +622,7 @@ structure_type!(DeviceQueueCreateInfoType, 2);
 
 #[repr(C)]
 #[derive(Default, Debug)]
+#[doc = crate::man_link!(VkPhysicalDeviceFeatures)]
 pub struct PhysicalDeviceFeatures {
     pub robust_buffer_access: Bool,
     pub full_draw_index_uint32: Bool,
@@ -694,6 +683,7 @@ pub struct PhysicalDeviceFeatures {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkSubmitInfo)]
 pub struct VkSubmitInfo<'a, Next = Null> {
     pub stype: SubmitInfoType,
     pub next: Next,
@@ -707,6 +697,7 @@ structure_type!(SubmitInfoType, 4);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkMemoryAllocateInfo)]
 pub struct MemoryAllocateInfo<Next = Null> {
     pub stype: MemoryAllocateInfoType,
     pub next: Next,
@@ -717,6 +708,7 @@ structure_type!(MemoryAllocateInfoType, 5);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkFenceCreateInfo)]
 pub struct FenceCreateInfo<Next = Null> {
     pub stype: FenceCreateInfoType,
     pub next: Next,
@@ -726,6 +718,7 @@ structure_type!(FenceCreateInfoType, 8);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkSemaphoreCreateInfo)]
 pub struct SemaphoreCreateInfo<Next = Null> {
     pub stype: SemaphoreCreateInfoType,
     pub next: Next,
@@ -735,6 +728,7 @@ structure_type!(SemaphoreCreateInfoType, 9);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkBufferCreateInfo)]
 pub struct BufferCreateInfo<'a, Next = Null> {
     pub stype: BufferCreateInfoType,
     pub next: Next,
@@ -748,6 +742,7 @@ structure_type!(BufferCreateInfoType, 12);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkImageCreateInfo)]
 pub struct ImageCreateInfo<'a, Next = Null> {
     pub stype: ImageCreateInfoType,
     pub next: Next,
@@ -789,6 +784,7 @@ impl<'a> Default for ImageCreateInfo<'a> {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkImageViewCreateInfo)]
 pub struct VkImageViewCreateInfo<'a, Next = Null> {
     pub stype: ImageViewCreateInfoType,
     pub next: Next,
@@ -803,6 +799,7 @@ structure_type!(ImageViewCreateInfoType, 15);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkShaderModuleCreateInfo)]
 pub struct VkShaderModuleCreateInfo<'a, Next = Null> {
     pub stype: ShaderModuleCreateInfoType,
     pub next: Next,
@@ -813,6 +810,7 @@ structure_type!(ShaderModuleCreateInfoType, 16);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPipelineCacheCreateInfo)]
 pub struct PipelineCacheCreateInfo<'a, Next = Null> {
     pub stype: ShaderModuleCreateInfoType,
     pub next: Next,
@@ -823,6 +821,7 @@ structure_type!(PipelineCacheCreateInfoType, 17);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkSpecializationMapEntry)]
 pub struct SpecializationMapEntry {
     pub constant_id: u32,
     pub offset: u32,
@@ -831,6 +830,7 @@ pub struct SpecializationMapEntry {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkSpecializationInfo)]
 pub struct SpecializationInfo<'a> {
     pub map_entries: Slice<'a, SpecializationMapEntry>,
     pub data: Bytes<'a>,
@@ -838,6 +838,7 @@ pub struct SpecializationInfo<'a> {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPipelineShaderStageCreateInfo)]
 pub struct PipelineShaderStageCreateInfo<'a, Next = Null> {
     pub stype: PipelineShaderStageCreateInfoType,
     pub next: Next,
@@ -879,6 +880,7 @@ impl<'a> PipelineShaderStageCreateInfo<'a> {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkVertexInputBindingDescription)]
 pub struct VertexInputBindingDescription {
     pub binding: u32,
     pub stride: u32,
@@ -887,6 +889,7 @@ pub struct VertexInputBindingDescription {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkVertexInputAttributeDescription)]
 pub struct VertexInputAttributeDescription {
     pub location: u32,
     pub binding: u32,
@@ -896,6 +899,7 @@ pub struct VertexInputAttributeDescription {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkPipelineVertexInputStateCreateInfo)]
 pub struct PipelineVertexInputStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineVertexInputStateCreateInfoType,
     pub next: Next,
@@ -908,6 +912,7 @@ structure_type!(PipelineVertexInputStateCreateInfoType, 19);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkPipelineInputAssemblyStateCreateInfo)]
 pub struct PipelineInputAssemblyStateCreateInfo<Next = Null> {
     pub stype: PipelineInputAssemblyStateCreateInfoType,
     pub next: Next,
@@ -919,6 +924,7 @@ structure_type!(PipelineInputAssemblyStateCreateInfoType, 20);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkPipelineTessellationStateCreateInfo)]
 pub struct PipelineTessellationStateCreateInfo<Next = Null> {
     pub stype: PipelineTesselationStateCreateInfoType,
     pub next: Next,
@@ -929,6 +935,7 @@ structure_type!(PipelineTesselationStateCreateInfoType, 21);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPipelineViewportStateCreateInfo)]
 pub struct PipelineViewportStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineViewportStateCreateInfoType,
     pub next: Next,
@@ -965,6 +972,7 @@ impl<'a> Default for PipelineViewportStateCreateInfo<'a> {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPipelineRasterizationStateCreateInfo)]
 pub struct PipelineRasterizationStateCreateInfo<Next = Null> {
     pub stype: PipelineRasterizationStateCreateInfoType,
     pub next: Next,
@@ -1004,6 +1012,7 @@ impl Default for PipelineRasterizationStateCreateInfo {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkPipelineMultisampleStateCreateInfo)]
 pub struct PipelineMultisampleStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineMultisampleStateCreateInfoType,
     pub next: Next,
@@ -1019,6 +1028,7 @@ structure_type!(PipelineMultisampleStateCreateInfoType, 24);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkStencilOpState)]
 pub struct StencilOpState {
     pub fail_op: StencilOp,
     pub pass_op: StencilOp,
@@ -1031,6 +1041,7 @@ pub struct StencilOpState {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkPipelineDepthStencilStateCreateInfo)]
 pub struct PipelineDepthStencilStateCreateInfo<Next = Null> {
     pub stype: PipelineDepthStencilStateCreateInfoType,
     pub next: Next,
@@ -1049,6 +1060,7 @@ structure_type!(PipelineDepthStencilStateCreateInfoType, 25);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPipelineColorBlendAttachmentState)]
 pub struct PipelineColorBlendAttachmentState {
     pub blend_enable: Bool,
     pub src_color_blend_factor: BlendFactor,
@@ -1081,6 +1093,7 @@ impl Default for PipelineColorBlendAttachmentState {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPipelineColorBlendStateCreateInfo)]
 pub struct PipelineColorBlendStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineColorBlendStateCreateInfoType,
     pub next: Next,
@@ -1109,6 +1122,7 @@ impl Default for PipelineColorBlendStateCreateInfo<'static> {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkPipelineDynamicStateCreateInfo)]
 pub struct PipelineDynamicStateCreateInfo<'a, Next = Null> {
     pub stype: PipelineDynamicStateCreateInfoType,
     pub next: Next,
@@ -1119,6 +1133,7 @@ structure_type!(PipelineDynamicStateCreateInfoType, 27);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkGraphicsPipelineCreateInfo)]
 pub struct VkGraphicsPipelineCreateInfo<'a, Next = Null> {
     pub stype: GraphicsPipelineCreateInfoType,
     pub next: Next,
@@ -1143,6 +1158,7 @@ structure_type!(GraphicsPipelineCreateInfoType, 28);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkComputePipelineCreateInfo)]
 pub struct ComputePipelineCreateInfo<'a, Next = Null> {
     pub stype: ComputePipelineCreateInfoType,
     pub next: Next,
@@ -1156,6 +1172,7 @@ structure_type!(ComputePipelineCreateInfoType, 29);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPushConstantRange)]
 pub struct PushConstantRange {
     pub stage_flags: ShaderStageFlags,
     pub offset: u32,
@@ -1164,6 +1181,7 @@ pub struct PushConstantRange {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkPipelineLayoutCreateInfo)]
 pub struct PipelineLayoutCreateInfo<'a, Next = Null> {
     pub stype: PipelineLayoutCreateInfoType,
     pub next: Next,
@@ -1175,6 +1193,7 @@ structure_type!(PipelineLayoutCreateInfoType, 30);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkSamplerCreateInfo)]
 pub struct SamplerCreateInfo<Next = Null> {
     pub stype: SamplerCreateInfoType,
     pub next: Next,
@@ -1224,6 +1243,7 @@ impl Default for SamplerCreateInfo {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkDescriptorSetLayoutBinding)]
 pub struct VkDescriptorSetLayoutBinding<'a> {
     pub binding: u32,
     pub descriptor_type: DescriptorType,
@@ -1235,6 +1255,7 @@ pub struct VkDescriptorSetLayoutBinding<'a> {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkDescriptorSetLayoutCreateInfo)]
 pub struct VkDescriptorSetLayoutCreateInfo<'a, Next = Null> {
     pub stype: DescriptorSetLayoutCreateInfoType,
     pub next: Next,
@@ -1245,6 +1266,7 @@ structure_type!(DescriptorSetLayoutCreateInfoType, 32);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkDescriptorPoolSize)]
 pub struct DescriptorPoolSize {
     pub descriptor_type: DescriptorType,
     pub descriptor_count: u32,
@@ -1252,6 +1274,7 @@ pub struct DescriptorPoolSize {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkDescriptorPoolCreateInfo)]
 pub struct DescriptorPoolCreateInfo<'a, Next = Null> {
     pub stype: DescriptorPoolCreateInfoType,
     pub next: Next,
@@ -1263,6 +1286,7 @@ structure_type!(DescriptorPoolCreateInfoType, 33);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkDescriptorSetAllocateInfo)]
 pub struct DescriptorSetAllocateInfo<'a, Next = Null> {
     pub stype: DescriptorSetAllocateInfoType,
     pub next: Next,
@@ -1273,6 +1297,7 @@ structure_type!(DescriptorSetAllocateInfoType, 34);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkDescriptorImageInfo)]
 pub struct VkDescriptorImageInfo<'a> {
     pub sampler: Option<Ref<'a, VkSampler>>,
     pub image_view: Option<Ref<'a, VkImageView>>,
@@ -1281,6 +1306,7 @@ pub struct VkDescriptorImageInfo<'a> {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkDescriptorBufferInfo)]
 pub struct VkDescriptorBufferInfo<'a> {
     pub buffer: Ref<'a, VkBuffer>,
     pub offset: u64,
@@ -1289,6 +1315,7 @@ pub struct VkDescriptorBufferInfo<'a> {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkWriteDescriptorSet)]
 pub struct VkWriteDescriptorSet<'a, Next = Null> {
     pub stype: WriteDescriptorSetType,
     pub next: Next,
@@ -1305,6 +1332,7 @@ structure_type!(WriteDescriptorSetType, 35);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkCopyDescriptorSet)]
 pub struct VkCopyDescriptorSet<'a, Next = Null> {
     pub stype: WriteDescriptorSetType,
     pub next: Next,
@@ -1320,6 +1348,7 @@ structure_type!(CopyDescriptorSetType, 35);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkFramebufferCreateInfo)]
 pub struct VkFramebufferCreateInfo<'a, Next = Null> {
     pub stype: FramebufferCreateInfoType,
     pub next: Next,
@@ -1334,6 +1363,7 @@ structure_type!(FramebufferCreateInfoType, 37);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkAttachmentDescription)]
 pub struct AttachmentDescription {
     pub flags: AttachmentDescriptionFlags,
     pub format: Format,
@@ -1348,6 +1378,7 @@ pub struct AttachmentDescription {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkAttachmentReference)]
 pub struct AttachmentReference {
     /// Either an index in the attachments member of [RenderPassCreateInfo] or
     /// u32::MAX if unused
@@ -1357,6 +1388,7 @@ pub struct AttachmentReference {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkSubpassDescription)]
 pub struct VkSubpassDescription<'a> {
     flags: SubpassDescriptionFlags,
     pipeline_bind_point: PipelineBindPoint,
@@ -1370,6 +1402,7 @@ pub struct VkSubpassDescription<'a> {
 }
 
 #[derive(Default)]
+#[doc = crate::man_link!(VkSubpassDescription)]
 pub struct SubpassDescription<'a> {
     pub input_attachments: &'a [AttachmentReference],
     pub color_attachments: &'a [AttachmentReference],
@@ -1410,6 +1443,7 @@ impl<'a> TryFrom<SubpassDescription<'a>> for VkSubpassDescription<'a> {
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[doc = crate::man_link!(VkSubpassDependency)]
 pub struct SubpassDependency {
     pub src_subpass: u32,
     pub dst_subpass: u32,
@@ -1422,6 +1456,7 @@ pub struct SubpassDependency {
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkRenderPassCreateInfo)]
 pub struct RenderPassCreateInfo<'a, Next = Null> {
     pub stype: RenderPassCreateInfoType,
     pub next: Next,
@@ -1434,6 +1469,7 @@ structure_type!(RenderPassCreateInfoType, 38);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkCommandPoolCreateInfo)]
 pub struct CommandPoolCreateInfo<Next = Null> {
     pub stype: CommandPoolCreateInfoType,
     pub next: Next,
@@ -1444,6 +1480,7 @@ structure_type!(CommandPoolCreateInfoType, 39);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkCommandBufferAllocateInfo)]
 pub struct CommandBufferAllocateInfo<'a, Next = Null> {
     pub stype: CommandBufferAllocateInfoType,
     pub next: Next,
@@ -1455,6 +1492,7 @@ structure_type!(CommandBufferAllocateInfoType, 40);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkCommandBufferInheritanceInfo)]
 pub struct CommandBufferInheritanceInfo<'a, Next = Null> {
     pub stype: CommandBufferInheritanceInfoType,
     pub next: Next,
@@ -1469,6 +1507,7 @@ structure_type!(CommandBufferInheritanceInfoType, 41);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkCommandBufferBeginInfo)]
 pub struct CommandBufferBeginInfo<'a, Next = Null> {
     pub stype: CommandBufferBeginInfoType,
     pub next: Next,
@@ -1478,6 +1517,7 @@ pub struct CommandBufferBeginInfo<'a, Next = Null> {
 structure_type!(CommandBufferBeginInfoType, 42);
 
 #[repr(C)]
+#[doc = crate::man_link!(VkRenderPassBeginInfo)]
 pub struct RenderPassBeginInfo<'a, Next = Null> {
     pub stype: RenderPassBeginInfoType,
     pub next: Next,
@@ -1490,6 +1530,7 @@ structure_type!(RenderPassBeginInfoType, 43);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkBufferMemoryBarrier)]
 pub struct VkBufferMemoryBarrier<'a, Next = Null> {
     pub stype: BufferMemoryBarrierType,
     pub next: Next,
@@ -1505,6 +1546,7 @@ structure_type!(BufferMemoryBarrierType, 44);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkImageMemoryBarrier)]
 pub struct VkImageMemoryBarrier<'a, Next = Null> {
     pub stype: ImageMemoryBarrierType,
     pub next: Next,
@@ -1521,6 +1563,7 @@ structure_type!(ImageMemoryBarrierType, 45);
 
 #[repr(C)]
 #[derive(Debug, Default)]
+#[doc = crate::man_link!(VkMemoryBarrier)]
 pub struct MemoryBarrier<Next = Null> {
     pub stype: MemoryBarrierType,
     pub next: Next,
@@ -1531,6 +1574,7 @@ structure_type!(MemoryBarrierType, 46);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkMetalSurfaceCreateInfoEXT)]
 pub struct MetalSurfaceCreateInfoEXT<Next = Null> {
     pub stype: MetalSurfaceCreateInfoEXTType,
     pub next: Next,
@@ -1541,6 +1585,7 @@ structure_type!(MetalSurfaceCreateInfoEXTType, 1000217000);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkSurfaceCapabilitiesKHR)]
 pub struct SurfaceCapabilitiesKHR {
     pub min_image_count: u32,
     pub max_image_count: u32,
@@ -1556,6 +1601,7 @@ pub struct SurfaceCapabilitiesKHR {
 
 #[repr(C)]
 #[derive(Debug, PartialEq, Eq)]
+#[doc = crate::man_link!(VkSurfaceFormatKHR)]
 pub struct SurfaceFormatKHR {
     pub format: Format,
     pub color_space: ColorSpaceKHR,
@@ -1563,6 +1609,7 @@ pub struct SurfaceFormatKHR {
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkSwapchainCreateInfoKHR)]
 pub struct VkSwapchainCreateInfoKHR<'a, Next = Null> {
     pub stype: SwapchainCreateInfoKHRType,
     pub next: Next,
@@ -1586,6 +1633,7 @@ structure_type!(SwapchainCreateInfoKHRType, 1000001000);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkPresentInfoKHR)]
 pub struct PresentInfoKHR<'a, Next = Null> {
     pub stype: PresentInfoType,
     pub next: Next,

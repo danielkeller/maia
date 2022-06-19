@@ -18,6 +18,17 @@ window = ["dep:raw-window-handle", "dep:raw-window-metal"]
 
 [dev-dependencies]
 rand = "0.8"
+# For doctests. See hello-triangle/Cargo.toml
+ember = { path = ".", features = [ "window" ] }
+winit = "0.26"
+bytemuck = { version = "1.0", features = [ "derive" ] }
+inline-spirv = "0.1"
 
 [workspace]
 members = ["demo", "hello-triangle"]
+
+# Build with
+# RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --no-deps --all-features
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

@@ -12,6 +12,8 @@ pub struct EXTMetalSurface {
 }
 
 impl Instance {
+    /// Creates an [EXTMetalSurface] extension object. Panics if the extension
+    /// functions can't be loaded.
     pub fn ext_metal_surface(self: &Arc<Self>) -> EXTMetalSurface {
         EXTMetalSurface {
             fun: MetalSurfaceFn::new(&self),
@@ -21,6 +23,8 @@ impl Instance {
 }
 
 impl EXTMetalSurface {
+    /// Creates a metal surface. The 'layer' member of
+    /// [MetalSurfaceCreateInfoEXT] must refer to a valid Metal layer.
     pub unsafe fn create_metal_surface_ext(
         &self,
         info: &MetalSurfaceCreateInfoEXT,

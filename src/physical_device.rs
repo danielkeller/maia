@@ -5,6 +5,8 @@ use crate::ffi::ArrayMut;
 use crate::instance::Instance;
 use crate::types::*;
 
+/// A physical device. It is not freed separately from the instance and so can
+/// be freely cloned.
 #[derive(Debug)]
 pub struct PhysicalDevice {
     handle: Handle<VkPhysicalDevice>,
@@ -12,6 +14,7 @@ pub struct PhysicalDevice {
 }
 
 impl Instance {
+    /// Returns the instance's physical devices.
     pub fn enumerate_physical_devices(
         self: &Arc<Self>,
     ) -> Result<Vec<PhysicalDevice>> {
@@ -39,9 +42,11 @@ impl Instance {
 }
 
 impl PhysicalDevice {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkPhysicalDevice> {
         self.handle.borrow()
     }
+    /// Gets the instance.
     pub fn instance(&self) -> &Instance {
         &*self.instance
     }
@@ -59,6 +64,7 @@ impl Clone for PhysicalDevice {
 }
 
 impl PhysicalDevice {
+    #[doc = crate::man_link!(vkGetPhysicalDeviceProperties)]
     pub fn properties(&self) -> PhysicalDeviceProperties {
         let mut result = MaybeUninit::uninit();
         unsafe {
@@ -70,6 +76,7 @@ impl PhysicalDevice {
         }
     }
 
+    #[doc = crate::man_link!(vkGetPhysicalDeviceQueueFamilyProperties)]
     pub fn queue_family_properties(&self) -> Vec<QueueFamilyProperties> {
         let mut len = 0;
         let mut result = Vec::new();
@@ -90,6 +97,7 @@ impl PhysicalDevice {
         result
     }
 
+    #[doc = crate::man_link!(vkGetPhysicalDeviceMemoryProperties)]
     pub fn memory_properties(&self) -> PhysicalDeviceMemoryProperties {
         let mut result = Default::default();
         unsafe {
@@ -101,6 +109,7 @@ impl PhysicalDevice {
         result
     }
 
+    #[doc = crate::man_link!(vkEnumerateDeviceExtensionProperties)]
     pub fn device_extension_properties(
         &self,
     ) -> Result<Vec<ExtensionProperties>> {

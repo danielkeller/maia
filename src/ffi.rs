@@ -1,7 +1,7 @@
-pub use std::ffi::c_void;
-pub use std::marker::PhantomData;
+pub(crate) use std::ffi::c_void;
+pub(crate) use std::marker::PhantomData;
 use std::os::raw::c_char;
-pub use std::ptr::NonNull;
+pub(crate) use std::ptr::NonNull;
 use std::{ffi::CStr, mem::MaybeUninit};
 
 /// The null pointer
@@ -24,6 +24,10 @@ pub struct Str<'a> {
     _ptr: NonNull<c_char>,
     _lt: PhantomData<&'a ()>,
 }
+
+// Safety: As with &
+unsafe impl<'a> Send for Str<'a> {}
+unsafe impl<'a> Sync for Str<'a> {}
 
 impl<'a> Str<'a> {
     /// Fails if not null terminated
@@ -165,7 +169,7 @@ pub struct UUID([u8; 16]);
 // Note: Be *very* careful about how this is aligned in the outer struct.
 
 /// An immutably borrowed contiguous sequence of T. Represented as a u32
-/// followed by a pointer. Create using the [slice] function.
+/// followed by a pointer. Create using the [slice()] function.
 #[repr(C)]
 #[derive(Debug)]
 pub struct Slice<'a, T> {
@@ -173,6 +177,10 @@ pub struct Slice<'a, T> {
     ptr: *const T,
     _lt: PhantomData<&'a T>,
 }
+
+// Safety: As with &
+unsafe impl<'a, T: Sync> Send for Slice<'a, T> {}
+unsafe impl<'a, T: Sync> Sync for Slice<'a, T> {}
 
 impl<'a, T> Copy for Slice<'a, T> {}
 impl<'a, T> Clone for Slice<'a, T> {
@@ -244,7 +252,7 @@ impl<'a, T> std::iter::IntoIterator for Slice<'a, T> {
 }
 
 /// An immutably borrowed contiguous sequence of T. Represented as a u32
-/// followed by a pointer. Create using the [slice] function. This type differs
+/// followed by a pointer. Create using the [slice()] function. This type differs
 /// from Slice only in that it is aligned to a 4-byte boundary, for cases where
 /// the structure alignment of Slice puts the count member in the wrong place on
 /// 64 bit systems. This type does not use unaligned loads or stores and has no
@@ -260,6 +268,10 @@ pub struct Slice_<'a, T> {
     ptr: [u32; 2],
     _lt: PhantomData<&'a T>,
 }
+
+// Safety: As with &
+unsafe impl<'a, T: Sync> Send for Slice_<'a, T> {}
+unsafe impl<'a, T: Sync> Sync for Slice_<'a, T> {}
 
 impl<'a, T> Copy for Slice_<'a, T> {}
 impl<'a, T> Clone for Slice_<'a, T> {
@@ -362,6 +374,10 @@ pub struct Bytes<'a> {
     _lt: PhantomData<&'a u8>,
 }
 
+// Safety: As with &
+unsafe impl<'a> Send for Bytes<'a> {}
+unsafe impl<'a> Sync for Bytes<'a> {}
+
 impl<'a> Copy for Bytes<'a> {}
 impl<'a> Clone for Bytes<'a> {
     fn clone(&self) -> Self {
@@ -423,6 +439,10 @@ pub struct Array<'a, T> {
     _lt: PhantomData<&'a T>,
 }
 
+// Safety: As with &
+unsafe impl<'a, T: Sync> Send for Array<'a, T> {}
+unsafe impl<'a, T: Sync> Sync for Array<'a, T> {}
+
 impl<'a, T> Copy for Array<'a, T> {}
 impl<'a, T> Clone for Array<'a, T> {
     fn clone(&self) -> Self {
@@ -467,6 +487,10 @@ pub struct ArrayMut<'a, T> {
     _ptr: NonNull<T>,
     _lt: PhantomData<&'a mut T>,
 }
+
+// Safety: As with &
+unsafe impl<'a, T: Sync> Send for ArrayMut<'a, T> {}
+unsafe impl<'a, T: Sync> Sync for ArrayMut<'a, T> {}
 
 impl<'a, T, const N: usize> From<&'a mut [T; N]> for ArrayMut<'a, T> {
     fn from(array: &'a mut [T; N]) -> Self {

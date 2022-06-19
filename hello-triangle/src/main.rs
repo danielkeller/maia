@@ -37,6 +37,7 @@ fn required_device_extensions(
     }
 }
 
+// Pick an appropriate physical device
 fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
     let discr = vk::PhysicalDeviceType::DISCRETE_GPU;
     let int = vk::PhysicalDeviceType::INTEGRATED_GPU;
@@ -47,6 +48,7 @@ fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
         .clone()
 }
 
+// Pick an appropriate queue family
 fn pick_queue_family(
     phy: &vk::PhysicalDevice,
     surf: &vk::ext::SurfaceKHR,
@@ -78,17 +80,20 @@ fn main() -> vk::Result<()> {
     let event_loop = EventLoop::new();
     let window = winit::window::Window::new(&event_loop).unwrap();
 
+    // Create the instance
     let mut instance_exts = vec![];
     instance_exts
         .extend(ember::window::required_instance_extensions(&window)?.iter());
     instance_exts.extend(required_instance_extensions()?.iter());
     let inst = vk::Instance::new(&vk::InstanceCreateInfo {
-        enabled_extension_names: instance_exts.as_slice().into(),
+        enabled_extension_names: vk::slice(&instance_exts),
         ..Default::default()
     })?;
 
+    // Create the surface
     let surf = ember::window::create_surface(&inst, &window)?;
 
+    // Pick an appropriate physical device
     let phy = pick_physical_device(&inst.enumerate_physical_devices()?);
     let queue_family = pick_queue_family(&phy, &surf)?;
     if !surf.surface_formats(&phy)?.iter().any(|f| {
@@ -100,6 +105,7 @@ fn main() -> vk::Result<()> {
         panic!("Desired surface format not found");
     }
 
+    // Create the virtual device
     let device_extensions = required_device_extensions(&phy)?;
     let device = phy.create_device(&vk::DeviceCreateInfo {
         queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
@@ -107,10 +113,11 @@ fn main() -> vk::Result<()> {
             queue_priorities: vk::slice(&[1.0]),
             ..Default::default()
         }]),
-        enabled_extension_names: device_extensions.into(),
+        enabled_extension_names: vk::slice(device_extensions),
         ..Default::default()
     })?;
 
+    // Create the swapchain
     let window_size = window.inner_size();
     let window_extent = vk::Extent2D {
         width: window_size.width,
@@ -128,6 +135,7 @@ fn main() -> vk::Result<()> {
     )?;
     let mut framebuffers = std::collections::HashMap::new();
 
+    // Create the render pass
     let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
         attachments: vk::slice(&[vk::AttachmentDescription {
             format: vk::Format::B8G8R8A8_SRGB,
@@ -148,6 +156,7 @@ fn main() -> vk::Result<()> {
         ..Default::default()
     })?;
 
+    // Create the graphics pipeline
     let vertex_shader =
         device.create_shader_module(inline_spirv::inline_spirv!(
             r#" #version 450
@@ -228,6 +237,7 @@ fn main() -> vk::Result<()> {
             cache: None,
         })?;
 
+    // Create the vertex buffer and fill it with data
     let vertex_size = std::mem::size_of_val(&VERTEX_DATA) as u64;
     let vertex_buffer = device.create_buffer(&vk::BufferCreateInfo {
         size: vertex_size,
@@ -242,10 +252,11 @@ fn main() -> vk::Result<()> {
     let mut mapped = memory.map(0, std::mem::size_of_val(&VERTEX_DATA))?;
     mapped.slice_mut().copy_from_slice(bytemuck::bytes_of(&VERTEX_DATA));
 
+    // Create the remaining required objects
     let mut cmd_pool = device.create_command_pool(queue_family)?;
-
+    // Create the command buffer
+    let mut cmd_buf = Some(cmd_pool.allocate()?);
     let mut queue = device.queue(0, 0)?;
-
     let mut acquire_sem = device.create_semaphore()?;
     let mut fence = Some(device.create_fence()?);
 
@@ -253,7 +264,9 @@ fn main() -> vk::Result<()> {
         let (img, _subopt) =
             swapchain.acquire_next_image(&mut acquire_sem, u64::MAX)?;
 
+        // We want one framebuffer and present semaphore per image
         if !framebuffers.contains_key(&img) {
+            // Create them if we haven't already
             let img_view = img.create_view(&vk::ImageViewCreateInfo {
                 format: vk::Format::B8G8R8A8_SRGB,
                 ..Default::default()
@@ -268,15 +281,16 @@ fn main() -> vk::Result<()> {
         }
         let (framebuffer, present_sem) = framebuffers.get_mut(&img).unwrap();
 
-        let cmd_buf = cmd_pool.allocate()?;
-        let mut pass = cmd_pool.begin(cmd_buf)?.begin_render_pass(
-            &render_pass,
-            &framebuffer,
-            &vk::Rect2D { extent: window_extent, ..Default::default() },
-            &[vk::ClearValue {
-                color: vk::ClearColorValue { f32: [0.1, 0.2, 0.3, 1.0] },
-            }],
-        )?;
+        // Command buffer recoding uses a builder pattern
+        let mut pass =
+            cmd_pool.begin(cmd_buf.take().unwrap())?.begin_render_pass(
+                &render_pass,
+                &framebuffer,
+                &vk::Rect2D { extent: window_extent, ..Default::default() },
+                &[vk::ClearValue {
+                    color: vk::ClearColorValue { f32: [0.1, 0.2, 0.3, 1.0] },
+                }],
+            )?;
         pass.bind_pipeline(&pipeline);
         pass.set_viewport(&vk::Viewport {
             x: 0.0,
@@ -292,22 +306,25 @@ fn main() -> vk::Result<()> {
         });
         pass.bind_vertex_buffers(0, &[(&vertex_buffer, 0)])?;
         pass.draw(3, 1, 0, 0)?;
-        let mut cmd_buf = pass.end()?.end()?;
+        // End the render pass and extract the command buffer from the builder
+        cmd_buf = Some(pass.end()?.end()?);
 
+        // Submit the command buffer
         let pending_fence = queue.submit(
             &mut [vk::SubmitInfo {
                 wait: &mut [(
                     &mut acquire_sem,
                     vk::PipelineStageFlags::TOP_OF_PIPE,
                 )],
-                commands: &mut [&mut cmd_buf],
+                commands: &mut [cmd_buf.as_mut().unwrap()],
                 signal: &mut [present_sem],
             }],
             fence.take().unwrap(),
         )?;
         swapchain.present(&mut queue, &img, present_sem)?;
+        // Wait for the execution to finish. Otherwise resetting the command
+        // pool will return an error.
         fence = Some(pending_fence.wait()?);
-        drop(cmd_buf);
         cmd_pool.reset(Default::default())?;
 
         Ok(())
@@ -326,6 +343,8 @@ fn main() -> vk::Result<()> {
                     println!("{:?}", e);
                     *control_flow = ControlFlow::Exit;
                 }
+                // (prevent doctests from hanging. remove this in real code)
+                *control_flow = ControlFlow::Exit;
             }
             Event::MainEventsCleared => window.request_redraw(),
             _ => (),

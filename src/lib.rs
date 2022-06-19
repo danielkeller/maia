@@ -1,3 +1,11 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
+#![doc = include_str!("../README.md")]
+#![doc = include_str!("../hello-triangle/README.md")]
+#![doc = "```rust"]
+#![doc = include_str!("../hello-triangle/src/main.rs")]
+#![doc = "```"]
+
+mod instance;
 mod buffer;
 mod cleanup_queue;
 mod command_buffer;
@@ -6,12 +14,10 @@ mod device;
 mod enums;
 mod error;
 mod exclusive;
-pub mod ext;
 mod fence;
 mod ffi;
 mod framebuffer;
 mod image;
-mod instance;
 mod load;
 mod memory;
 mod physical_device;
@@ -23,11 +29,20 @@ mod semaphore;
 mod shader;
 mod subobject;
 mod types;
-#[cfg(feature = "window")]
+#[cfg(any(feature = "window", doc))]
+#[cfg_attr(docsrs, doc(cfg(feature = "window")))]
 pub mod window;
+pub mod ext;
 
 use crate::error::Result;
 use crate::types::*;
+
+macro_rules! man_link{
+    ($name:ident) => {
+        concat!("(see [", stringify!($name), "](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/", stringify!($name), ".html))")
+    }
+}
+pub(crate) use man_link;
 
 pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
     let mut len = 0;
@@ -75,7 +90,9 @@ pub mod vk {
     pub use crate::instance_extension_properties;
     pub use crate::memory::DeviceMemory;
     pub use crate::physical_device::PhysicalDevice;
-    pub use crate::pipeline::{GraphicsPipelineCreateInfo, Pipeline};
+    pub use crate::pipeline::{
+        GraphicsPipelineCreateInfo, Pipeline, PipelineCache, PipelineLayout,
+    };
     pub use crate::queue::Queue;
     pub use crate::queue::SubmitInfo;
     pub use crate::sampler::Sampler;

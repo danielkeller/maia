@@ -669,7 +669,7 @@ impl DeviceFn {
 }
 
 impl Instance {
-    /// Load device function. Panics if the string is not null-terminated or the
+    /// Loads device function. Panics if the string is not null-terminated or the
     /// function was not found.
     fn load(&self, device: Ref<VkDevice>, name: &str) -> NonNull<c_void> {
         let ptr = unsafe {
@@ -680,7 +680,7 @@ impl Instance {
         })
     }
 
-    /// Load instance function. Panics if the string is not null-terminated or
+    /// Loads instance function. Panics if the string is not null-terminated or
     /// the function was not found.
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
         crate::load::load(Some(self.handle()), name)
@@ -688,7 +688,7 @@ impl Instance {
 }
 
 impl Device {
-    /// Load device function. Panics if the string is not null-terminated or the
+    /// Loads device function. Panics if the string is not null-terminated or the
     /// function was not found.
     pub fn get_proc_addr(&self, name: &str) -> NonNull<c_void> {
         self.instance().load(self.handle(), name)

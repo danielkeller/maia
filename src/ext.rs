@@ -1,6 +1,6 @@
 use crate::ffi::Str;
 
-pub mod ext_metal_surface;
+mod ext_metal_surface;
 pub mod khr_surface;
 pub mod khr_swapchain;
 mod load;
@@ -10,26 +10,36 @@ pub use khr_surface::SurfaceKHR;
 
 // Instance level extensions
 
+/// VK_KHR_surface instance extension name
 pub const SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_surface\0") };
+/// VK_KHR_win32_surface instance extension name
 pub const WIN32_SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_win32_surface\0") };
+/// VK_KHR_wayland_surface instance extension name
 pub const WAYLAND_SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_wayland_surface\0") };
+/// VK_KHR_xlib_surface instance extension name
 pub const XLIB_SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_xlib_surface\0") };
+/// VK_KHR_xcb_surface instance extension name
 pub const XCB_SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_xcb_surface\0") };
+/// VK_KHR_android_surface instance extension name
 pub const ANDROID_SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_android_surface\0") };
+/// VK_EXT_metal_surface instance extension name
 pub const METAL_SURFACE: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_EXT_metal_surface\0") };
+/// VK_KHR_get_physical_device_properties2 instance extension name
 pub const GET_PHYSICAL_DEVICE_PROPERTIES2: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_get_physical_device_properties2\0") };
 
 // Device level extensions
 
+/// VK_KHR_portability_subset device extension name
 pub const PORTABILITY_SUBSET: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_portability_subset\0") };
+/// VK_KHR_swapchain device extension name
 pub const SWAPCHAIN: Str<'static> =
     unsafe { Str::new_unchecked(b"VK_KHR_swapchain\0") };

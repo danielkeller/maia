@@ -21,6 +21,8 @@ impl Drop for Instance {
 }
 
 impl Instance {
+    /// Creates a new instance
+    #[doc = crate::man_link!(vkCreateInstance)]
     pub fn new<'a>(info: &'a InstanceCreateInfo<'a>) -> Result<Arc<Self>> {
         let mut handle = None;
         unsafe { (load::vk_create_instance())(info, None, &mut handle)? };
@@ -28,6 +30,7 @@ impl Instance {
         let fun = InstanceFn::new(handle.borrow());
         Ok(Arc::new(Instance { handle, fun }))
     }
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkInstance> {
         self.handle.borrow()
     }
