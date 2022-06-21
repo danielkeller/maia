@@ -1601,6 +1601,30 @@ structure_type!(XlibSurfaceCreateInfoKHRType, 1000004000);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkWaylandSurfaceCreateInfoKHR)]
+pub struct WaylandSurfaceCreateInfoKHR<Next = Null> {
+    pub stype: WaylandSurfaceCreateInfoKHRType,
+    pub next: Next,
+    pub flags: WaylandSurfaceCreateFlagsKHR,
+    pub display: NonNull<c_void>,
+    pub surface: NonNull<c_void>,
+}
+structure_type!(WaylandSurfaceCreateInfoKHRType, 1000006000);
+
+#[repr(C)]
+#[derive(Debug)]
+#[doc = crate::man_link!(VkWin32SurfaceCreateInfoKHR)]
+pub struct Win32SurfaceCreateInfoKHR<Next = Null> {
+    pub stype: Win32SurfaceCreateInfoKHRType,
+    pub next: Next,
+    pub flags: Win32SurfaceCreateFlagsKHR,
+    pub hinstance: NonNull<c_void>,
+    pub hwnd: NonNull<c_void>,
+}
+structure_type!(Win32SurfaceCreateInfoKHRType, 1000009000);
+
+#[repr(C)]
+#[derive(Debug)]
 #[doc = crate::man_link!(VkSurfaceCapabilitiesKHR)]
 pub struct SurfaceCapabilitiesKHR {
     pub min_image_count: u32,

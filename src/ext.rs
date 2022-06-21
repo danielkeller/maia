@@ -3,11 +3,15 @@ use crate::ffi::Str;
 mod ext_metal_surface;
 mod khr_surface;
 mod khr_xlib_surface;
+mod khr_wayland_surface;
+mod khr_win32_surface;
 pub(crate) mod khr_swapchain;
 
 pub use ext_metal_surface::EXTMetalSurface;
 pub use khr_surface::SurfaceKHR;
 pub use khr_swapchain::{KHRSwapchain, SwapchainCreateInfoKHR, SwapchainKHR};
+pub use khr_wayland_surface::KHRWaylandSurface;
+pub use khr_win32_surface::KHRWin32Surface;
 pub use khr_xlib_surface::KHRXlibSurface;
 
 // Instance level extensions

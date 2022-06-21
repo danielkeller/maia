@@ -524,6 +524,18 @@ flags!(XlibSurfaceCreateFlagsKHR, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
+/// Reserved
+pub struct WaylandSurfaceCreateFlagsKHR(u32);
+flags!(WaylandSurfaceCreateFlagsKHR, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+/// Reserved
+pub struct Win32SurfaceCreateFlagsKHR(u32);
+flags!(Win32SurfaceCreateFlagsKHR, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 #[doc = crate::man_link!(VkSurfaceTransformKHR)]
 pub struct SurfaceTransformKHR(u32);
 impl SurfaceTransformKHR {

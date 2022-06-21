@@ -71,6 +71,17 @@ pub fn presentation_support(
                 handle.visual_id as usize,
             )
         },
+        RawWindowHandle::Wayland(handle) => unsafe {
+            phy.instance().khr_wayland_surface().presentation_support(
+                phy,
+                queue_family_index,
+                NonNull::new(handle.display).unwrap(),
+            )
+        },
+        RawWindowHandle::Win32(_) => phy
+            .instance()
+            .khr_win32_surface()
+            .presentation_support(phy, queue_family_index),
         _ => false,
     }
 }
@@ -111,6 +122,28 @@ pub fn create_surface(
                     flags: Default::default(),
                     display: NonNull::new(handle.display).unwrap(),
                     window: handle.window as usize,
+                },
+            )
+        },
+        RawWindowHandle::Wayland(handle) => unsafe {
+            instance.khr_wayland_surface().create_wayland_surface_ext(
+                &WaylandSurfaceCreateInfoKHR {
+                    stype: Default::default(),
+                    next: Default::default(),
+                    flags: Default::default(),
+                    display: NonNull::new(handle.display).unwrap(),
+                    surface: NonNull::new(handle.surface).unwrap(),
+                },
+            )
+        },
+        RawWindowHandle::Win32(handle) => unsafe {
+            instance.khr_win32_surface().create_win32_surface_ext(
+                &Win32SurfaceCreateInfoKHR {
+                    stype: Default::default(),
+                    next: Default::default(),
+                    flags: Default::default(),
+                    hinstance: NonNull::new(handle.hinstance).unwrap(),
+                    hwnd: NonNull::new(handle.hwnd).unwrap(),
                 },
             )
         },

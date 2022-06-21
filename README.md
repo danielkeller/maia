@@ -11,7 +11,9 @@ Safe, low-level Vulkan bindings. The general properties of this library are
 
 ## Setup
 
-Ember dynamically links to the system's Vulkan loader.
+Ember dynamically links to the system's Vulkan loader, so one must be installed. Instructions for specific systems follow.
+
+To begin using the API, create an instance object with [vk::Instance::new()](crate::vk::Instance::new()).
 
 ### On Linux
 
