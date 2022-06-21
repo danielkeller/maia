@@ -3,9 +3,30 @@ use std::mem::size_of;
 use std::sync::Arc;
 use std::time::Instant;
 
+use anyhow::Context;
 use ember::vk;
 use inline_spirv::include_spirv;
 use ultraviolet::{Mat4, Vec3};
+
+fn find_right_directory() -> anyhow::Result<()> {
+    let exe = std::env::current_exe()?;
+    let exedir = exe.parent().unwrap();
+    if let Some(dirname) = exedir.file_name() {
+        if dirname == std::ffi::OsStr::new("debug")
+            || dirname == std::ffi::OsStr::new("release")
+        {
+            // Running in workspace
+        } else if dirname == std::ffi::OsStr::new("MacOS") {
+            if let Some(appdir) = exe.parent().unwrap().parent() {
+                // App bundle
+                std::env::set_current_dir(appdir.join("Resources"))?;
+            }
+        } else {
+            std::env::set_current_dir(exedir)?;
+        }
+    }
+    Ok(())
+}
 
 #[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
 #[repr(C)]
@@ -219,9 +240,11 @@ fn upload_image(
 }
 
 fn main() -> anyhow::Result<()> {
+    find_right_directory().context("Changing dirs")?;
     use winit::event_loop::EventLoop;
     let event_loop = EventLoop::new();
     let window = winit::window::Window::new(&event_loop)?;
+    window.set_title("Ember Demo");
 
     let mut instance_exts = vec![];
     instance_exts

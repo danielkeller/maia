@@ -1,0 +1,32 @@
+#!/bin/sh
+
+cargo build --release || exit 1
+
+OUT=../target/release/Demo.app
+rm -Rf $OUT
+
+which_lib() {
+    ld -t -dylib -o /dev/null -arch x86_64 -macosx_version_min 10.12.0 -l$1
+}
+soname() {
+    objdump -p $1 | sed -nr 's/^.*name @rpath\/(.*) \(.*$/\1/p'
+}
+
+# Find the vulkan dylib
+LINKED="$(which_lib vulkan)"
+LIBDIR="$(dirname $LINKED)"
+VK_SONAME="$LIBDIR/$(soname $LINKED)"
+VK_REALNAME="$LIBDIR/$(readlink $VK_SONAME)"
+MOLTENVK="$(which_lib MoltenVK)"
+
+mkdir -p $OUT/Contents/MacOS
+mkdir -p $OUT/Contents/Frameworks
+mkdir -p $OUT/Contents/Resources/vulkan/icd.d
+
+cp macos/Info.plist $OUT/Contents/
+cp ../target/release/demo $OUT/Contents/MacOS
+cp -R assets $OUT/Contents/Resources/
+cp macos/MoltenVK_icd.json $OUT/Contents/Resources/vulkan/icd.d
+cp $VK_SONAME $OUT/Contents/Frameworks
+cp $VK_REALNAME $OUT/Contents/Frameworks
+cp $MOLTENVK $OUT/Contents/Frameworks
