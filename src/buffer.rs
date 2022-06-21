@@ -5,7 +5,7 @@ use crate::types::*;
 use crate::vk::Device;
 
 /// A buffer with no memory. Call [DeviceMemory::bind_buffer_memory] to bind
-/// memory to the buffer.
+/// memory and create a [Buffer].
 ///
 /// Create with [Device::create_buffer].
 #[derive(Debug)]
@@ -51,7 +51,7 @@ impl DeviceMemory {
         buffer: BufferWithoutMemory,
         offset: u64,
     ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
-        assert_eq!(self.device(), &*buffer.device);
+        assert_eq!(self.device(), &buffer.device);
         if !self.check(offset, buffer.memory_requirements()) {
             return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
@@ -95,8 +95,8 @@ impl Buffer {
         self.inner.handle.borrow()
     }
     /// Returns the associated device.
-    pub fn device(&self) -> &Device {
-        &*self.inner.device
+    pub fn device(&self) -> &Arc<Device> {
+        &self.inner.device
     }
     /// Returns the buffer length in bytes.
     pub fn len(&self) -> u64 {

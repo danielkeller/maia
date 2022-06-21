@@ -50,7 +50,7 @@ impl Sampler {
         self.handle.borrow()
     }
     /// Returns the associated device.
-    pub fn device(&self) -> &Device {
-        &*self.device
+    pub fn device(&self) -> &Arc<Device> {
+        &self.device
     }
 }

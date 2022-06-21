@@ -45,8 +45,8 @@ impl RenderPass {
         self.compat.subpasses.len() as u32
     }
     /// Returns the associated device.
-    pub fn device(&self) -> &Device {
-        &*self.device
+    pub fn device(&self) -> &Arc<Device> {
+        &self.device
     }
     /// Returns true if this render pass is compatible with 'other'
     pub fn compatible(&self, other: &Self) -> bool {

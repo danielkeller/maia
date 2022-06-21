@@ -164,7 +164,7 @@ impl<T, const N: usize> Default for InlineSlice<T, N> {
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
-pub struct UUID([u8; 16]);
+pub struct UUID(pub [u8; 16]);
 
 // Note: Be *very* careful about how this is aligned in the outer struct.
 
@@ -253,8 +253,8 @@ impl<'a, T> std::iter::IntoIterator for Slice<'a, T> {
 
 /// An immutably borrowed contiguous sequence of T. Represented as a u32
 /// followed by a pointer. Create using the [slice()] function. This type differs
-/// from Slice only in that it is aligned to a 4-byte boundary, for cases where
-/// the structure alignment of Slice puts the count member in the wrong place on
+/// from [Slice] only in that it is aligned to a 4-byte boundary, for cases where
+/// the structure alignment of [Slice] puts the count member in the wrong place on
 /// 64 bit systems. This type does not use unaligned loads or stores and has no
 /// special alignment requirement itself.
 #[repr(C)]
@@ -350,6 +350,8 @@ impl<'a, T> std::iter::IntoIterator for Slice_<'a, T> {
 pub fn slice<'a, T, S: IsSlice<'a, T>>(value: &'a [T]) -> S {
     IsSlice::to_slice_impl(value)
 }
+/// A convenience trate for creating either a [Slice] or [Slice_]. Call with
+/// [vk::slice()](crate::vk::slice).
 pub trait IsSlice<'a, T> {
     fn to_slice_impl(value: &'a [T]) -> Self;
 }

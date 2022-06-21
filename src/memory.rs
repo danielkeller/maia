@@ -170,7 +170,7 @@ impl DeviceMemory {
         self.inner.handle.borrow_mut()
     }
     /// Returns the associated device.
-    pub fn device(&self) -> &Device {
+    pub fn device(&self) -> &Arc<Device> {
         &self.inner.device
     }
     /// Extend the lifetime of the memory until the returned object is dropped.

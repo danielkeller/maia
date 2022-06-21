@@ -147,7 +147,7 @@ struct AllocatedSets;
 
 /// A
 #[doc = crate::spec_link!("descriptor pool", "descriptorsets-allocation")]
-///ß
+///
 /// Create with [Device::create_descriptor_pool()]
 pub struct DescriptorPool {
     res: Owner<DescriptorPoolLifetime>,
@@ -425,7 +425,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (b, be) in buffers.iter().zip(iter) {
             let (binding, element) = be?;
-            assert_eq!(b.buffer.device(), self.updates.device);
+            assert!(std::ptr::eq(&**b.buffer.device(), self.updates.device));
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
@@ -544,7 +544,7 @@ impl<'a> DescriptorSetUpdate<'a> {
             {
                 return Err(Error::InvalidArgument);
             }
-            assert_eq!(s.device(), self.updates.device);
+            assert!(std::ptr::eq(&**s.device(), self.updates.device));
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
@@ -590,7 +590,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
-            assert_eq!(i.device(), self.updates.device);
+            assert!(std::ptr::eq(&**i.device(), self.updates.device));
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,
@@ -686,7 +686,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
-            assert_eq!(i.device(), self.updates.device);
+            assert!(std::ptr::eq(&**i.device(), self.updates.device));
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
                 binding,

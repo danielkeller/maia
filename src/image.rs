@@ -9,7 +9,7 @@ use crate::vk::Device;
 use std::fmt::Debug;
 
 /// An image with no memory. Call [DeviceMemory::bind_image_memory()] to bind
-/// memory to the image.
+/// memory and create an [Image].
 ///
 /// Create with [Device::create_image()]
 #[derive(Debug)]
@@ -82,7 +82,7 @@ impl DeviceMemory {
         image: ImageWithoutMemory,
         offset: u64,
     ) -> ResultAndSelf<Arc<Image>, ImageWithoutMemory> {
-        assert_eq!(self.device(), &*image.device);
+        assert_eq!(self.device(), &image.device);
         if !self.check(offset, image.memory_requirements()) {
             return Err(ErrorAndSelf(Error::InvalidArgument, image));
         }
@@ -188,8 +188,8 @@ impl Image {
         self.inner.handle.borrow()
     }
     /// Returns the associated device.
-    pub fn device(&self) -> &Device {
-        &*self.inner.device
+    pub fn device(&self) -> &Arc<Device> {
+        &self.inner.device
     }
     /// Returns the format of the image.
     pub fn format(&self) -> Format {
@@ -322,7 +322,7 @@ impl ImageView {
         self.handle.borrow()
     }
     /// Returns the associated device.
-    pub fn device(&self) -> &Device {
+    pub fn device(&self) -> &Arc<Device> {
         self.image.device()
     }
 }

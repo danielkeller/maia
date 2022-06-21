@@ -17,6 +17,7 @@ pub struct PhysicalDevice {
 
 impl Instance {
     /// Returns the instance's physical devices.
+    #[doc = crate::man_link!(vkEnumeratePhysicalDevices)]
     pub fn enumerate_physical_devices(
         self: &Arc<Self>,
     ) -> Result<Vec<PhysicalDevice>> {

@@ -102,7 +102,7 @@ impl Device {
         &self.physical_device
     }
     /// Returns the associated instance.
-    pub fn instance(&self) -> &Instance {
+    pub fn instance(&self) -> &Arc<Instance> {
         self.physical_device.instance()
     }
     /// Returns true if a queue with this family index and index exists.

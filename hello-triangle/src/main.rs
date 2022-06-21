@@ -1,75 +1,5 @@
 use ember::vk;
 
-const VERTEX_DATA: [[[f32; 4]; 2]; 3] = [
-    [[0.0, -0.7, 0., 1.], [0., 0., 1., 1.]],
-    [[-0.7, 0.7, 0., 1.], [1., 0., 0., 1.]],
-    [[0.7, 0.7, 0., 1.], [0., 1., 0., 1.]],
-];
-
-// Add extension required by MoltenVK, if available
-fn required_instance_extensions() -> vk::Result<&'static [vk::Str<'static>]> {
-    let exts = vk::instance_extension_properties()?;
-    const FOR_MVK: vk::Str<'static> = vk::ext::GET_PHYSICAL_DEVICE_PROPERTIES2;
-    if exts.iter().any(|e| e.extension_name == FOR_MVK) {
-        Ok(&[FOR_MVK])
-    } else {
-        Ok(&[])
-    }
-}
-
-// Add extension required by MoltenVK, if available
-fn required_device_extensions(
-    phy: &vk::PhysicalDevice,
-) -> vk::Result<&'static [vk::Str<'static>]> {
-    let exts = phy.device_extension_properties()?;
-    const FOR_MVK: vk::Str<'static> = vk::ext::PORTABILITY_SUBSET;
-    if exts.iter().any(|e| e.extension_name == FOR_MVK) {
-        Ok(&[FOR_MVK, vk::ext::SWAPCHAIN])
-    } else {
-        Ok(&[vk::ext::SWAPCHAIN])
-    }
-}
-
-// Pick an appropriate physical device
-fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
-    let discr = vk::PhysicalDeviceType::DISCRETE_GPU;
-    let int = vk::PhysicalDeviceType::INTEGRATED_GPU;
-    phys.iter()
-        .find(|p| p.properties().device_type == discr)
-        .or_else(|| phys.iter().find(|p| p.properties().device_type == int))
-        .unwrap_or(&phys[0])
-        .clone()
-}
-
-// Pick an appropriate queue family
-fn pick_queue_family(
-    phy: &vk::PhysicalDevice,
-    surf: &vk::ext::SurfaceKHR,
-    window: &winit::window::Window,
-) -> vk::Result<u32> {
-    for (num, props) in phy.queue_family_properties().iter().enumerate() {
-        if !(props.queue_flags & vk::QueueFlags::GRAPHICS).is_empty()
-            && surf.support(phy, num as u32)?
-            && ember::window::presentation_support(phy, num as u32, window)
-        {
-            return Ok(num as u32);
-        }
-    }
-    panic!("No usable queue!")
-}
-
-fn memory_type(phy: &vk::PhysicalDevice) -> u32 {
-    let desired = vk::MemoryPropertyFlags::HOST_VISIBLE
-        | vk::MemoryPropertyFlags::HOST_COHERENT;
-    for (num, props) in phy.memory_properties().memory_types.iter().enumerate()
-    {
-        if props.property_flags & desired == desired {
-            return num as u32;
-        }
-    }
-    panic!("No host visible memory!")
-}
-
 fn main() -> vk::Result<()> {
     use winit::event_loop::EventLoop;
     let event_loop = EventLoop::new();
@@ -345,4 +275,74 @@ fn main() -> vk::Result<()> {
             _ => (),
         }
     })
+}
+
+const VERTEX_DATA: [[[f32; 4]; 2]; 3] = [
+    [[0.0, -0.7, 0., 1.], [0., 0., 1., 1.]],
+    [[-0.7, 0.7, 0., 1.], [1., 0., 0., 1.]],
+    [[0.7, 0.7, 0., 1.], [0., 1., 0., 1.]],
+];
+
+// Add extension required by MoltenVK, if available
+fn required_instance_extensions() -> vk::Result<&'static [vk::Str<'static>]> {
+    let exts = vk::instance_extension_properties()?;
+    const FOR_MVK: vk::Str<'static> = vk::ext::GET_PHYSICAL_DEVICE_PROPERTIES2;
+    if exts.iter().any(|e| e.extension_name == FOR_MVK) {
+        Ok(&[FOR_MVK])
+    } else {
+        Ok(&[])
+    }
+}
+
+// Add extension required by MoltenVK, if available
+fn required_device_extensions(
+    phy: &vk::PhysicalDevice,
+) -> vk::Result<&'static [vk::Str<'static>]> {
+    let exts = phy.device_extension_properties()?;
+    const FOR_MVK: vk::Str<'static> = vk::ext::PORTABILITY_SUBSET;
+    if exts.iter().any(|e| e.extension_name == FOR_MVK) {
+        Ok(&[FOR_MVK, vk::ext::SWAPCHAIN])
+    } else {
+        Ok(&[vk::ext::SWAPCHAIN])
+    }
+}
+
+// Pick an appropriate physical device
+fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
+    let discr = vk::PhysicalDeviceType::DISCRETE_GPU;
+    let int = vk::PhysicalDeviceType::INTEGRATED_GPU;
+    phys.iter()
+        .find(|p| p.properties().device_type == discr)
+        .or_else(|| phys.iter().find(|p| p.properties().device_type == int))
+        .unwrap_or(&phys[0])
+        .clone()
+}
+
+// Pick an appropriate queue family
+fn pick_queue_family(
+    phy: &vk::PhysicalDevice,
+    surf: &vk::ext::SurfaceKHR,
+    window: &winit::window::Window,
+) -> vk::Result<u32> {
+    for (num, props) in phy.queue_family_properties().iter().enumerate() {
+        if !(props.queue_flags & vk::QueueFlags::GRAPHICS).is_empty()
+            && surf.support(phy, num as u32)?
+            && ember::window::presentation_support(phy, num as u32, window)
+        {
+            return Ok(num as u32);
+        }
+    }
+    panic!("No usable queue!")
+}
+
+fn memory_type(phy: &vk::PhysicalDevice) -> u32 {
+    let desired = vk::MemoryPropertyFlags::HOST_VISIBLE
+        | vk::MemoryPropertyFlags::HOST_COHERENT;
+    for (num, props) in phy.memory_properties().memory_types.iter().enumerate()
+    {
+        if props.property_flags & desired == desired {
+            return num as u32;
+        }
+    }
+    panic!("No host visible memory!")
 }
