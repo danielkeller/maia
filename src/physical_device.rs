@@ -49,8 +49,8 @@ impl PhysicalDevice {
         self.handle.borrow()
     }
     /// Gets the instance.
-    pub fn instance(&self) -> &Instance {
-        &*self.instance
+    pub fn instance(&self) -> &Arc<Instance> {
+        &self.instance
     }
 }
 

@@ -1,6 +1,6 @@
+use std::intrinsics::transmute;
 use std::mem::MaybeUninit;
 
-use super::load::SurfaceKHRFn;
 use crate::enums::*;
 use crate::error::{Error, Result};
 use crate::ffi::ArrayMut;
@@ -76,7 +76,7 @@ impl SurfaceKHR {
         queue_family: u32,
     ) -> Result<bool> {
         let mut result = Bool::False;
-        assert!(std::ptr::eq(&*self.inner.instance, phy.instance()));
+        assert!(Arc::ptr_eq(&self.inner.instance, phy.instance()));
         if (queue_family as usize) >= phy.queue_family_properties().len() {
             return Err(Error::OutOfBounds);
         }
@@ -96,7 +96,7 @@ impl SurfaceKHR {
         &self,
         phy: &PhysicalDevice,
     ) -> Result<SurfaceCapabilitiesKHR> {
-        assert!(std::ptr::eq(&*self.inner.instance, phy.instance()));
+        assert!(Arc::ptr_eq(&self.inner.instance, phy.instance()));
         // Check phy support?
         let mut result = MaybeUninit::uninit();
         unsafe {
@@ -114,7 +114,7 @@ impl SurfaceKHR {
         &self,
         phy: &PhysicalDevice,
     ) -> Result<Vec<SurfaceFormatKHR>> {
-        assert!(std::ptr::eq(&*self.inner.instance, phy.instance()));
+        assert!(Arc::ptr_eq(&self.inner.instance, phy.instance()));
         let mut len = 0;
         let mut result = vec![];
         unsafe {
@@ -134,5 +134,60 @@ impl SurfaceKHR {
             result.set_len(len as usize);
         }
         Ok(result)
+    }
+}
+
+pub struct SurfaceKHRFn {
+    pub destroy_surface_khr: unsafe extern "system" fn(
+        Ref<VkInstance>,
+        Mut<VkSurfaceKHR>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+    pub get_physical_device_surface_support_khr:
+        unsafe extern "system" fn(
+            Ref<VkPhysicalDevice>,
+            u32,
+            Ref<VkSurfaceKHR>,
+            &mut Bool,
+        ) -> VkResult,
+    pub get_physical_device_surface_capabilities_khr:
+        unsafe extern "system" fn(
+            Ref<VkPhysicalDevice>,
+            Ref<VkSurfaceKHR>,
+            &mut MaybeUninit<SurfaceCapabilitiesKHR>,
+        ) -> VkResult,
+    pub get_physical_device_surface_formats_khr:
+        unsafe extern "system" fn(
+            Ref<VkPhysicalDevice>,
+            Ref<VkSurfaceKHR>,
+            &mut u32,
+            Option<ArrayMut<MaybeUninit<SurfaceFormatKHR>>>,
+        ) -> VkResult,
+}
+
+impl SurfaceKHRFn {
+    pub fn new(inst: &Instance) -> Self {
+        unsafe {
+            Self {
+                destroy_surface_khr: transmute(
+                    inst.get_proc_addr("vkDestroySurfaceKHR\0"),
+                ),
+                get_physical_device_surface_support_khr: transmute(
+                    inst.get_proc_addr(
+                        "vkGetPhysicalDeviceSurfaceSupportKHR\0",
+                    ),
+                ),
+                get_physical_device_surface_capabilities_khr: transmute(
+                    inst.get_proc_addr(
+                        "vkGetPhysicalDeviceSurfaceCapabilitiesKHR\0",
+                    ),
+                ),
+                get_physical_device_surface_formats_khr: transmute(
+                    inst.get_proc_addr(
+                        "vkGetPhysicalDeviceSurfaceFormatsKHR\0",
+                    ),
+                ),
+            }
+        }
     }
 }

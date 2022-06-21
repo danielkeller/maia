@@ -1,3 +1,6 @@
+use std::intrinsics::transmute;
+use std::mem::MaybeUninit;
+
 use crate::device::Device;
 use crate::enums::*;
 use crate::error::{Error, Result};
@@ -8,13 +11,9 @@ use crate::semaphore::{Semaphore, SemaphoreSignaller};
 use crate::subobject::{Owner, Subobject};
 use crate::types::*;
 
-use super::khr_surface::SurfaceLifetime;
-use super::load::{SwapchainDeviceFn, SwapchainKHRFn};
-use super::SurfaceKHR;
+use super::khr_surface::{SurfaceKHR, SurfaceLifetime};
 
-/// A KHR_swapchain extension object.
-///
-/// Create with [Device::khr_swapchain].
+/// A KHR_swapchain extension object. Create with [Device::khr_swapchain()].
 pub struct KHRSwapchain {
     fun: SwapchainDeviceFn,
     device: Arc<Device>,
@@ -72,6 +71,26 @@ impl<'a> Default for SwapchainCreateInfoKHR<'a> {
             clipped: Default::default(),
         }
     }
+}
+
+/// A
+#[doc = crate::spec_link!("swapchain", "_wsi_swapchain")]
+///
+/// Create with [KHRSwapchain::create()].
+#[derive(Debug)]
+pub struct SwapchainKHR {
+    images: Vec<(Arc<Image>, bool)>,
+    res: Owner<SwapchainImages>,
+    surface: SurfaceKHR,
+}
+
+// Conceptually this owns the images, but it's also used to delay destruction
+// of the swapchain until it's no longer used by the images.
+pub(crate) struct SwapchainImages {
+    handle: Handle<VkSwapchainKHR>,
+    fun: SwapchainKHRFn,
+    device: Arc<Device>,
+    _surface: Subobject<SurfaceLifetime>,
 }
 
 impl KHRSwapchain {
@@ -173,15 +192,6 @@ impl KHRSwapchain {
     }
 }
 
-// Conceptually this owns the images, but it's also used to delay destruction
-// of the swapchain until it's no longer used by the images.
-pub(crate) struct SwapchainImages {
-    handle: Handle<VkSwapchainKHR>,
-    fun: SwapchainKHRFn,
-    device: Arc<Device>,
-    _surface: Subobject<SurfaceLifetime>,
-}
-
 impl Drop for SwapchainImages {
     fn drop(&mut self) {
         unsafe {
@@ -198,17 +208,6 @@ impl std::fmt::Debug for SwapchainImages {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SwapchainImages").field("handle", &self.handle).finish()
     }
-}
-
-/// A
-#[doc = crate::spec_link!("swapchain", "_wsi_swapchain")]
-///
-/// Create with [KHRSwapchain::create()].
-#[derive(Debug)]
-pub struct SwapchainKHR {
-    images: Vec<(Arc<Image>, bool)>,
-    res: Owner<SwapchainImages>,
-    surface: SurfaceKHR,
 }
 
 /// Whether the swapchain images are still optimal.
@@ -309,5 +308,73 @@ impl SwapchainKHR {
         queue.add_resource(wait.take_signaller());
         queue.add_resource(wait.inner.clone());
         Ok(is_optimal)
+    }
+}
+
+pub struct SwapchainDeviceFn {
+    pub create_swapchain_khr: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        &VkSwapchainCreateInfoKHR,
+        Option<&'_ AllocationCallbacks>,
+        &mut Option<Handle<VkSwapchainKHR>>,
+    ) -> VkResult,
+}
+
+impl SwapchainDeviceFn {
+    pub fn new(dev: &Device) -> Self {
+        unsafe {
+            Self {
+                create_swapchain_khr: transmute(
+                    dev.get_proc_addr("vkCreateSwapchainKHR\0"),
+                ),
+            }
+        }
+    }
+}
+
+pub struct SwapchainKHRFn {
+    pub destroy_swapchain_khr: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkSwapchainKHR>,
+        Option<&'_ AllocationCallbacks>,
+    ),
+    pub get_swapchain_images_khr: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Ref<VkSwapchainKHR>,
+        &mut u32,
+        Option<ArrayMut<MaybeUninit<Handle<VkImage>>>>,
+    ) -> VkResult,
+    pub acquire_next_image_khr: unsafe extern "system" fn(
+        Ref<VkDevice>,
+        Mut<VkSwapchainKHR>,
+        u64,
+        Option<Mut<VkSemaphore>>,
+        Option<Mut<VkFence>>,
+        &mut u32,
+    ) -> VkResult,
+    pub queue_present_khr: unsafe extern "system" fn(
+        Mut<VkQueue>,
+        &PresentInfoKHR<'_>,
+    ) -> VkResult,
+}
+
+impl SwapchainKHRFn {
+    pub fn new(dev: &Device) -> Self {
+        unsafe {
+            Self {
+                destroy_swapchain_khr: transmute(
+                    dev.get_proc_addr("vkDestroySwapchainKHR\0"),
+                ),
+                get_swapchain_images_khr: transmute(
+                    dev.get_proc_addr("vkGetSwapchainImagesKHR\0"),
+                ),
+                acquire_next_image_khr: transmute(
+                    dev.get_proc_addr("vkAcquireNextImageKHR\0"),
+                ),
+                queue_present_khr: transmute(
+                    dev.get_proc_addr("vkQueuePresentKHR\0"),
+                ),
+            }
+        }
     }
 }

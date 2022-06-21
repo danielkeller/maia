@@ -512,9 +512,15 @@ impl ComponentSwizzle {
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkMetalSurfaceCreateFlagBits)]
+/// Reserved
 pub struct MetalSurfaceCreateFlagsEXT(u32);
 flags!(MetalSurfaceCreateFlagsEXT, []);
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+/// Reserved
+pub struct XlibSurfaceCreateFlagsKHR(u32);
+flags!(XlibSurfaceCreateFlagsKHR, []);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]

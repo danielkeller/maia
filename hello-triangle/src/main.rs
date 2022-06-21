@@ -45,10 +45,12 @@ fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
 fn pick_queue_family(
     phy: &vk::PhysicalDevice,
     surf: &vk::ext::SurfaceKHR,
+    window: &winit::window::Window,
 ) -> vk::Result<u32> {
     for (num, props) in phy.queue_family_properties().iter().enumerate() {
         if !(props.queue_flags & vk::QueueFlags::GRAPHICS).is_empty()
             && surf.support(phy, num as u32)?
+            && ember::window::presentation_support(phy, num as u32, window)
         {
             return Ok(num as u32);
         }
@@ -88,7 +90,7 @@ fn main() -> vk::Result<()> {
 
     // Pick an appropriate physical device
     let phy = pick_physical_device(&inst.enumerate_physical_devices()?);
-    let queue_family = pick_queue_family(&phy, &surf)?;
+    let queue_family = pick_queue_family(&phy, &surf, &window)?;
     if !surf.surface_formats(&phy)?.iter().any(|f| {
         f == &vk::SurfaceFormatKHR {
             format: vk::Format::B8G8R8A8_SRGB,

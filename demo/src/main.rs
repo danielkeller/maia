@@ -56,13 +56,14 @@ fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
 fn pick_queue_family(
     phy: &vk::PhysicalDevice,
     surf: &vk::ext::SurfaceKHR,
+    window: &winit::window::Window,
 ) -> anyhow::Result<u32> {
-    let props = phy.queue_family_properties();
-    for i in 0..props.len() {
-        if !(props[i].queue_flags | vk::QueueFlags::GRAPHICS).is_empty()
-            && surf.support(phy, i as u32)?
+    for (num, props) in phy.queue_family_properties().iter().enumerate() {
+        if !(props.queue_flags & vk::QueueFlags::GRAPHICS).is_empty()
+            && surf.support(phy, num as u32)?
+            && ember::window::presentation_support(phy, num as u32, window)
         {
-            return Ok(i as u32);
+            return Ok(num as u32);
         }
     }
     anyhow::bail!("No graphics queue")
@@ -234,7 +235,7 @@ fn main() -> anyhow::Result<()> {
     let surf = ember::window::create_surface(&inst, &window)?;
 
     let phy = pick_physical_device(&inst.enumerate_physical_devices()?);
-    let queue_family = pick_queue_family(&phy, &surf)?;
+    let queue_family = pick_queue_family(&phy, &surf, &window)?;
     if !surf.surface_formats(&phy)?.iter().any(|f| {
         f == &vk::SurfaceFormatKHR {
             format: vk::Format::B8G8R8A8_UNORM,

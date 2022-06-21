@@ -6,6 +6,7 @@ use crate::ext;
 use crate::ext::SurfaceKHR;
 use crate::ffi::*;
 use crate::instance::Instance;
+use crate::physical_device::PhysicalDevice;
 use crate::types::*;
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
@@ -14,74 +15,63 @@ pub fn required_instance_extensions(
     window: &impl HasRawWindowHandle,
 ) -> Result<&'static [Str<'static>]> {
     match window.raw_window_handle() {
-        #[cfg(target_os = "windows")]
         RawWindowHandle::Win32(_) => {
             const WINDOWS_EXTS: [Str<'static>; 2] =
                 [ext::SURFACE, ext::WIN32_SURFACE];
             Ok(&WINDOWS_EXTS)
         }
-
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd"
-        ))]
         RawWindowHandle::Wayland(_) => {
             const WAYLAND_EXTS: [Str<'static>; 2] =
                 [ext::SURFACE, ext::WAYLAND_SURFACE];
             Ok(&WAYLAND_EXTS)
         }
-
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd"
-        ))]
         RawWindowHandle::Xlib(_) => {
             const XLIB_EXTS: [Str<'static>; 2] =
                 [ext::SURFACE, ext::XLIB_SURFACE];
             Ok(&XLIB_EXTS)
         }
-
-        #[cfg(any(
-            target_os = "linux",
-            target_os = "dragonfly",
-            target_os = "freebsd",
-            target_os = "netbsd",
-            target_os = "openbsd"
-        ))]
         RawWindowHandle::Xcb(_) => {
             const XCB_EXTS: [Str<'static>; 2] =
                 [ext::SURFACE, ext::XCB_SURFACE];
             Ok(&XCB_EXTS)
         }
-
-        #[cfg(any(target_os = "android"))]
         RawWindowHandle::AndroidNdk(_) => {
             const ANDROID_EXTS: [Str<'static>; 2] =
                 [ext::SURFACE, ext::ANDROID_SURFACE];
             Ok(&ANDROID_EXTS)
         }
-
-        #[cfg(any(target_os = "macos"))]
         RawWindowHandle::AppKit(_) => {
             const MACOS_EXTS: [Str<'static>; 2] =
                 [ext::SURFACE, ext::METAL_SURFACE];
             Ok(&MACOS_EXTS)
         }
-
-        #[cfg(any(target_os = "ios"))]
         RawWindowHandle::UiKit(_) => {
             const IOS_EXTS: [Str<'static>; 2] =
                 [ext::SURFACE, ext::METAL_SURFACE];
             Ok(&IOS_EXTS)
         }
-
         _ => Err(Error::ExtensionNotPresent),
+    }
+}
+
+/// Returns true if the physical device and queue family index can present to
+/// the window.
+pub fn presentation_support(
+    phy: &PhysicalDevice,
+    queue_family_index: u32,
+    window: &impl HasRawWindowHandle,
+) -> bool {
+    match window.raw_window_handle() {
+        RawWindowHandle::AppKit(_) => true,
+        RawWindowHandle::Xlib(handle) => unsafe {
+            phy.instance().khr_xlib_surface().presentation_support(
+                phy,
+                queue_family_index,
+                NonNull::new(handle.display).unwrap(),
+                handle.visual_id as usize,
+            )
+        },
+        _ => false,
     }
 }
 
@@ -113,6 +103,17 @@ pub fn create_surface(
                 }
             }
         }
+        RawWindowHandle::Xlib(handle) => unsafe {
+            instance.khr_xlib_surface().create_xlib_surface_ext(
+                &XlibSurfaceCreateInfoKHR {
+                    stype: Default::default(),
+                    next: Default::default(),
+                    flags: Default::default(),
+                    display: NonNull::new(handle.display).unwrap(),
+                    window: handle.window as usize,
+                },
+            )
+        },
         _ => Err(Error::ExtensionNotPresent),
     }
 }

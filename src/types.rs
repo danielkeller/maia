@@ -1589,6 +1589,18 @@ structure_type!(MetalSurfaceCreateInfoEXTType, 1000217000);
 
 #[repr(C)]
 #[derive(Debug)]
+#[doc = crate::man_link!(VkXlibSurfaceCreateInfoKHR)]
+pub struct XlibSurfaceCreateInfoKHR<Next = Null> {
+    pub stype: XlibSurfaceCreateInfoKHRType,
+    pub next: Next,
+    pub flags: XlibSurfaceCreateFlagsKHR,
+    pub display: NonNull<c_void>,
+    pub window: usize,
+}
+structure_type!(XlibSurfaceCreateInfoKHRType, 1000004000);
+
+#[repr(C)]
+#[derive(Debug)]
 #[doc = crate::man_link!(VkSurfaceCapabilitiesKHR)]
 pub struct SurfaceCapabilitiesKHR {
     pub min_image_count: u32,
