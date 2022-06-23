@@ -134,7 +134,7 @@ fn upload_data(
         vk::MemoryPropertyFlags::HOST_VISIBLE
             | vk::MemoryPropertyFlags::HOST_COHERENT,
     );
-    let memory = device.allocate_memory(mem_size as u64, host_mem)?;
+    let memory = device.allocate_memory(mem_size, host_mem)?;
     let staging_buffer = memory.bind_buffer_memory(staging_buffer, 0)?;
     let mut memory = memory.map(0, src.len())?;
     memory.slice_mut().copy_from_slice(src);
@@ -144,7 +144,7 @@ fn upload_data(
     rec.copy_buffer(
         &staging_buffer,
         dst,
-        &[vk::BufferCopy { size: mem_size, ..Default::default() }],
+        &[vk::BufferCopy { size: src.len() as u64, ..Default::default() }],
     )?;
     rec.memory_barrier(
         vk::PipelineStageFlags::TRANSFER,
@@ -607,12 +607,11 @@ fn main() -> anyhow::Result<()> {
     event_loop.run(move |event, _, control_flow| {
         use winit::event::{Event, WindowEvent};
         use winit::event_loop::ControlFlow;
-        *control_flow = ControlFlow::Wait;
         match event {
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested, ..
             } => *control_flow = ControlFlow::Exit,
-            Event::RedrawRequested(_) => {
+            Event::MainEventsCleared => {
                 let window_size = window.inner_size();
                 let window_size = vk::Extent2D {
                     width: window_size.width,
@@ -623,7 +622,6 @@ fn main() -> anyhow::Result<()> {
                     *control_flow = ControlFlow::Exit;
                 }
             }
-            Event::MainEventsCleared => window.request_redraw(),
             _ => (),
         }
     })

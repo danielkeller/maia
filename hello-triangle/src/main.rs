@@ -271,7 +271,6 @@ fn main() -> vk::Result<()> {
                 // (prevent doctests from hanging. remove this in real code)
                 *control_flow = ControlFlow::Exit;
             }
-            Event::MainEventsCleared => window.request_redraw(),
             _ => (),
         }
     })

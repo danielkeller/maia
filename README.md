@@ -37,3 +37,7 @@ and copy the dylibs into `Frameworks`. An example `build.rs` and shell script to
 ### On Windows
 
 A Vulkan-compatible graphics driver is sufficient to build and run. You will probably want to install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) for validation layers, though.
+
+### To run the demos
+
+To compile shaders in the demos, either CMake or the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) must be installed.
