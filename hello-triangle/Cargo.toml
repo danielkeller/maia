@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 ember = { path = "..", features = [ "window" ] }
 winit = "0.26"
-bytemuck = { version = "1.0", features = [ "derive" ] }
+bytemuck = { version = "1.0" }
 inline-spirv = "0.1"
