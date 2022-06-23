@@ -11,8 +11,6 @@ pub struct MemoryLifetime {
 
 /// A piece of
 #[doc = crate::spec_link!("device memory", "memory-device")]
-///
-/// Create with [Device::allocate_memory()]
 #[derive(Debug)]
 pub struct DeviceMemory {
     inner: Owner<MemoryLifetime>,
@@ -20,23 +18,23 @@ pub struct DeviceMemory {
     memory_type_index: u32,
 }
 
-impl Device {
+impl DeviceMemory {
     /// Returns [Error::OutOfBounds] if no memory type exists with the given
     /// index.
     #[doc = crate::man_link!(vkAllocateMemory)]
-    pub fn allocate_memory(
-        self: &Arc<Self>,
+    pub fn new(
+        device: &Arc<Device>,
         allocation_size: u64,
         memory_type_index: u32,
-    ) -> Result<DeviceMemory> {
-        let mem_types = self.physical_device().memory_properties();
+    ) -> Result<Self> {
+        let mem_types = device.physical_device().memory_properties();
         if memory_type_index >= mem_types.memory_types.len() {
             return Err(Error::OutOfBounds);
         }
         let mut handle = None;
         unsafe {
-            (self.fun.allocate_memory)(
-                self.handle(),
+            (device.fun.allocate_memory)(
+                device.handle(),
                 &MemoryAllocateInfo {
                     stype: Default::default(),
                     next: Default::default(),
@@ -47,12 +45,12 @@ impl Device {
                 &mut handle,
             )?;
         }
-        Ok(DeviceMemory {
+        Ok(Self {
             allocation_size,
             memory_type_index,
             inner: Owner::new(MemoryLifetime {
                 handle: handle.unwrap(),
-                device: self.clone(),
+                device: device.clone(),
             }),
         })
     }

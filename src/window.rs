@@ -2,8 +2,8 @@ use std::ptr::NonNull;
 use std::sync::Arc;
 
 use crate::error::{Error, Result};
-use crate::ext;
-use crate::ext::SurfaceKHR;
+use crate::ext::{self, EXTMetalSurface, KHRXlibSurface};
+use crate::ext::{KHRWaylandSurface, KHRWin32Surface, SurfaceKHR};
 use crate::ffi::*;
 use crate::instance::Instance;
 use crate::physical_device::PhysicalDevice;
@@ -64,7 +64,7 @@ pub fn presentation_support(
     match window.raw_window_handle() {
         RawWindowHandle::AppKit(_) => true,
         RawWindowHandle::Xlib(handle) => unsafe {
-            phy.instance().khr_xlib_surface().presentation_support(
+            KHRXlibSurface::new(phy.instance()).presentation_support(
                 phy,
                 queue_family_index,
                 NonNull::new(handle.display).unwrap(),
@@ -72,15 +72,13 @@ pub fn presentation_support(
             )
         },
         RawWindowHandle::Wayland(handle) => unsafe {
-            phy.instance().khr_wayland_surface().presentation_support(
+            KHRWaylandSurface::new(phy.instance()).presentation_support(
                 phy,
                 queue_family_index,
                 NonNull::new(handle.display).unwrap(),
             )
         },
-        RawWindowHandle::Win32(_) => phy
-            .instance()
-            .khr_win32_surface()
+        RawWindowHandle::Win32(_) => KHRWin32Surface::new(phy.instance())
             .presentation_support(phy, queue_family_index),
         _ => false,
     }
@@ -100,7 +98,7 @@ pub fn create_surface(
             unsafe {
                 match appkit::metal_layer_from_handle(handle) {
                     Layer::Existing(layer) | Layer::Allocated(layer) => {
-                        instance.ext_metal_surface().create_metal_surface_ext(
+                        EXTMetalSurface::new(instance).create_metal_surface_ext(
                             &MetalSurfaceCreateInfoEXT {
                                 stype: Default::default(),
                                 next: Default::default(),
@@ -115,7 +113,7 @@ pub fn create_surface(
             }
         }
         RawWindowHandle::Xlib(handle) => unsafe {
-            instance.khr_xlib_surface().create_xlib_surface_ext(
+            KHRXlibSurface::new(instance).create_xlib_surface_ext(
                 &XlibSurfaceCreateInfoKHR {
                     stype: Default::default(),
                     next: Default::default(),
@@ -126,7 +124,7 @@ pub fn create_surface(
             )
         },
         RawWindowHandle::Wayland(handle) => unsafe {
-            instance.khr_wayland_surface().create_wayland_surface_ext(
+            KHRWaylandSurface::new(instance).create_wayland_surface_ext(
                 &WaylandSurfaceCreateInfoKHR {
                     stype: Default::default(),
                     next: Default::default(),
@@ -137,7 +135,7 @@ pub fn create_surface(
             )
         },
         RawWindowHandle::Win32(handle) => unsafe {
-            instance.khr_win32_surface().create_win32_surface_ext(
+            KHRWin32Surface::new(instance).create_win32_surface_ext(
                 &Win32SurfaceCreateInfoKHR {
                     stype: Default::default(),
                     next: Default::default(),

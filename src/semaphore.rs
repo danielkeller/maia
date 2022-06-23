@@ -6,8 +6,6 @@ use crate::types::*;
 
 /// A
 #[doc = crate::spec_link!("semaphore", "synchronization-semaphores")]
-///
-/// Create with [Device::create_semaphore]
 pub struct Semaphore {
     pub(crate) signaller: Option<SemaphoreSignaller>,
     pub(crate) inner: Arc<SemaphoreRAII>,
@@ -24,23 +22,23 @@ pub(crate) struct SemaphoreRAII {
     device: Arc<Device>,
 }
 
-impl Device {
+impl Semaphore {
     #[doc = crate::man_link!(vkCreateSemaphore)]
-    pub fn create_semaphore(self: &Arc<Self>) -> Result<Semaphore> {
+    pub fn new(device: &Arc<Device>) -> Result<Self> {
         let mut handle = None;
         unsafe {
-            (self.fun.create_semaphore)(
-                self.handle(),
+            (device.fun.create_semaphore)(
+                device.handle(),
                 &Default::default(),
                 None,
                 &mut handle,
             )?;
         }
-        Ok(Semaphore {
+        Ok(Self {
             signaller: None,
             inner: Arc::new(SemaphoreRAII {
                 handle: handle.unwrap(),
-                device: self.clone(),
+                device: device.clone(),
             }),
         })
     }
@@ -48,7 +46,7 @@ impl Device {
 
 impl Drop for Semaphore {
     /// **Warning:** If a semaphore is passed to
-    /// [SwapchainKHR::acquire_next_image()](crate::vk::SwapchainKHR::acquire_next_image())
+    /// [SwapchainKHR::acquire_next_image()](crate::vk::ext::SwapchainKHR::acquire_next_image())
     /// and then dropped without being waited on, the swapchain and semaphore
     /// will be leaked, since there is no way to know when it can be safely
     /// dropped other than waiting on it.

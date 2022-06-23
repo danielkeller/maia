@@ -32,15 +32,18 @@ fn main() -> vk::Result<()> {
 
     // Create the virtual device
     let device_extensions = required_device_extensions(&phy)?;
-    let (device, mut queues) = phy.create_device(&vk::DeviceCreateInfo {
-        queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
-            queue_family_index: queue_family,
-            queue_priorities: vk::slice(&[1.0]),
+    let (device, mut queues) = vk::Device::new(
+        &phy,
+        &vk::DeviceCreateInfo {
+            queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
+                queue_family_index: queue_family,
+                queue_priorities: vk::slice(&[1.0]),
+                ..Default::default()
+            }]),
+            enabled_extension_names: vk::slice(device_extensions),
             ..Default::default()
-        }]),
-        enabled_extension_names: vk::slice(device_extensions),
-        ..Default::default()
-    })?;
+        },
+    )?;
 
     // Create the swapchain
     let window_size = window.inner_size();
@@ -48,7 +51,8 @@ fn main() -> vk::Result<()> {
         width: window_size.width,
         height: window_size.height,
     };
-    let mut swapchain = device.khr_swapchain().create(
+    let mut swapchain = vk::ext::SwapchainKHR::new(
+        &device,
         vk::CreateSwapchainFrom::Surface(surf),
         vk::SwapchainCreateInfoKHR {
             min_image_count: 3,
@@ -61,29 +65,33 @@ fn main() -> vk::Result<()> {
     let mut framebuffers = std::collections::HashMap::new();
 
     // Create the render pass
-    let render_pass = device.create_render_pass(&vk::RenderPassCreateInfo {
-        attachments: vk::slice(&[vk::AttachmentDescription {
-            format: vk::Format::B8G8R8A8_SRGB,
-            load_op: vk::AttachmentLoadOp::CLEAR,
-            store_op: vk::AttachmentStoreOp::STORE,
-            initial_layout: vk::ImageLayout::UNDEFINED,
-            final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+    let render_pass = vk::RenderPass::new(
+        &device,
+        &vk::RenderPassCreateInfo {
+            attachments: vk::slice(&[vk::AttachmentDescription {
+                format: vk::Format::B8G8R8A8_SRGB,
+                load_op: vk::AttachmentLoadOp::CLEAR,
+                store_op: vk::AttachmentStoreOp::STORE,
+                initial_layout: vk::ImageLayout::UNDEFINED,
+                final_layout: vk::ImageLayout::PRESENT_SRC_KHR,
+                ..Default::default()
+            }]),
+            subpasses: vk::slice(&[vk::SubpassDescription {
+                color_attachments: &[vk::AttachmentReference {
+                    attachment: 0,
+                    layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
+                }],
+                ..Default::default()
+            }
+            .try_into()?]),
             ..Default::default()
-        }]),
-        subpasses: vk::slice(&[vk::SubpassDescription {
-            color_attachments: &[vk::AttachmentReference {
-                attachment: 0,
-                layout: vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL,
-            }],
-            ..Default::default()
-        }
-        .try_into()?]),
-        ..Default::default()
-    })?;
+        },
+    )?;
 
     // Create the graphics pipeline
-    let vertex_shader =
-        device.create_shader_module(inline_spirv::inline_spirv!(
+    let vertex_shader = vk::ShaderModule::new(
+        &device,
+        inline_spirv::inline_spirv!(
             r#" #version 450
                 layout(location = 0) in vec4 i_position;
                 layout(location = 1) in vec4 i_color;
@@ -94,19 +102,22 @@ fn main() -> vk::Result<()> {
                 } "#,
             glsl,
             vert
-        ))?;
-    let fragment_shader =
-        device.create_shader_module(inline_spirv::inline_spirv!(
+        ),
+    )?;
+    let fragment_shader = vk::ShaderModule::new(
+        &device,
+        inline_spirv::inline_spirv!(
             r#" #version 450
                 layout(location = 0) in vec4 i_color;
                 layout(location = 0) out vec4 o_Color;
                 void main() { o_Color = i_color;} "#,
             glsl,
             frag
-        ))?;
+        ),
+    )?;
 
     let pipeline =
-        device.create_graphics_pipeline(&vk::GraphicsPipelineCreateInfo {
+        vk::Pipeline::new_graphics(&vk::GraphicsPipelineCreateInfo {
             stages: &[
                 vk::PipelineShaderStageCreateInfo::vertex(&vertex_shader),
                 vk::PipelineShaderStageCreateInfo::fragment(&fragment_shader),
@@ -152,7 +163,8 @@ fn main() -> vk::Result<()> {
                 ]),
                 ..Default::default()
             }),
-            layout: &device.create_pipeline_layout(
+            layout: &vk::PipelineLayout::new(
+                &device,
                 Default::default(),
                 vec![],
                 vec![],
@@ -164,26 +176,30 @@ fn main() -> vk::Result<()> {
 
     // Create the vertex buffer and fill it with data
     let vertex_size = std::mem::size_of_val(&VERTEX_DATA) as u64;
-    let vertex_buffer = device.create_buffer(&vk::BufferCreateInfo {
-        size: vertex_size,
-        usage: vk::BufferUsageFlags::VERTEX_BUFFER,
-        ..Default::default()
-    })?;
-    let memory = device.allocate_memory(
+    let vertex_buffer = vk::BufferWithoutMemory::new(
+        &device,
+        &vk::BufferCreateInfo {
+            size: vertex_size,
+            usage: vk::BufferUsageFlags::VERTEX_BUFFER,
+            ..Default::default()
+        },
+    )?;
+    let memory = vk::DeviceMemory::new(
+        &device,
         vertex_buffer.memory_requirements().size,
         memory_type(&phy),
     )?;
-    let vertex_buffer = memory.bind_buffer_memory(vertex_buffer, 0)?;
+    let vertex_buffer = vk::Buffer::new(vertex_buffer, &memory, 0)?;
     let mut mapped = memory.map(0, std::mem::size_of_val(&VERTEX_DATA))?;
     mapped.slice_mut().copy_from_slice(bytemuck::bytes_of(&VERTEX_DATA));
 
     // Create the remaining required objects
-    let mut cmd_pool = device.create_command_pool(queue_family)?;
+    let mut cmd_pool = vk::CommandPool::new(&device, queue_family)?;
     // Create the command buffer
     let mut cmd_buf = Some(cmd_pool.allocate()?);
     let mut queue = queues.remove(0).remove(0);
-    let mut acquire_sem = device.create_semaphore()?;
-    let mut fence = Some(device.create_fence()?);
+    let mut acquire_sem = vk::Semaphore::new(&device)?;
+    let mut fence = Some(vk::Fence::new(&device)?);
 
     let mut redraw = move || -> vk::Result<()> {
         let (img, _subopt) =
@@ -192,16 +208,20 @@ fn main() -> vk::Result<()> {
         // We want one framebuffer and present semaphore per image
         if !framebuffers.contains_key(&img) {
             // Create them if we haven't already
-            let img_view = img.create_view(&vk::ImageViewCreateInfo {
-                format: vk::Format::B8G8R8A8_SRGB,
-                ..Default::default()
-            })?;
-            let fb = render_pass.create_framebuffer(
+            let img_view = vk::ImageView::new(
+                &img,
+                &vk::ImageViewCreateInfo {
+                    format: vk::Format::B8G8R8A8_SRGB,
+                    ..Default::default()
+                },
+            )?;
+            let fb = vk::Framebuffer::new(
+                &render_pass,
                 Default::default(),
                 vec![img_view],
                 window_extent.into(),
             )?;
-            let sem = device.create_semaphore()?;
+            let sem = vk::Semaphore::new(&device)?;
             framebuffers.insert(img.clone(), (fb, sem));
         }
         let (framebuffer, present_sem) = framebuffers.get_mut(&img).unwrap();

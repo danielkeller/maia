@@ -13,7 +13,7 @@ use crate::vk::PipelineStageFlags;
 
 /// A queue.
 ///
-/// Returned from [PhysicalDevice::create_device()](crate::vk::PhysicalDevice::create_device()).
+/// Returned from [Device::new()].
 #[derive(Debug)]
 pub struct Queue {
     handle: Handle<VkQueue>,

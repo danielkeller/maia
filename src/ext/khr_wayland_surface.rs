@@ -11,25 +11,22 @@ use crate::physical_device::PhysicalDevice;
 
 use super::khr_surface::SurfaceKHR;
 
-/// An KHR_wayland_surface extension object. Create with
-/// [Instance::khr_wayland_surface()]
+/// An KHR_wayland_surface extension object.
 pub struct KHRWaylandSurface {
     fun: WaylandSurfaceFn,
     instance: Arc<Instance>,
 }
 
-impl Instance {
+impl KHRWaylandSurface {
     /// Creates an [KHRWaylandSurface] extension object. Panics if the extension
     /// functions can't be loaded.
-    pub fn khr_wayland_surface(self: &Arc<Self>) -> KHRWaylandSurface {
-        KHRWaylandSurface {
-            fun: WaylandSurfaceFn::new(&self),
-            instance: self.clone(),
+    pub fn new(instance: &Arc<Instance>) -> Self {
+        Self {
+            fun: WaylandSurfaceFn::new(&instance),
+            instance: instance.clone(),
         }
     }
-}
 
-impl KHRWaylandSurface {
     #[doc = crate::man_link!(vkGetPhysicalDeviceWaylandPresentationSupportKHR)]
     pub unsafe fn presentation_support(
         &self,

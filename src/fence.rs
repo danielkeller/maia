@@ -6,8 +6,6 @@ use crate::types::*;
 /// A
 #[doc = concat!(crate::spec_link!("fence", "synchronization-fences"), ".")]
 /// When submitted to a [Queue](crate::vk::Queue), becomes a [PendingFence].
-///
-/// Create with [Device::create_fence()]
 #[derive(Debug)]
 pub struct Fence {
     handle: Option<Handle<VkFence>>,
@@ -25,19 +23,19 @@ pub struct PendingFence {
     resources: Cleanup,
 }
 
-impl Device {
+impl Fence {
     #[doc = crate::man_link!(vkCreateFence)]
-    pub fn create_fence(self: &Arc<Self>) -> Result<Fence> {
+    pub fn new(device: &Arc<Device>) -> Result<Self> {
         let mut handle = None;
         unsafe {
-            (self.fun.create_fence)(
-                self.handle(),
+            (device.fun.create_fence)(
+                device.handle(),
                 &Default::default(),
                 None,
                 &mut handle,
             )?;
         }
-        Ok(Fence { handle, device: self.clone() })
+        Ok(Self { handle, device: device.clone() })
     }
 }
 

@@ -17,8 +17,6 @@ use bumpalo::collections::Vec as BumpVec;
 
 /// A
 #[doc = crate::spec_link!("descriptor set layout", "descriptorsets-setlayout")]
-///
-/// Create with [Device::create_descriptor_set_layout()]
 #[derive(Debug, Eq)]
 pub struct DescriptorSetLayout {
     handle: Handle<VkDescriptorSetLayout>,
@@ -27,8 +25,7 @@ pub struct DescriptorSetLayout {
 }
 
 /// Note that unlike in Vulkan, the binding number is implicitly the index of
-/// the array that is passed into
-/// [create_descriptor_set_layout()](Device::create_descriptor_set_layout).
+/// the array that is passed into [DescriptorSetLayout::new()].
 /// If non-consecutive binding numbers are desired, create dummy descriptors to
 /// fill the gaps.
 ///
@@ -44,12 +41,12 @@ pub struct DescriptorSetLayoutBinding {
     pub immutable_samplers: Vec<Arc<Sampler>>,
 }
 
-impl Device {
+impl DescriptorSetLayout {
     #[doc = crate::man_link!(vkDescriptorSetLayout)]
-    pub fn create_descriptor_set_layout(
-        self: &Arc<Self>,
+    pub fn new(
+        device: &Arc<Device>,
         bindings: Vec<DescriptorSetLayoutBinding>,
-    ) -> Result<Arc<DescriptorSetLayout>> {
+    ) -> Result<Arc<Self>> {
         for b in &bindings {
             if !b.immutable_samplers.is_empty()
                 && b.immutable_samplers.len() as u32 != b.descriptor_count
@@ -80,8 +77,8 @@ impl Device {
             .collect::<Vec<_>>();
         let mut handle = None;
         unsafe {
-            (self.fun.create_descriptor_set_layout)(
-                self.handle(),
+            (device.fun.create_descriptor_set_layout)(
+                device.handle(),
                 &VkDescriptorSetLayoutCreateInfo {
                     bindings: vk_bindings.as_slice().into(),
                     ..Default::default()
@@ -94,7 +91,7 @@ impl Device {
         Ok(Arc::new(DescriptorSetLayout {
             handle: handle.unwrap(),
             bindings,
-            device: self.clone(),
+            device: device.clone(),
         }))
     }
 }
@@ -147,24 +144,22 @@ struct AllocatedSets;
 
 /// A
 #[doc = crate::spec_link!("descriptor pool", "descriptorsets-allocation")]
-///
-/// Create with [Device::create_descriptor_pool()]
 pub struct DescriptorPool {
     res: Owner<DescriptorPoolLifetime>,
     allocated: Arc<AllocatedSets>,
 }
 
-impl Device {
+impl DescriptorPool {
     #[doc = crate::man_link!(vkCreateDescriptorPool)]
-    pub fn create_descriptor_pool(
-        self: &Arc<Device>,
+    pub fn new(
+        device: &Arc<Device>,
         max_sets: u32,
         pool_sizes: &[DescriptorPoolSize],
-    ) -> Result<DescriptorPool> {
+    ) -> Result<Self> {
         let mut handle = None;
         unsafe {
-            (self.fun.create_descriptor_pool)(
-                self.handle(),
+            (device.fun.create_descriptor_pool)(
+                device.handle(),
                 &DescriptorPoolCreateInfo {
                     max_sets,
                     pool_sizes: pool_sizes.into(),
@@ -176,7 +171,7 @@ impl Device {
         }
         let res = Owner::new(DescriptorPoolLifetime {
             handle: handle.unwrap(),
-            device: self.clone(),
+            device: device.clone(),
         });
         let allocated = Arc::new(AllocatedSets);
         Ok(DescriptorPool { res, allocated })
@@ -223,8 +218,6 @@ impl DescriptorPool {
 /// [bind_descriptor_sets()](crate::command_buffer::CommandRecording::bind_descriptor_sets)
 /// will prevent the set from being freed until the command pool is
 /// [reset](crate::command_buffer::CommandPool::reset).)
-///
-/// Create with [DescriptorPool::allocate]
 #[derive(Debug)]
 pub struct DescriptorSet {
     handle: Handle<VkDescriptorSet>,
@@ -234,17 +227,17 @@ pub struct DescriptorSet {
     _pool: Subobject<DescriptorPoolLifetime>,
 }
 
-impl DescriptorPool {
+impl DescriptorSet {
     #[doc = crate::man_link!(vkAllocateDescriptorSets)]
-    pub fn allocate(
-        &mut self,
+    pub fn new(
+        pool: &mut DescriptorPool,
         layout: &Arc<DescriptorSetLayout>,
-    ) -> Result<DescriptorSet> {
-        if !Arc::ptr_eq(&self.res.device, &layout.device) {
+    ) -> Result<Self> {
+        if !Arc::ptr_eq(&pool.res.device, &layout.device) {
             return Err(Error::InvalidArgument);
         }
         let mut handle = MaybeUninit::uninit();
-        let res = &mut *self.res;
+        let res = &mut *pool.res;
         let handle = unsafe {
             (res.device.fun.allocate_descriptor_sets)(
                 res.device.handle(),
@@ -265,14 +258,12 @@ impl DescriptorPool {
         Ok(DescriptorSet {
             handle,
             layout: layout.clone(),
-            _pool: Subobject::new(&self.res),
-            _allocation: self.allocated.clone(),
+            _pool: Subobject::new(&pool.res),
+            _allocation: pool.allocated.clone(),
             resources,
         })
     }
-}
 
-impl DescriptorSet {
     /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkDescriptorSet> {
         self.handle.borrow()
@@ -300,14 +291,12 @@ pub struct DescriptorSetUpdateBuilder {
     scratch: Exclusive<bumpalo::Bump>,
 }
 
-impl Device {
+impl DescriptorSetUpdateBuilder {
     /// Create an object that builds calls to vkUpdateDescriptorSets.
-    pub fn create_descriptor_set_update_builder(
-        self: &Arc<Self>,
-    ) -> DescriptorSetUpdateBuilder {
+    pub fn new(device: &Arc<Device>) -> Self {
         DescriptorSetUpdateBuilder {
             scratch: Exclusive::new(bumpalo::Bump::new()),
-            device: self.clone(),
+            device: device.clone(),
         }
     }
 }

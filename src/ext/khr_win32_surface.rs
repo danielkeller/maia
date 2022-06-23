@@ -9,25 +9,22 @@ use crate::physical_device::PhysicalDevice;
 
 use super::khr_surface::SurfaceKHR;
 
-/// An KHR_win32_surface extension object. Create with
-/// [Instance::khr_win32_surface()]
+/// An KHR_win32_surface extension object.
 pub struct KHRWin32Surface {
     fun: Win32SurfaceFn,
     instance: Arc<Instance>,
 }
 
-impl Instance {
+impl KHRWin32Surface {
     /// Creates an [KHRWin32Surface] extension object. Panics if the extension
     /// functions can't be loaded.
-    pub fn khr_win32_surface(self: &Arc<Self>) -> KHRWin32Surface {
-        KHRWin32Surface {
-            fun: Win32SurfaceFn::new(&self),
-            instance: self.clone(),
+    pub fn new(instance: &Arc<Instance>) -> Self {
+        Self {
+            fun: Win32SurfaceFn::new(&instance),
+            instance: instance.clone(),
         }
     }
-}
 
-impl KHRWin32Surface {
     #[doc = crate::man_link!(vkGetPhysicalDeviceWin32PresentationSupportKHR)]
     pub fn presentation_support(
         &self,

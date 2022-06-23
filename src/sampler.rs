@@ -4,25 +4,28 @@ use crate::types::*;
 
 /// A
 #[doc = crate::spec_link!("sampler", "samplers")]
-///
-/// Create with [Device::create_sampler]
 #[derive(Debug, Eq)]
 pub struct Sampler {
     handle: Handle<VkSampler>,
     device: Arc<Device>,
 }
 
-impl Device {
+impl Sampler {
     #[doc = crate::man_link!(vkCreateSampler)]
-    pub fn create_sampler(
-        self: &Arc<Self>,
+    pub fn new(
+        device: &Arc<Device>,
         info: &SamplerCreateInfo,
-    ) -> Result<Arc<Sampler>> {
+    ) -> Result<Arc<Self>> {
         let mut handle = None;
         unsafe {
-            (self.fun.create_sampler)(self.handle(), info, None, &mut handle)?;
+            (device.fun.create_sampler)(
+                device.handle(),
+                info,
+                None,
+                &mut handle,
+            )?;
         }
-        Ok(Arc::new(Sampler { handle: handle.unwrap(), device: self.clone() }))
+        Ok(Arc::new(Self { handle: handle.unwrap(), device: device.clone() }))
     }
 }
 

@@ -5,8 +5,6 @@ use crate::types::*;
 
 /// A
 #[doc = crate::spec_link!("render pass", "renderpass")]
-///
-/// Create with [Device::create_render_pass()].
 #[derive(Debug)]
 pub struct RenderPass {
     handle: Handle<VkRenderPass>,
@@ -14,28 +12,26 @@ pub struct RenderPass {
     pub(crate) device: Arc<Device>,
 }
 
-impl Device {
+impl RenderPass {
     #[doc = crate::man_link!(vkCreateRenderPass)]
-    pub fn create_render_pass(
-        self: &Arc<Device>,
+    pub fn new(
+        device: &Arc<Device>,
         info: &RenderPassCreateInfo,
-    ) -> Result<Arc<RenderPass>> {
+    ) -> Result<Arc<Self>> {
         let compat = RenderPassCompat::new(info)?;
         let mut handle = None;
         unsafe {
-            (self.fun.create_render_pass)(
-                self.handle(),
+            (device.fun.create_render_pass)(
+                device.handle(),
                 info,
                 None,
                 &mut handle,
             )?;
         }
         let handle = handle.unwrap();
-        Ok(Arc::new(RenderPass { handle, compat, device: self.clone() }))
+        Ok(Arc::new(Self { handle, compat, device: device.clone() }))
     }
-}
 
-impl RenderPass {
     /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkRenderPass> {
         self.handle.borrow()

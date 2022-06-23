@@ -12,8 +12,6 @@ use crate::types::*;
 
 /// A
 #[doc = crate::spec_link!("pipeline layout", "descriptorsets-pipelinelayout")]
-///
-/// Create with [Device::create_pipeline_layout].
 #[derive(Debug)]
 pub struct PipelineLayout {
     handle: Handle<VkPipelineLayout>,
@@ -23,10 +21,10 @@ pub struct PipelineLayout {
     device: Arc<Device>,
 }
 
-impl Device {
+impl PipelineLayout {
     #[doc = crate::man_link!(vkCreatePipelineLayout)]
-    pub fn create_pipeline_layout(
-        self: &Arc<Self>,
+    pub fn new(
+        device: &Arc<Device>,
         flags: PipelineLayoutCreateFlags,
         set_layouts: Vec<Arc<DescriptorSetLayout>>,
         push_constant_ranges: Vec<PushConstantRange>,
@@ -41,8 +39,8 @@ impl Device {
         unsafe {
             let set_layouts =
                 &set_layouts.iter().map(|l| l.handle()).collect::<Vec<_>>();
-            (self.fun.create_pipeline_layout)(
-                self.handle(),
+            (device.fun.create_pipeline_layout)(
+                device.handle(),
                 &PipelineLayoutCreateInfo {
                     flags,
                     set_layouts: set_layouts.into(),
@@ -59,7 +57,7 @@ impl Device {
             set_layouts,
             push_constant_ranges,
             push_constant_voids,
-            device: self.clone(),
+            device: device.clone(),
         }))
     }
 }
@@ -138,15 +136,11 @@ impl PipelineLayout {
 /// A
 #[doc = crate::spec_link!("pipeline", "pipelines")]
 #[derive(Debug)]
-///
-/// Create with [Device::create_graphics_pipeline()] or
-/// [Device::create_compute_pipeline()].
 pub struct Pipeline {
     handle: Handle<VkPipeline>,
     layout: Arc<PipelineLayout>,
     render_pass: Option<Arc<RenderPass>>,
     subpass: u32,
-    device: Arc<Device>,
 }
 
 #[doc = crate::man_link!(VkGraphicsPipelineCreateInfo)]
@@ -167,7 +161,7 @@ pub struct GraphicsPipelineCreateInfo<'a> {
     pub cache: Option<&'a PipelineCache>,
 }
 
-impl Device {
+impl Pipeline {
     // TODO: Bulk create
     /// Returns [Error::OutOfBounds] if 'info.subpass' is out of bounds of
     /// 'info.render_pass', or the specialization constants are out of bounds.
@@ -175,10 +169,9 @@ impl Device {
     /// repeated, any vertex attribute locations are repeated, or any vertex
     /// attributes refer to a nonexistent binding.
     #[doc = crate::man_link!(vkCreateGraphicsPipeline)]
-    pub fn create_graphics_pipeline(
-        self: &Arc<Self>,
+    pub fn new_graphics(
         info: &GraphicsPipelineCreateInfo,
-    ) -> Result<Arc<Pipeline>> {
+    ) -> Result<Arc<Self>> {
         if info.subpass >= info.render_pass.num_subpasses() {
             return Err(Error::OutOfBounds);
         }
@@ -221,8 +214,8 @@ impl Device {
         };
         let mut handle = MaybeUninit::uninit();
         unsafe {
-            (self.fun.create_graphics_pipelines)(
-                self.handle(),
+            (info.layout.device.fun.create_graphics_pipelines)(
+                info.layout.device.handle(),
                 info.cache.map(|c| c.handle.borrow()),
                 1,
                 std::array::from_ref(&vk_info).into(),
@@ -235,14 +228,12 @@ impl Device {
             layout: info.layout.clone(),
             render_pass: Some(info.render_pass.clone()),
             subpass: info.subpass,
-            device: self.clone(),
         }))
     }
     /// Returns [Error::OutOfBounds] if the specialization constants are out of
     /// bounds.
     #[doc = crate::man_link!(vkCreateComputePipeline)]
-    pub fn create_compute_pipeline(
-        self: &Arc<Self>,
+    pub fn new_compute(
         stage: PipelineShaderStageCreateInfo,
         layout: &Arc<PipelineLayout>,
         cache: Option<&PipelineCache>,
@@ -259,8 +250,8 @@ impl Device {
         };
         let mut handle = MaybeUninit::uninit();
         unsafe {
-            (self.fun.create_compute_pipelines)(
-                self.handle(),
+            (layout.device.fun.create_compute_pipelines)(
+                layout.device.handle(),
                 cache.map(|c| c.handle.borrow()),
                 1,
                 std::array::from_ref(&info).into(),
@@ -273,7 +264,6 @@ impl Device {
             layout: layout.clone(),
             render_pass: None,
             subpass: 0,
-            device: self.clone(),
         }))
     }
 }
@@ -303,8 +293,8 @@ impl Pipeline {
 impl Drop for Pipeline {
     fn drop(&mut self) {
         unsafe {
-            (self.device.fun.destroy_pipeline)(
-                self.device.handle(),
+            (self.layout.device.fun.destroy_pipeline)(
+                self.layout.device.handle(),
                 self.handle.borrow_mut(),
                 None,
             )
@@ -329,14 +319,12 @@ fn check_specialization_constants<T>(
 
 /// A
 #[doc = crate::spec_link!("pipeline cache", "pipelines-cache")]
-///
-/// Create with [Device::create_pipeline_cache()]
 pub struct PipelineCache {
     handle: Handle<VkPipelineCache>,
     device: Arc<Device>,
 }
 
-impl Device {
+impl PipelineCache {
     /// Safety: 'data' must either be empty or have been retuned from a previous
     /// call to [PipelineCache::data()]. Hilariously, this function is
     /// actually impossible to make safe; Vulkan provides no way to validate the
@@ -344,10 +332,7 @@ impl Device {
     /// be damaged or altered. Caveat emptor.
     ///
     #[doc = crate::man_link!(vkCreatePipelineCache)]
-    pub unsafe fn create_pipeline_cache(
-        self: &Arc<Self>,
-        data: &[u8],
-    ) -> Result<PipelineCache> {
+    pub unsafe fn new(device: &Arc<Device>, data: &[u8]) -> Result<Self> {
         let mut handle = None;
         let info = PipelineCacheCreateInfo {
             stype: Default::default(),
@@ -355,29 +340,15 @@ impl Device {
             flags: Default::default(),
             initial_data: data.into(),
         };
-        (self.fun.create_pipeline_cache)(
-            self.handle(),
+        (device.fun.create_pipeline_cache)(
+            device.handle(),
             &info,
             None,
             &mut handle,
         )?;
-        Ok(PipelineCache { handle: handle.unwrap(), device: self.clone() })
+        Ok(Self { handle: handle.unwrap(), device: device.clone() })
     }
-}
 
-impl Drop for PipelineCache {
-    fn drop(&mut self) {
-        unsafe {
-            (self.device.fun.destroy_pipeline_cache)(
-                self.device.handle(),
-                self.handle.borrow_mut(),
-                None,
-            )
-        }
-    }
-}
-
-impl PipelineCache {
     /// Returns the data in the pipeline cache.
     pub fn data(&self) -> Result<Vec<u8>> {
         let mut len = 0;
@@ -408,5 +379,17 @@ impl PipelineCache {
         }
         unsafe { result.set_len(len) };
         Ok(result)
+    }
+}
+
+impl Drop for PipelineCache {
+    fn drop(&mut self) {
+        unsafe {
+            (self.device.fun.destroy_pipeline_cache)(
+                self.device.handle(),
+                self.handle.borrow_mut(),
+                None,
+            )
+        }
     }
 }

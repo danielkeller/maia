@@ -13,23 +13,6 @@ use crate::types::*;
 
 use super::khr_surface::{SurfaceKHR, SurfaceLifetime};
 
-/// A KHR_swapchain extension object. Create with [Device::khr_swapchain()].
-pub struct KHRSwapchain {
-    fun: SwapchainDeviceFn,
-    device: Arc<Device>,
-}
-
-impl Device {
-    /// Create a [KHRSwapchain] extension object. Panics if the extension
-    /// functions can't be loaded.
-    pub fn khr_swapchain(self: &Arc<Self>) -> KHRSwapchain {
-        KHRSwapchain {
-            fun: SwapchainDeviceFn::new(self),
-            device: self.clone(),
-        }
-    }
-}
-
 /// Whether to pass a previous swapchain to create the new one from.
 pub enum CreateSwapchainFrom {
     OldSwapchain(SwapchainKHR),
@@ -75,8 +58,6 @@ impl<'a> Default for SwapchainCreateInfoKHR<'a> {
 
 /// A
 #[doc = crate::spec_link!("swapchain", "_wsi_swapchain")]
-///
-/// Create with [KHRSwapchain::create()].
 #[derive(Debug)]
 pub struct SwapchainKHR {
     images: Vec<(Arc<Image>, bool)>,
@@ -93,31 +74,35 @@ pub(crate) struct SwapchainImages {
     _surface: Subobject<SurfaceLifetime>,
 }
 
-impl KHRSwapchain {
+impl SwapchainKHR {
     /// If create_from is [CreateSwapchainFrom::OldSwapchain], images in that
     /// swapchain that aren't acquired by the application are deleted. If any
     /// references remain to those images, returns [Error::SynchronizationError].
+    /// Panics if the extension functions can't be loaded.
+    ///
     #[doc = crate::man_link!(vkCreateSwapchainKHR)]
-    pub fn create(
-        &self,
+    pub fn new(
+        device: &Arc<Device>,
         create_from: CreateSwapchainFrom,
         info: SwapchainCreateInfoKHR,
-    ) -> Result<SwapchainKHR> {
-        let (mut surface, mut old_swapchain) = match create_from {
+    ) -> Result<Self> {
+        let (mut surface, fun, mut old_swapchain) = match create_from {
             CreateSwapchainFrom::OldSwapchain(mut old) => {
                 for (img, acquired) in &mut old.images {
                     if !*acquired && Arc::get_mut(img).is_none() {
                         return Err(Error::SynchronizationError);
                     }
                 }
-                (old.surface, Some(old.res))
+                (old.surface, old.res.fun.clone(), Some(old.res))
             }
-            CreateSwapchainFrom::Surface(surf) => (surf, None),
+            CreateSwapchainFrom::Surface(surf) => {
+                (surf, SwapchainKHRFn::new(device), None)
+            }
         };
         let mut handle = None;
         unsafe {
-            (self.fun.create_swapchain_khr)(
-                self.device.handle(),
+            (fun.create_swapchain_khr)(
+                device.handle(),
                 &VkSwapchainCreateInfoKHR {
                     stype: Default::default(),
                     next: Default::default(),
@@ -143,21 +128,20 @@ impl KHRSwapchain {
                 &mut handle,
             )?;
         }
-        let fun = SwapchainKHRFn::new(&self.device);
         let handle = handle.unwrap();
 
         let mut n_images = 0;
         let mut images = vec![];
         unsafe {
             (fun.get_swapchain_images_khr)(
-                self.device.handle(),
+                device.handle(),
                 handle.borrow(),
                 &mut n_images,
                 None,
             )?;
             images.reserve(n_images as usize);
             (fun.get_swapchain_images_khr)(
-                self.device.handle(),
+                device.handle(),
                 handle.borrow(),
                 &mut n_images,
                 ArrayMut::from_slice(images.spare_capacity_mut()),
@@ -168,16 +152,16 @@ impl KHRSwapchain {
         let res = Owner::new(SwapchainImages {
             handle,
             fun,
-            device: self.device.clone(),
+            device: device.clone(),
             _surface: surface.resource(),
         });
         let images = images
             .into_iter()
-            .map(|h| {
+            .map(|handle| {
                 (
-                    Arc::new(Image::new(
-                        h,
-                        self.device.clone(),
+                    Arc::new(Image::new_from(
+                        handle,
+                        device.clone(),
                         Subobject::new(&res),
                         info.image_format,
                         info.image_extent.into(),
@@ -188,7 +172,7 @@ impl KHRSwapchain {
             })
             .collect();
 
-        Ok(SwapchainKHR { res, surface, images })
+        Ok(Self { res, surface, images })
     }
 }
 
@@ -311,28 +295,14 @@ impl SwapchainKHR {
     }
 }
 
-pub struct SwapchainDeviceFn {
+#[derive(Clone)]
+pub struct SwapchainKHRFn {
     pub create_swapchain_khr: unsafe extern "system" fn(
         Ref<VkDevice>,
         &VkSwapchainCreateInfoKHR,
         Option<&'_ AllocationCallbacks>,
         &mut Option<Handle<VkSwapchainKHR>>,
     ) -> VkResult,
-}
-
-impl SwapchainDeviceFn {
-    pub fn new(dev: &Device) -> Self {
-        unsafe {
-            Self {
-                create_swapchain_khr: transmute(
-                    dev.get_proc_addr("vkCreateSwapchainKHR\0"),
-                ),
-            }
-        }
-    }
-}
-
-pub struct SwapchainKHRFn {
     pub destroy_swapchain_khr: unsafe extern "system" fn(
         Ref<VkDevice>,
         Mut<VkSwapchainKHR>,
@@ -362,6 +332,9 @@ impl SwapchainKHRFn {
     pub fn new(dev: &Device) -> Self {
         unsafe {
             Self {
+                create_swapchain_khr: transmute(
+                    dev.get_proc_addr("vkCreateSwapchainKHR\0"),
+                ),
                 destroy_swapchain_khr: transmute(
                     dev.get_proc_addr("vkDestroySwapchainKHR\0"),
                 ),

@@ -22,8 +22,6 @@ pub mod command;
 /// the count and allow the resources to be freed, either call
 /// [reset()](CommandPool::reset()) or drop the pool and all buffers allocated
 /// from it.
-///
-/// Create with [Device::create_command_pool()]
 pub struct CommandPool {
     recording: Option<Arc<RecordedCommands>>,
     res: Owner<CommandPoolLifetime>,
@@ -128,21 +126,18 @@ impl std::fmt::Debug for CommandPool {
 impl std::panic::UnwindSafe for CommandPoolLifetime {}
 impl std::panic::RefUnwindSafe for CommandPoolLifetime {}
 
-impl Device {
+impl CommandPool {
     /// Create a command pool. The pool is not transient, not protected, and its
     /// buffers cannot be individually reset.
     #[doc = crate::man_link!(vkCreateCommandPool)]
-    pub fn create_command_pool(
-        self: &Arc<Self>,
-        queue_family_index: u32,
-    ) -> Result<CommandPool> {
-        if !self.has_queue(queue_family_index, 1) {
+    pub fn new(device: &Arc<Device>, queue_family_index: u32) -> Result<Self> {
+        if !device.has_queue(queue_family_index, 1) {
             return Err(Error::OutOfBounds);
         }
         let mut handle = None;
         unsafe {
-            (self.fun.create_command_pool)(
-                self.handle(),
+            (device.fun.create_command_pool)(
+                device.handle(),
                 &CommandPoolCreateInfo {
                     queue_family_index,
                     ..Default::default()
@@ -156,7 +151,7 @@ impl Device {
         let res = Owner::new(CommandPoolLifetime {
             handle,
             resources: vec![],
-            device: self.clone(),
+            device: device.clone(),
         });
         let _res = Subobject::new(&res);
         Ok(CommandPool {

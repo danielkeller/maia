@@ -8,10 +8,8 @@ use crate::vk::Device;
 
 use std::fmt::Debug;
 
-/// An image with no memory. Call [DeviceMemory::bind_image_memory()] to bind
-/// memory and create an [Image].
-///
-/// Create with [Device::create_image()]
+/// An image with no memory. Call [Image::new()] to bind memory and create an
+/// [Image].
 #[derive(Debug)]
 pub struct ImageWithoutMemory {
     handle: Handle<VkImage>,
@@ -26,8 +24,6 @@ pub struct ImageWithoutMemory {
 /// An
 #[doc = crate::spec_link!("image", "resources-images")]
 /// with memory attached to it.
-///
-/// Create with [DeviceMemory::bind_image_memory()].
 #[derive(Debug)]
 pub struct Image {
     inner: ImageWithoutMemory,
@@ -54,57 +50,62 @@ impl std::hash::Hash for Image {
     }
 }
 
-impl Device {
+impl ImageWithoutMemory {
     #[doc = crate::man_link!(vkCreateImage)]
-    pub fn create_image(
-        self: &Arc<Self>,
+    pub fn new(
+        device: &Arc<Device>,
         info: &ImageCreateInfo<'_>,
-    ) -> Result<ImageWithoutMemory> {
+    ) -> Result<Self> {
         let mut handle = None;
         unsafe {
-            (self.fun.create_image)(self.handle(), info, None, &mut handle)?;
+            (device.fun.create_image)(
+                device.handle(),
+                info,
+                None,
+                &mut handle,
+            )?;
         }
-        Ok(ImageWithoutMemory {
+        Ok(Self {
             handle: handle.unwrap(),
             extent: info.extent,
             format: info.format,
             mip_levels: info.mip_levels,
             array_layers: info.array_layers,
             res: ImageOwner::Application,
-            device: self.clone(),
+            device: device.clone(),
         })
     }
 }
-impl DeviceMemory {
+impl Image {
     #[doc = crate::man_link!(vkBindImageMemory)]
-    pub fn bind_image_memory(
-        &self,
+    pub fn new(
         image: ImageWithoutMemory,
+        memory: &DeviceMemory,
         offset: u64,
-    ) -> ResultAndSelf<Arc<Image>, ImageWithoutMemory> {
-        assert_eq!(self.device(), &image.device);
-        if !self.check(offset, image.memory_requirements()) {
+    ) -> ResultAndSelf<Arc<Self>, ImageWithoutMemory> {
+        assert_eq!(memory.device(), &image.device);
+        if !memory.check(offset, image.memory_requirements()) {
             return Err(ErrorAndSelf(Error::InvalidArgument, image));
         }
-        self.bind_image_impl(image, offset)
+        Self::bind_image_impl(image, memory, offset)
     }
 
     fn bind_image_impl(
-        &self,
         mut inner: ImageWithoutMemory,
+        memory: &DeviceMemory,
         offset: u64,
-    ) -> ResultAndSelf<Arc<Image>, ImageWithoutMemory> {
+    ) -> ResultAndSelf<Arc<Self>, ImageWithoutMemory> {
         if let Err(err) = unsafe {
-            (self.device().fun.bind_image_memory)(
-                self.device().handle(),
+            (memory.device().fun.bind_image_memory)(
+                memory.device().handle(),
                 inner.handle_mut(),
-                self.handle(),
+                memory.handle(),
                 offset,
             )
         } {
             return Err(ErrorAndSelf(err.into(), inner));
         }
-        Ok(Arc::new(Image { inner, _memory: Some(self.resource()) }))
+        Ok(Arc::new(Self { inner, _memory: Some(memory.resource()) }))
     }
 }
 
@@ -148,20 +149,21 @@ impl ImageWithoutMemory {
         if (1 << memory_type_index) & mem_req.memory_type_bits == 0 {
             return Err(ErrorAndSelf(Error::InvalidArgument, self));
         }
-        let memory = match self
-            .device
-            .allocate_memory(mem_req.size, memory_type_index)
-        {
+        let memory = match DeviceMemory::new(
+            &self.device,
+            mem_req.size,
+            memory_type_index,
+        ) {
             Ok(memory) => memory,
             Err(err) => return Err(ErrorAndSelf(err.into(), self)),
         };
         // Don't need to check requirements
-        memory.bind_image_impl(self, 0)
+        Image::bind_image_impl(self, &memory, 0)
     }
 }
 
 impl Image {
-    pub(crate) fn new(
+    pub(crate) fn new_from(
         handle: Handle<VkImage>,
         device: Arc<Device>,
         res: Subobject<SwapchainImages>,
@@ -275,17 +277,17 @@ pub struct ImageViewCreateInfo {
     pub subresource_range: ImageSubresourceRange,
 }
 
-impl Image {
+impl ImageView {
     /// Create an image view of the image.
-    pub fn create_view(
-        self: &Arc<Self>,
+    pub fn new(
+        image: &Arc<Image>,
         info: &ImageViewCreateInfo,
-    ) -> Result<Arc<ImageView>> {
+    ) -> Result<Arc<Self>> {
         let vk_info = VkImageViewCreateInfo {
             stype: Default::default(),
             next: Default::default(),
             flags: info.flags,
-            image: self.handle(),
+            image: image.handle(),
             view_type: info.view_type,
             format: info.format,
             components: info.components,
@@ -293,14 +295,14 @@ impl Image {
         };
         let mut handle = None;
         unsafe {
-            (self.inner.device.fun.create_image_view)(
-                self.inner.device.handle(),
+            (image.inner.device.fun.create_image_view)(
+                image.inner.device.handle(),
                 &vk_info,
                 None,
                 &mut handle,
             )?;
         }
-        Ok(Arc::new(ImageView { handle: handle.unwrap(), image: self.clone() }))
+        Ok(Arc::new(Self { handle: handle.unwrap(), image: image.clone() }))
     }
 }
 

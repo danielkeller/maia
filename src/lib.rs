@@ -88,7 +88,7 @@ pub mod vk {
     pub use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
     pub use crate::ext;
     pub use crate::ext::khr_swapchain::{
-        CreateSwapchainFrom, KHRSwapchain, SwapchainCreateInfoKHR, SwapchainKHR,
+        CreateSwapchainFrom, SwapchainCreateInfoKHR,
     };
     pub use crate::fence::{Fence, PendingFence};
     pub use crate::ffi::*;

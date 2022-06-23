@@ -6,8 +6,6 @@ use crate::types::*;
 
 /// A
 #[doc = crate::spec_link!("framebuffer", "_framebuffers")]
-///
-/// Create with [RenderPass::create_framebuffer()].
 #[derive(Debug)]
 pub struct Framebuffer {
     handle: Handle<VkFramebuffer>,
@@ -15,16 +13,16 @@ pub struct Framebuffer {
     render_pass: Arc<RenderPass>,
 }
 
-impl RenderPass {
+impl Framebuffer {
     #[doc = crate::man_link!(vkCreateFrameuffer)]
-    pub fn create_framebuffer(
-        self: &Arc<Self>,
+    pub fn new(
+        render_pass: &Arc<RenderPass>,
         flags: FramebufferCreateFlags,
         attachments: Vec<Arc<ImageView>>,
         size: Extent3D,
-    ) -> Result<Arc<Framebuffer>> {
+    ) -> Result<Arc<Self>> {
         for iv in &attachments {
-            assert_eq!(iv.device(), self.device());
+            assert_eq!(iv.device(), render_pass.device());
         }
         let vk_attachments: Vec<_> =
             attachments.iter().map(|iv| iv.handle()).collect();
@@ -32,7 +30,7 @@ impl RenderPass {
             stype: Default::default(),
             next: Default::default(),
             flags,
-            render_pass: self.handle(),
+            render_pass: render_pass.handle(),
             attachments: (&vk_attachments).into(),
             width: size.width,
             height: size.height,
@@ -40,22 +38,20 @@ impl RenderPass {
         };
         let mut handle = None;
         unsafe {
-            (self.device().fun.create_framebuffer)(
-                self.device().handle(),
+            (render_pass.device().fun.create_framebuffer)(
+                render_pass.device().handle(),
                 &vk_create_info,
                 None,
                 &mut handle,
             )?;
         }
-        Ok(Arc::new(Framebuffer {
+        Ok(Arc::new(Self {
             handle: handle.unwrap(),
             _attachments: attachments,
-            render_pass: self.clone(),
+            render_pass: render_pass.clone(),
         }))
     }
-}
 
-impl Framebuffer {
     /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkFramebuffer> {
         self.handle.borrow()

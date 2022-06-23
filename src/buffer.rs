@@ -4,10 +4,8 @@ use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::Device;
 
-/// A buffer with no memory. Call [DeviceMemory::bind_buffer_memory] to bind
-/// memory and create a [Buffer].
-///
-/// Create with [Device::create_buffer].
+/// A buffer with no memory. Call [Buffer::new()] to bind memory and create a
+/// [Buffer].
 #[derive(Debug)]
 pub struct BufferWithoutMemory {
     handle: Handle<VkBuffer>,
@@ -18,62 +16,65 @@ pub struct BufferWithoutMemory {
 /// A
 #[doc = crate::spec_link!("buffer", "resources-buffers")]
 /// with memory attached to it.
-///
-/// Create with [DeviceMemory::bind_buffer_memory()]
 #[derive(Debug)]
 pub struct Buffer {
     inner: BufferWithoutMemory,
     _memory: Subobject<MemoryLifetime>,
 }
 
-impl Device {
+impl BufferWithoutMemory {
     #[doc = crate::man_link!(vkCreateBuffer)]
-    pub fn create_buffer(
-        self: &Arc<Self>,
+    pub fn new(
+        device: &Arc<Device>,
         info: &BufferCreateInfo<'_>,
-    ) -> Result<BufferWithoutMemory> {
+    ) -> Result<Self> {
         let mut handle = None;
         unsafe {
-            (self.fun.create_buffer)(self.handle(), info, None, &mut handle)?;
+            (device.fun.create_buffer)(
+                device.handle(),
+                info,
+                None,
+                &mut handle,
+            )?;
         }
         Ok(BufferWithoutMemory {
             handle: handle.unwrap(),
             len: info.size,
-            device: self.clone(),
+            device: device.clone(),
         })
     }
 }
-impl DeviceMemory {
+impl Buffer {
     // TODO: Bulk bind
     #[doc = crate::man_link!(vkBindBufferMemory)]
-    pub fn bind_buffer_memory(
-        &self,
+    pub fn new(
         buffer: BufferWithoutMemory,
+        memory: &DeviceMemory,
         offset: u64,
-    ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
-        assert_eq!(self.device(), &buffer.device);
-        if !self.check(offset, buffer.memory_requirements()) {
+    ) -> ResultAndSelf<Arc<Self>, BufferWithoutMemory> {
+        assert_eq!(memory.device(), &buffer.device);
+        if !memory.check(offset, buffer.memory_requirements()) {
             return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
-        self.bind_buffer_impl(buffer, offset)
+        Self::bind_buffer_impl(buffer, memory, offset)
     }
 
     fn bind_buffer_impl(
-        &self,
         mut inner: BufferWithoutMemory,
+        memory: &DeviceMemory,
         offset: u64,
     ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
         if let Err(err) = unsafe {
-            (self.device().fun.bind_buffer_memory)(
-                self.device().handle(),
+            (memory.device().fun.bind_buffer_memory)(
+                memory.device().handle(),
                 inner.handle.borrow_mut(),
-                self.handle(),
+                memory.handle(),
                 offset,
             )
         } {
             return Err(ErrorAndSelf(err.into(), inner));
         }
-        Ok(Arc::new(Buffer { inner, _memory: self.resource() }))
+        Ok(Arc::new(Buffer { inner, _memory: memory.resource() }))
     }
 }
 
@@ -134,14 +135,15 @@ impl BufferWithoutMemory {
         if (1 << memory_type_index) & mem_req.memory_type_bits == 0 {
             return Err(ErrorAndSelf(Error::InvalidArgument, self));
         }
-        let memory = match self
-            .device
-            .allocate_memory(mem_req.size, memory_type_index)
-        {
+        let memory = match DeviceMemory::new(
+            &self.device,
+            mem_req.size,
+            memory_type_index,
+        ) {
             Ok(memory) => memory,
             Err(err) => return Err(ErrorAndSelf(err.into(), self)),
         };
         // Don't need to check requirements
-        memory.bind_buffer_impl(self, 0)
+        Buffer::bind_buffer_impl(self, &memory, 0)
     }
 }

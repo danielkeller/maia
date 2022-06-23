@@ -18,7 +18,7 @@ pub struct SurfaceLifetime {
 /// A
 #[doc = crate::spec_link!("surface", "_wsi_surface")]
 ///
-/// Create with [crate::window::create_surface()].
+/// Can be created with [crate::window::create_surface()].
 #[derive(Debug)]
 pub struct SurfaceKHR {
     inner: Owner<SurfaceLifetime>,

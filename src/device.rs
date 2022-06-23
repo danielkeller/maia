@@ -6,8 +6,6 @@ use crate::queue::Queue;
 use crate::types::*;
 
 /// A logical device.
-///
-/// Create with [PhysicalDevice::create_device()].
 pub struct Device {
     handle: Handle<VkDevice>,
     pub(crate) fun: DeviceFn,
@@ -42,15 +40,15 @@ impl Drop for Device {
     }
 }
 
-impl PhysicalDevice {
+impl Device {
     /// Create a logical device for this physical device. Queues are returned in
     /// the order requested in 'info.queue_create_infos'.
     #[doc = crate::man_link!(vkCreateDevice)]
-    pub fn create_device(
-        &self,
+    pub fn new(
+        phy: &PhysicalDevice,
         info: &DeviceCreateInfo<'_>,
-    ) -> Result<(Arc<Device>, Vec<Vec<Queue>>)> {
-        let props = self.queue_family_properties();
+    ) -> Result<(Arc<Self>, Vec<Vec<Queue>>)> {
+        let props = phy.queue_family_properties();
         let mut queues = vec![0; props.len()];
         for q in info.queue_create_infos {
             let i = q.queue_family_index as usize;
@@ -64,19 +62,19 @@ impl PhysicalDevice {
 
         let mut handle = None;
         unsafe {
-            (self.instance().fun.create_device)(
-                self.handle(),
+            (phy.instance().fun.create_device)(
+                phy.handle(),
                 info,
                 None,
                 &mut handle,
             )?;
         }
         let handle = handle.unwrap();
-        let fun = DeviceFn::new(self.instance(), handle.borrow());
+        let fun = DeviceFn::new(phy.instance(), handle.borrow());
         let device = Arc::new(Device {
             handle,
             fun,
-            physical_device: self.clone(),
+            physical_device: phy.clone(),
             queues,
         });
         let queues = info
