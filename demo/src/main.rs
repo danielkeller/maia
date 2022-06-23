@@ -171,9 +171,10 @@ fn upload_image(
     image: &Arc<vk::Image>,
     cmd_pool: &mut vk::CommandPool,
 ) -> anyhow::Result<()> {
-    let image_data = image::io::Reader::open("assets/texture.jpg")?.decode()?;
-    let image_data =
-        image_data.as_rgb8().ok_or(anyhow::anyhow!("Wrong image type"))?;
+    let image_file = std::fs::File::open("assets/texture.jpg")?;
+    let mut image_data =
+        jpeg_decoder::Decoder::new(std::io::BufReader::new(image_file));
+    let image_data = image_data.decode()?;
 
     let staging_buffer = device.create_buffer(&vk::BufferCreateInfo {
         size: (image_data.len() / 3 * 4) as u64,
