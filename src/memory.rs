@@ -31,8 +31,9 @@ impl DeviceMemory {
         if memory_type_index >= mem_types.memory_types.len() {
             return Err(Error::OutOfBounds);
         }
+        device.increment_memory_alloc_count()?;
         let mut handle = None;
-        unsafe {
+        let result = unsafe {
             (device.fun.allocate_memory)(
                 device.handle(),
                 &MemoryAllocateInfo {
@@ -43,7 +44,11 @@ impl DeviceMemory {
                 },
                 None,
                 &mut handle,
-            )?;
+            )
+        };
+        if result.is_err() {
+            device.decrement_memory_alloc_count();
+            result?;
         }
         Ok(Self {
             allocation_size,

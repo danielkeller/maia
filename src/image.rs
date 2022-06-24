@@ -56,6 +56,22 @@ impl ImageWithoutMemory {
         device: &Arc<Device>,
         info: &ImageCreateInfo<'_>,
     ) -> Result<Self> {
+        let max_dim =
+            info.extent.width.max(info.extent.height).max(info.extent.depth);
+        if (info.image_type == ImageType::_1D
+            && max_dim > device.limits().max_image_dimension_1d)
+            || (info.image_type == ImageType::_2D
+                && (info.flags & ImageCreateFlags::CUBE_COMPATIBLE).is_empty()
+                && max_dim > device.limits().max_image_dimension_2d)
+            || (info.image_type == ImageType::_2D
+                && !(info.flags & ImageCreateFlags::CUBE_COMPATIBLE).is_empty()
+                && max_dim > device.limits().max_image_dimension_cube)
+            || (info.image_type == ImageType::_3D
+                && max_dim > device.limits().max_image_dimension_3d)
+            || (info.array_layers > device.limits().max_image_array_layers)
+        {
+            return Err(Error::LimitExceeded);
+        }
         let mut handle = None;
         unsafe {
             (device.fun.create_image)(

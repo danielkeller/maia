@@ -1,5 +1,5 @@
 use crate::types::{Extent2D, Extent3D};
-
+// TODO: Use bitflags
 macro_rules! flags {
     ($name: ident, [$($member:ident),*]) => {
         impl Default for $name {

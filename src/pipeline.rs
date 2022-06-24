@@ -4,6 +4,7 @@ use std::ops::Range;
 
 use crate::descriptor_set::DescriptorSetLayout;
 use crate::device::Device;
+use crate::enums::*;
 use crate::enums::{PipelineLayoutCreateFlags, ShaderStageFlags};
 use crate::error::{Error, Result};
 use crate::ffi::*;
@@ -29,10 +30,80 @@ impl PipelineLayout {
         set_layouts: Vec<Arc<DescriptorSetLayout>>,
         push_constant_ranges: Vec<PushConstantRange>,
     ) -> Result<Arc<PipelineLayout>> {
+        let lim = &device.limits();
+        if set_layouts.len() > lim.max_bound_descriptor_sets as usize {
+            return Err(Error::LimitExceeded);
+        }
+        for stage in [
+            ShaderStageFlags::COMPUTE,
+            ShaderStageFlags::VERTEX,
+            ShaderStageFlags::FRAGMENT,
+        ] {
+            let of = |ty| matching_resources(&set_layouts, ty, stage);
+            let sampler = of(DescriptorType::SAMPLER);
+            let image = of(DescriptorType::SAMPLED_IMAGE);
+            let image_sampler = of(DescriptorType::COMBINED_IMAGE_SAMPLER);
+            let texel_buf = of(DescriptorType::UNIFORM_TEXEL_BUFFER);
+            let storage_image = of(DescriptorType::STORAGE_IMAGE);
+            let storage_texel_buf = of(DescriptorType::STORAGE_TEXEL_BUFFER);
+            let uniform = of(DescriptorType::UNIFORM_BUFFER);
+            let uniform_dyn = of(DescriptorType::UNIFORM_BUFFER_DYNAMIC);
+            let storage = of(DescriptorType::STORAGE_BUFFER);
+            let storage_dyn = of(DescriptorType::STORAGE_BUFFER_DYNAMIC);
+            let input = of(DescriptorType::INPUT_ATTACHMENT);
+            if sampler + image_sampler > lim.max_per_stage_descriptor_samplers
+                || uniform + uniform_dyn
+                    > lim.max_per_stage_descriptor_uniform_buffers
+                || storage + storage_dyn
+                    > lim.max_per_stage_descriptor_storage_buffers
+                || image + image_sampler + texel_buf
+                    > lim.max_per_stage_descriptor_sampled_images
+                || storage_image + storage_texel_buf
+                    > lim.max_per_stage_descriptor_storage_images
+                || input > lim.max_per_stage_descriptor_input_attachments
+                || (sampler + image + image_sampler + texel_buf + storage_image)
+                    + (storage_texel_buf + uniform + uniform_dyn + storage)
+                    + (storage_dyn + input)
+                    > lim.max_per_stage_resources
+            {
+                return Err(Error::LimitExceeded);
+            }
+        }
+        {
+            let of = |ty| {
+                matching_resources(&set_layouts, ty, ShaderStageFlags::ALL)
+            };
+            let sampler = of(DescriptorType::SAMPLER);
+            let image = of(DescriptorType::SAMPLED_IMAGE);
+            let image_sampler = of(DescriptorType::COMBINED_IMAGE_SAMPLER);
+            let texel_buf = of(DescriptorType::UNIFORM_TEXEL_BUFFER);
+            let storage_image = of(DescriptorType::STORAGE_IMAGE);
+            let storage_texel_buf = of(DescriptorType::STORAGE_TEXEL_BUFFER);
+            let uniform = of(DescriptorType::UNIFORM_BUFFER);
+            let uniform_dyn = of(DescriptorType::UNIFORM_BUFFER_DYNAMIC);
+            let storage = of(DescriptorType::STORAGE_BUFFER);
+            let storage_dyn = of(DescriptorType::STORAGE_BUFFER_DYNAMIC);
+            let input = of(DescriptorType::INPUT_ATTACHMENT);
+            if sampler + image_sampler > lim.max_descriptor_set_samplers
+                || uniform + uniform_dyn
+                    > lim.max_per_stage_descriptor_uniform_buffers
+                || uniform_dyn > lim.max_descriptor_set_uniform_buffers_dynamic
+                || storage + storage_dyn
+                    > lim.max_descriptor_set_storage_buffers
+                || storage_dyn > lim.max_descriptor_set_storage_buffers_dynamic
+                || image + image_sampler + texel_buf
+                    > lim.max_descriptor_set_sampled_images
+                || storage_image + storage_texel_buf
+                    > lim.max_descriptor_set_storage_images
+                || input > lim.max_descriptor_set_input_attachments
+            {
+                return Err(Error::LimitExceeded);
+            }
+        }
         for range in &push_constant_ranges {
-            // TODO: Check device limits
-            if range.offset.overflowing_add(range.size).1 {
-                return Err(Error::OutOfBounds);
+            let max = lim.max_push_constants_size;
+            if max < range.offset || max - range.offset < range.size {
+                return Err(Error::LimitExceeded);
             }
         }
         let mut handle = None;
@@ -81,6 +152,14 @@ fn find_voids(ranges: &[PushConstantRange]) -> Result<Vec<Range<u32>>> {
         result = result1;
     }
     Ok(result)
+}
+
+fn matching_resources(
+    sets: &[Arc<DescriptorSetLayout>],
+    descriptor_type: DescriptorType,
+    stage_flags: ShaderStageFlags,
+) -> u32 {
+    sets.iter().map(|s| s.num_bindings(descriptor_type, stage_flags)).sum()
 }
 
 impl Drop for PipelineLayout {
@@ -172,17 +251,28 @@ impl Pipeline {
     pub fn new_graphics(
         info: &GraphicsPipelineCreateInfo,
     ) -> Result<Arc<Self>> {
+        let lim = info.render_pass.device.limits();
         if info.subpass >= info.render_pass.num_subpasses() {
             return Err(Error::OutOfBounds);
         }
         let mut bindings = HashSet::new();
         for b in info.vertex_input_state.vertex_binding_descriptions {
+            if b.binding > lim.max_vertex_input_bindings
+                || b.stride > lim.max_vertex_input_binding_stride
+            {
+                return Err(Error::LimitExceeded);
+            }
             if !bindings.insert(b.binding) {
                 return Err(Error::InvalidArgument);
             }
         }
         let mut locations = HashSet::new();
         for att in info.vertex_input_state.vertex_attribute_descriptions {
+            if att.location > lim.max_vertex_input_attributes
+                || att.offset > lim.max_vertex_input_attribute_offset
+            {
+                return Err(Error::LimitExceeded);
+            }
             if !locations.insert(att.location)
                 || !bindings.contains(&att.binding)
             {

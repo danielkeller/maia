@@ -1,4 +1,6 @@
-use crate::error::Result;
+use std::sync::atomic::AtomicU32;
+
+use crate::error::{Error, Result};
 use crate::instance::Instance;
 use crate::load::DeviceFn;
 use crate::physical_device::PhysicalDevice;
@@ -10,6 +12,8 @@ pub struct Device {
     handle: Handle<VkDevice>,
     pub(crate) fun: DeviceFn,
     physical_device: PhysicalDevice,
+    limits: PhysicalDeviceLimits,
+    memory_allocation_count: AtomicU32,
     queues: Vec<u32>,
 }
 
@@ -75,6 +79,8 @@ impl Device {
             handle,
             fun,
             physical_device: phy.clone(),
+            limits: phy.properties().limits,
+            memory_allocation_count: AtomicU32::new(0),
             queues,
         });
         let queues = info
@@ -95,6 +101,10 @@ impl Device {
     pub fn handle(&self) -> Ref<VkDevice> {
         self.handle.borrow()
     }
+    /// Returns the limits of the device.
+    pub fn limits(&self) -> &PhysicalDeviceLimits {
+        &self.limits
+    }
     /// Returns the associated phyical device.
     pub fn physical_device(&self) -> &PhysicalDevice {
         &self.physical_device
@@ -107,5 +117,21 @@ impl Device {
     pub fn has_queue(&self, queue_family_index: u32, queue_index: u32) -> bool {
         let i = queue_family_index as usize;
         i < self.queues.len() && self.queues[i] >= queue_index
+    }
+    pub(crate) fn increment_memory_alloc_count(&self) -> Result<()> {
+        use std::sync::atomic::Ordering;
+        // Reserve allocation number 'val'.
+        // Overflow is incredibly unlikely here
+        let val = self.memory_allocation_count.fetch_add(1, Ordering::Relaxed);
+        if val >= self.limits.max_memory_allocation_count {
+            self.memory_allocation_count.fetch_sub(1, Ordering::Relaxed);
+            Err(Error::LimitExceeded)
+        } else {
+            Ok(())
+        }
+    }
+    pub(crate) fn decrement_memory_alloc_count(&self) {
+        use std::sync::atomic::Ordering;
+        self.memory_allocation_count.fetch_sub(1, Ordering::Relaxed);
     }
 }

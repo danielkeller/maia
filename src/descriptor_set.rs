@@ -132,6 +132,20 @@ impl DescriptorSetLayout {
         }
         result
     }
+    /// Returns the number of bindings of the specified type and stage.
+    pub fn num_bindings(
+        &self,
+        descriptor_type: DescriptorType,
+        stage_flags: ShaderStageFlags,
+    ) -> u32 {
+        self.bindings
+            .iter()
+            .filter(|b| {
+                b.descriptor_type == descriptor_type
+                    && !(b.stage_flags & stage_flags).is_empty()
+            })
+            .count() as u32
+    }
 }
 
 struct DescriptorPoolLifetime {
@@ -404,6 +418,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         dst_binding: u32,
         dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
+        max_range: u32,
         descriptor_type: DescriptorType,
     ) -> Result<Self> {
         let iter = BindingIter::new(
@@ -414,6 +429,9 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (b, be) in buffers.iter().zip(iter) {
             let (binding, element) = be?;
+            if b.range > max_range as u64 {
+                return Err(Error::LimitExceeded);
+            }
             assert!(std::ptr::eq(&**b.buffer.device(), self.updates.device));
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
@@ -455,10 +473,12 @@ impl<'a> DescriptorSetUpdate<'a> {
         dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
     ) -> Result<Self> {
+        let max_range = self.updates.device.limits().max_uniform_buffer_range;
         self.buffers_impl(
             dst_binding,
             dst_array_element,
             buffers,
+            max_range,
             DescriptorType::UNIFORM_BUFFER,
         )
     }
@@ -471,10 +491,12 @@ impl<'a> DescriptorSetUpdate<'a> {
         dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
     ) -> Result<Self> {
+        let max_range = self.updates.device.limits().max_storage_buffer_range;
         self.buffers_impl(
             dst_binding,
             dst_array_element,
             buffers,
+            max_range,
             DescriptorType::STORAGE_BUFFER,
         )
     }
@@ -487,10 +509,12 @@ impl<'a> DescriptorSetUpdate<'a> {
         dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
     ) -> Result<Self> {
+        let max_range = self.updates.device.limits().max_uniform_buffer_range;
         self.buffers_impl(
             dst_binding,
             dst_array_element,
             buffers,
+            max_range,
             DescriptorType::UNIFORM_BUFFER_DYNAMIC,
         )
     }
@@ -503,10 +527,12 @@ impl<'a> DescriptorSetUpdate<'a> {
         dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
     ) -> Result<Self> {
+        let max_range = self.updates.device.limits().max_storage_buffer_range;
         self.buffers_impl(
             dst_binding,
             dst_array_element,
             buffers,
+            max_range,
             DescriptorType::STORAGE_BUFFER_DYNAMIC,
         )
     }

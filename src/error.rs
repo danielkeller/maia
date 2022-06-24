@@ -15,6 +15,8 @@ pub enum Error {
     OutOfBounds,
     /// A required operation has not yet completed.
     SynchronizationError,
+    /// The arguments exceed the limits of the device.
+    LimitExceeded,
     #[doc = crate::man_link!(VkResult)]
     NotReady,
     #[doc = crate::man_link!(VkResult)]

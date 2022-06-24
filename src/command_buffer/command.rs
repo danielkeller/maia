@@ -794,6 +794,7 @@ impl<'a> CommandRecording<'a> {
         sets: &[&Arc<DescriptorSet>],
         dynamic_offsets: &[u32],
     ) -> Result<()> {
+        // Max binding is already checked by the layout
         if sets.iter().map(|s| s.layout()).ne(layout
             .layouts()
             .iter()
