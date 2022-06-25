@@ -5,6 +5,8 @@ edition = "2021"
 rust-version = "1.60"
 license = "MIT OR Apache-2.0"
 description = "Safe low-level Vulkan bindings"
+homepage = "https://github.com/danielkeller/maia"
+repository = "https://github.com/danielkeller/maia"
 
 [dependencies]
 bitflags = "1.3"
