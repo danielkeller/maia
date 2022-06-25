@@ -1233,7 +1233,7 @@ impl<'a> ExternalRenderPassRecording<'a> {
                 resources.push(res as Arc<_>);
             }
             // Check that the buffer is not in use.
-            handles.push(command.handle_mut()?);
+            handles.push(command.mut_handle()?);
         }
 
         unsafe {

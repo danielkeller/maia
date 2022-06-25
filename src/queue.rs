@@ -50,7 +50,7 @@ impl Queue {
     pub fn handle(&self) -> Ref<VkQueue> {
         self.handle.borrow()
     }
-    pub fn handle_mut(&mut self) -> Mut<VkQueue> {
+    pub fn mut_handle(&mut self) -> Mut<VkQueue> {
         self.handle.borrow_mut()
     }
     /// Add an item to the queue's cleanup. The value will be dropped when a
@@ -117,7 +117,7 @@ impl Queue {
             for c in info.commands.iter_mut() {
                 recordings
                     .push(c.lock_resources().ok_or(Error::InvalidArgument)?);
-                commands.push(c.handle_mut()?);
+                commands.push(c.mut_handle()?);
             }
             let wait_semaphores = scratch.alloc_slice_fill_iter(
                 info.wait.iter().map(|(sem, _)| sem.handle()),
@@ -142,7 +142,7 @@ impl Queue {
                 self.handle.borrow_mut(),
                 vk_infos.len() as u32,
                 Array::from_slice(&vk_infos),
-                Some(fence.handle_mut()),
+                Some(fence.mut_handle()),
             )?;
         }
         drop(vk_infos);

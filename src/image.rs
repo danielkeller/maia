@@ -114,7 +114,7 @@ impl Image {
         if let Err(err) = unsafe {
             (memory.device().fun.bind_image_memory)(
                 memory.device().handle(),
-                inner.handle_mut(),
+                inner.mut_handle(),
                 memory.handle(),
                 offset,
             )
@@ -141,7 +141,7 @@ impl Drop for ImageWithoutMemory {
 
 impl ImageWithoutMemory {
     /// Borrows the inner Vulkan handle.
-    pub fn handle_mut(&mut self) -> Mut<VkImage> {
+    pub fn mut_handle(&mut self) -> Mut<VkImage> {
         self.handle.borrow_mut()
     }
     #[doc = crate::man_link!(vkGetImageMemoryRequirements)]

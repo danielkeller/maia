@@ -55,7 +55,7 @@ impl Drop for Fence {
 
 impl Fence {
     /// Borrows the inner Vulkan handle.
-    pub fn handle_mut(&mut self) -> Mut<VkFence> {
+    pub fn mut_handle(&mut self) -> Mut<VkFence> {
         self.handle.as_mut().unwrap().borrow_mut()
     }
     pub(crate) fn to_pending(mut self, resources: Cleanup) -> PendingFence {

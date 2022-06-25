@@ -107,7 +107,7 @@ impl SwapchainKHR {
                     stype: Default::default(),
                     next: Default::default(),
                     flags: info.flags,
-                    surface: surface.handle_mut(),
+                    surface: surface.mut_handle(),
                     min_image_count: info.min_image_count,
                     image_format: info.image_format,
                     image_color_space: info.image_color_space,
@@ -203,7 +203,7 @@ pub enum ImageOptimality {
 
 impl SwapchainKHR {
     /// Borrows the inner Vulkan handle.
-    pub fn handle_mut(&mut self) -> Mut<VkSwapchainKHR> {
+    pub fn mut_handle(&mut self) -> Mut<VkSwapchainKHR> {
         self.res.handle.borrow_mut()
     }
     /// Returns the associated surface.
@@ -230,7 +230,7 @@ impl SwapchainKHR {
                 res.device.handle(),
                 res.handle.borrow_mut(),
                 timeout,
-                Some(signal.handle_mut()),
+                Some(signal.mut_handle()),
                 None,
                 &mut index,
             )
@@ -270,11 +270,11 @@ impl SwapchainKHR {
 
         let res = unsafe {
             (self.res.fun.queue_present_khr)(
-                queue.handle_mut(),
+                queue.mut_handle(),
                 &PresentInfoKHR {
                     stype: Default::default(),
                     next: Default::default(),
-                    wait: (&[wait.handle_mut()]).into(),
+                    wait: (&[wait.mut_handle()]).into(),
                     swapchains: (&[self.res.handle.borrow_mut()]).into(),
                     indices: (&[index as u32]).into(),
                     results: None,

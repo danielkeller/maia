@@ -169,7 +169,7 @@ impl DeviceMemory {
         self.inner.handle.borrow()
     }
     /// Borrows the inner Vulkan handle.
-    pub fn handle_mut(&mut self) -> Mut<VkDeviceMemory> {
+    pub fn mut_handle(&mut self) -> Mut<VkDeviceMemory> {
         self.inner.handle.borrow_mut()
     }
     /// Returns the associated device.

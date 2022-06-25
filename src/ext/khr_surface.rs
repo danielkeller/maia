@@ -59,7 +59,7 @@ impl SurfaceKHR {
         self.inner.handle.borrow()
     }
     /// Borrows the inner Vulkan handle.
-    pub fn handle_mut(&mut self) -> Mut<VkSurfaceKHR> {
+    pub fn mut_handle(&mut self) -> Mut<VkSurfaceKHR> {
         self.inner.handle.borrow_mut()
     }
     /// Extend the lifetime of the surface until the returned object is dropped.

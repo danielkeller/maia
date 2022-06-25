@@ -177,7 +177,7 @@ impl Drop for CommandPoolLifetime {
 impl CommandPool {
     // TODO: This should be called 'mut_handle'
     /// Borrows the inner Vulkan handle.
-    pub fn handle_mut(&mut self) -> Mut<VkCommandPool> {
+    pub fn mut_handle(&mut self) -> Mut<VkCommandPool> {
         self.res.handle.borrow_mut()
     }
 
@@ -257,7 +257,7 @@ impl CommandPool {
         if !Owner::ptr_eq(&self.res, &buffer.0.pool) {
             return Err(Error::InvalidArgument);
         }
-        Ok(self.free_impl(buffer.handle_mut()?))
+        Ok(self.free_impl(buffer.mut_handle()?))
     }
 
     #[doc = crate::man_link!(vkFreeCommandBuffers)]
@@ -268,7 +268,7 @@ impl CommandPool {
         if !Owner::ptr_eq(&self.res, &buffer.buf.pool) {
             return Err(Error::InvalidArgument);
         }
-        Ok(self.free_impl(buffer.handle_mut()?))
+        Ok(self.free_impl(buffer.mut_handle()?))
     }
 
     fn free_impl(&mut self, buffer: Mut<VkCommandBuffer>) {
@@ -399,7 +399,7 @@ impl CommandPool {
 impl CommandBuffer {
     /// Attempts to borrow the inner Vulkan handle. Returns
     /// [Error::SynchronizationError] if the buffer is in the pending state.
-    pub fn handle_mut(&mut self) -> Result<Mut<VkCommandBuffer>> {
+    pub fn mut_handle(&mut self) -> Result<Mut<VkCommandBuffer>> {
         match Arc::get_mut(&mut self.0) {
             Some(inner) => Ok(inner.handle.borrow_mut()),
             None => Err(Error::SynchronizationError),
@@ -420,7 +420,7 @@ impl CommandBuffer {
 impl SecondaryCommandBuffer {
     /// Attempts to borrow the inner Vulkan handle. Returns
     /// [Error::SynchronizationError] if the buffer is in the pending state.
-    pub fn handle_mut(&mut self) -> Result<Mut<VkCommandBuffer>> {
+    pub fn mut_handle(&mut self) -> Result<Mut<VkCommandBuffer>> {
         match Arc::get_mut(&mut self.buf) {
             Some(inner) => Ok(inner.handle.borrow_mut()),
             None => Err(Error::SynchronizationError),

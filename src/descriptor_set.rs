@@ -283,7 +283,7 @@ impl DescriptorSet {
         self.handle.borrow()
     }
     /// Mutably borrows the inner Vulkan handle.
-    pub fn handle_mut(&mut self) -> Mut<VkDescriptorSet> {
+    pub fn mut_handle(&mut self) -> Mut<VkDescriptorSet> {
         self.handle.borrow_mut()
     }
     /// Returns the set's layout.

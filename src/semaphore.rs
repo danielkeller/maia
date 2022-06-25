@@ -82,7 +82,7 @@ impl Semaphore {
         self.inner.handle.borrow()
     }
     /// Borrows the inner Vulkan handle.
-    pub fn handle_mut(&mut self) -> Mut<VkSemaphore> {
+    pub fn mut_handle(&mut self) -> Mut<VkSemaphore> {
         // Safe because the outer structure is mutably borrowed, and handle is
         // private.
         unsafe { self.inner.handle.borrow_mut_unchecked() }
