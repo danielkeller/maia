@@ -175,7 +175,6 @@ impl Drop for CommandPoolLifetime {
 }
 
 impl CommandPool {
-    // TODO: This should be called 'mut_handle'
     /// Borrows the inner Vulkan handle.
     pub fn mut_handle(&mut self) -> Mut<VkCommandPool> {
         self.res.handle.borrow_mut()

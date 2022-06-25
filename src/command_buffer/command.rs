@@ -1253,7 +1253,3 @@ impl<'a> ExternalRenderPassRecording<'a> {
         Ok(())
     }
 }
-
-// TODO: Less use *
-// TODO: Building/distributing instructions
-// TODO(maybe): Other kinds of command buffers

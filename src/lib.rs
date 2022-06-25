@@ -79,9 +79,10 @@ pub mod vk {
         SecondaryCommandBuffer, SecondaryCommandRecording,
     };
     pub use crate::descriptor_set::{
-        DescriptorBufferInfo, DescriptorPool, DescriptorSet,
-        DescriptorSetLayout, DescriptorSetLayoutBinding, DescriptorSetUpdate,
-        DescriptorSetUpdateBuilder, DescriptorSetUpdates,
+        update::DescriptorBufferInfo, update::DescriptorSetUpdate,
+        update::DescriptorSetUpdateBuilder, update::DescriptorSetUpdates,
+        DescriptorPool, DescriptorSet, DescriptorSetLayout,
+        DescriptorSetLayoutBinding,
     };
     pub use crate::device::Device;
     pub use crate::enums::*;
