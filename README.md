@@ -31,7 +31,7 @@ To run, a Vulkan-compatible graphics driver should suffice.
 
 To build, install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home), and enable the "System Global Files" option during installation.
 
-To run, you will probably want to include the Vulkan loader and MoltenVK into your .app bundle. Full instructions are available [here](macos_instructions), and an example can be found in the `demo/` directory.
+To run, you will probably want to include the Vulkan loader and MoltenVK into your .app bundle. Full instructions are available [here](crate::macos_instructions), and an example can be found in the `demo/` directory.
 
 #### On Windows
 
