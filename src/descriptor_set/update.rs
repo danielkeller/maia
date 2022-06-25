@@ -20,7 +20,7 @@ use bumpalo::collections::Vec as BumpVec;
 #[doc = crate::man_link!(vkUpdateDescriptorSets)]
 ///
 /// ```rust
-/// # use ember::vk;
+/// # use maia::vk;
 /// # let instance = vk::Instance::new(&Default::default())?;
 /// # let (device, _) = vk::Device::new(
 /// #     &instance.enumerate_physical_devices()?[0], &Default::default())?;

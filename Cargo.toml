@@ -1,5 +1,5 @@
 [package]
-name = "ember"
+name = "maia"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.60"
@@ -20,7 +20,7 @@ window = ["dep:raw-window-handle", "dep:raw-window-metal"]
 [dev-dependencies]
 rand = "0.8"
 # For doctests. See hello-triangle/Cargo.toml
-ember = { path = ".", features = [ "window" ] }
+maia = { path = ".", features = [ "window" ] }
 winit = "0.26"
 bytemuck = { version = "1.0", features = [ "derive" ] }
 inline-spirv = "0.1"

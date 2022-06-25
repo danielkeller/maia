@@ -2,7 +2,7 @@ use crate::types::VkError;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
-/// An error either from Vulkan or Ember.
+/// An error either from Vulkan or Maia.
 #[doc = crate::man_link!(VkResult)]
 pub enum Error {
     /// Unknown Vulkan error.

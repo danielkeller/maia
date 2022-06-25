@@ -1,4 +1,4 @@
-use ember::vk;
+use maia::vk;
 
 fn main() -> vk::Result<()> {
     use winit::event_loop::EventLoop;
@@ -8,7 +8,7 @@ fn main() -> vk::Result<()> {
     // Create the instance
     let mut instance_exts = vec![];
     instance_exts
-        .extend(ember::window::required_instance_extensions(&window)?.iter());
+        .extend(maia::window::required_instance_extensions(&window)?.iter());
     instance_exts.extend(required_instance_extensions()?.iter());
     let inst = vk::Instance::new(&vk::InstanceCreateInfo {
         enabled_extension_names: vk::slice(&instance_exts),
@@ -16,7 +16,7 @@ fn main() -> vk::Result<()> {
     })?;
 
     // Create the surface
-    let surf = ember::window::create_surface(&inst, &window)?;
+    let surf = maia::window::create_surface(&inst, &window)?;
 
     // Pick an appropriate physical device
     let phy = pick_physical_device(&inst.enumerate_physical_devices()?);
@@ -346,7 +346,7 @@ fn pick_queue_family(
     for (num, props) in phy.queue_family_properties().iter().enumerate() {
         if !(props.queue_flags & vk::QueueFlags::GRAPHICS).is_empty()
             && surf.support(phy, num as u32)?
-            && ember::window::presentation_support(phy, num as u32, window)
+            && maia::window::presentation_support(phy, num as u32, window)
         {
             return Ok(num as u32);
         }

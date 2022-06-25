@@ -44,16 +44,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'ember'",
+            "name": "Debug unit tests in library 'maia'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=ember"
+                    "--package=maia"
                 ],
                 "filter": {
-                    "name": "ember",
+                    "name": "maia",
                     "kind": "lib"
                 }
             },
