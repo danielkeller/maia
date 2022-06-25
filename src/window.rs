@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 use std::sync::Arc;
 
 use crate::error::{Error, Result};
-use crate::ext::{self, EXTMetalSurface, KHRXlibSurface};
+use crate::ext::{self, KHRXlibSurface};
 use crate::ext::{KHRWaylandSurface, KHRWin32Surface, SurfaceKHR};
 use crate::ffi::*;
 use crate::instance::Instance;
@@ -93,6 +93,7 @@ pub fn create_surface(
     match window.raw_window_handle() {
         #[cfg(any(target_os = "macos"))]
         RawWindowHandle::AppKit(handle) => {
+            use crate::ext::EXTMetalSurface;
             use raw_window_metal::{appkit, Layer};
 
             unsafe {
