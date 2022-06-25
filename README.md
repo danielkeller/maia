@@ -1,5 +1,7 @@
 # Maia
 
+![Crates.io](https://img.shields.io/crates/v/maia) ![docs.rs](https://img.shields.io/docsrs/maia) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/danielkeller/maia/CI)
+
 Safe, low-level Vulkan bindings. The general properties of this library are
 
 1. Memory safe on the host. No safe operation can cause memory corruption or data races in host<sup>1</sup> memory.
