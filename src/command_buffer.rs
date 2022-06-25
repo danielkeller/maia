@@ -406,12 +406,14 @@ impl CommandBuffer {
     }
     /// Prevent the command buffer from being freed or submitted to a queue
     /// until the the value is dropped
-    pub fn lock_self(&self) -> Arc<impl Send + Sync + Debug> {
+    pub(crate) fn lock_self(&self) -> Arc<impl Send + Sync + Debug> {
         self.0.clone()
     }
     /// Prevent the command pool from being cleared or destroyed until the value
     /// is dropped.
-    pub fn lock_resources(&self) -> Option<Arc<impl Send + Sync + Debug>> {
+    pub(crate) fn lock_resources(
+        &self,
+    ) -> Option<Arc<impl Send + Sync + Debug>> {
         self.0.recording.upgrade()
     }
 }
@@ -427,12 +429,14 @@ impl SecondaryCommandBuffer {
     }
     /// Prevent the command buffer from being freed or submitted to a queue
     /// until the the value is dropped
-    pub fn lock_self(&self) -> Arc<impl Send + Sync + Debug> {
+    pub(crate) fn lock_self(&self) -> Arc<impl Send + Sync + Debug> {
         self.buf.clone()
     }
     /// Prevent the command pool from being cleared or destroyed until the value
     /// is dropped.
-    pub fn lock_resources(&self) -> Option<Arc<impl Send + Sync + Debug>> {
+    pub(crate) fn lock_resources(
+        &self,
+    ) -> Option<Arc<impl Send + Sync + Debug>> {
         self.buf.recording.upgrade()
     }
 }

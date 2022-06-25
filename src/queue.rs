@@ -55,14 +55,8 @@ impl Queue {
     }
     /// Add an item to the queue's cleanup. The value will be dropped when a
     /// fence is submitted and waited on.
-    pub fn add_resource(&mut self, value: Arc<dyn Send + Sync>) {
+    pub(crate) fn add_resource(&mut self, value: Arc<dyn Send + Sync>) {
         self.resources.push(value)
-    }
-    pub fn add_resources(
-        &mut self,
-        values: impl IntoIterator<Item = Arc<impl Send + Sync + 'static>>,
-    ) {
-        self.resources.extend(values)
     }
 }
 

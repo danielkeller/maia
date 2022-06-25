@@ -185,7 +185,7 @@ impl PipelineLayout {
     }
     /// Checks that the push constants are in bounds and 'stage_flags' are
     /// correct.
-    pub fn bounds_check_push_constants(
+    pub(crate) fn bounds_check_push_constants(
         &self,
         stage_flags: ShaderStageFlags,
         offset: u32,

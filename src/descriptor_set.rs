@@ -294,3 +294,6 @@ impl DescriptorSet {
         self.resources.iter().all(|rs| rs.iter().all(|r| r.is_some()))
     }
 }
+
+impl std::panic::UnwindSafe for DescriptorSet {}
+impl std::panic::RefUnwindSafe for DescriptorSet {}
