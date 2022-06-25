@@ -1,91 +1,6 @@
 use crate::types::{Extent2D, Extent3D};
-// TODO: Use bitflags
-macro_rules! flags {
-    ($name: ident, [$($member:ident),*]) => {
-        impl Default for $name {
-            fn default() -> Self {
-                Self(0)
-            }
-        }
-        impl $name {
-            #[inline]
-            pub const fn empty() -> Self {
-                Self(0)
-            }
-            #[inline]
-            pub const fn is_empty(self) -> bool {
-                self.0 == Self::empty().0
-            }
-        }
-        impl ::std::ops::BitOr for $name {
-            type Output = Self;
-            #[inline]
-            fn bitor(self, rhs: Self) -> Self {
-                Self(self.0 | rhs.0)
-            }
-        }
-        impl ::std::ops::BitOrAssign for $name {
-            #[inline]
-            fn bitor_assign(&mut self, rhs: Self) {
-                *self = *self | rhs
-            }
-        }
-        impl ::std::ops::BitAnd for $name {
-            type Output = Self;
-            #[inline]
-            fn bitand(self, rhs: Self) -> Self {
-                Self(self.0 & rhs.0)
-            }
-        }
-        impl ::std::ops::BitAndAssign for $name {
-            #[inline]
-            fn bitand_assign(&mut self, rhs: Self) {
-                *self = *self & rhs
-            }
-        }
-        impl ::std::ops::BitXor for $name {
-            type Output = Self;
-            #[inline]
-            fn bitxor(self, rhs: Self) -> Self {
-                Self(self.0 ^ rhs.0)
-            }
-        }
-        impl ::std::ops::BitXorAssign for $name {
-            #[inline]
-            fn bitxor_assign(&mut self, rhs: Self) {
-                *self = *self ^ rhs
-            }
-        }
-        impl ::std::fmt::Debug for $name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                #[allow(unused_mut)]
-                let mut remaining = *self;
-                $(if !(*self & $name::$member).is_empty() {
-                    if remaining != *self { f.write_str(" | ")?; }
-                    f.write_str("vk::")?;
-                    f.write_str(stringify!($name))?;
-                    f.write_str("::")?;
-                    f.write_str(stringify!($member))?;
-                    remaining ^= $name::$member;
-                })*
-                if !remaining.is_empty() {
-                    if remaining != *self { f.write_str(" | ")?; }
-                    f.write_str("vk::")?;
-                    f.write_str(stringify!($name))?;
-                    f.write_str("(")?;
-                    remaining.0.fmt(f)?;
-                    f.write_str(")")?;
-                }
-                if self.is_empty() {
-                    f.write_str("vk::")?;
-                    f.write_str(stringify!($name))?;
-                    f.write_str("::empty()")?;
-                }
-                Ok(())
-            }
-        }
-    };
-}
+
+use bitflags::bitflags;
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -116,11 +31,12 @@ impl From<bool> for Bool {
     }
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkInstanceCreateFlagBits)]
-pub struct InstanceCreateFlags(u32);
-flags!(InstanceCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct InstanceCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq)]
@@ -139,29 +55,29 @@ impl PhysicalDeviceType {
 #[doc = crate::man_link!(VkSampleCountFlagBits)]
 pub struct SampleCount(u32);
 impl SampleCount {
-    pub const _1: SampleCount = SampleCount(0x01);
-    pub const _2: SampleCount = SampleCount(0x02);
-    pub const _4: SampleCount = SampleCount(0x04);
-    pub const _8: SampleCount = SampleCount(0x08);
-    pub const _16: SampleCount = SampleCount(0x10);
-    pub const _32: SampleCount = SampleCount(0x20);
-    pub const _64: SampleCount = SampleCount(0x40);
+    pub const _1: Self = Self(0x01);
+    pub const _2: Self = Self(0x02);
+    pub const _4: Self = Self(0x04);
+    pub const _8: Self = Self(0x08);
+    pub const _16: Self = Self(0x10);
+    pub const _32: Self = Self(0x20);
+    pub const _64: Self = Self(0x40);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkSampleCountFlagBits)]
-pub struct SampleCountFlags(u32);
-impl SampleCountFlags {
-    pub const _1: SampleCountFlags = SampleCountFlags(0x01);
-    pub const _2: SampleCountFlags = SampleCountFlags(0x02);
-    pub const _4: SampleCountFlags = SampleCountFlags(0x04);
-    pub const _8: SampleCountFlags = SampleCountFlags(0x08);
-    pub const _16: SampleCountFlags = SampleCountFlags(0x10);
-    pub const _32: SampleCountFlags = SampleCountFlags(0x20);
-    pub const _64: SampleCountFlags = SampleCountFlags(0x40);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkSampleCountFlagBits)]
+    pub struct SampleCountFlags: u32 {
+        const _1 = 0x01;
+        const _2 = 0x02;
+        const _4 = 0x04;
+        const _8 = 0x08;
+        const _16 = 0x10;
+        const _32 = 0x20;
+        const _64 = 0x40;
+    }
 }
-flags!(SampleCountFlags, [_1, _2, _4, _8, _16, _32, _64]);
 
 impl std::fmt::Debug for SampleCount {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -175,96 +91,69 @@ impl Default for SampleCount {
 }
 impl From<SampleCount> for SampleCountFlags {
     fn from(bit: SampleCount) -> Self {
-        Self(bit.0)
+        Self::from_bits(bit.0).unwrap()
     }
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkQueueFlagBits)]
-pub struct QueueFlags(u32);
-impl QueueFlags {
-    pub const GRAPHICS: QueueFlags = QueueFlags(0x01);
-    pub const COMPUTE: QueueFlags = QueueFlags(0x02);
-    pub const TRANSFER: QueueFlags = QueueFlags(0x04);
-    pub const SPARSE_BINDING: QueueFlags = QueueFlags(0x08);
-    pub const PROTECTED: QueueFlags = QueueFlags(0x10);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkQueueFlagBits)]
+    pub struct QueueFlags: u32 {
+        const GRAPHICS = 0x01;
+        const COMPUTE = 0x02;
+        const TRANSFER = 0x04;
+        const SPARSE_BINDING = 0x08;
+        const PROTECTED = 0x10;
+    }
 }
-flags!(QueueFlags, [GRAPHICS, COMPUTE, TRANSFER, SPARSE_BINDING, PROTECTED]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkDeviceCreateFlagBits)]
-pub struct DeviceCreateFlags(u32);
-flags!(DeviceCreateFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkDeviceQueueCreateFlagBits)]
-pub struct DeviceQueueCreateFlags(u32);
-impl DeviceQueueCreateFlags {
-    pub const PROTECTED: DeviceQueueCreateFlags = DeviceQueueCreateFlags(0x1);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct DeviceCreateFlags: u32 {}
 }
-flags!(DeviceQueueCreateFlags, [PROTECTED]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineStageFlagBits)]
-pub struct PipelineStageFlags(u32);
-impl PipelineStageFlags {
-    pub const NONE: Self = Self(0);
-    pub const TOP_OF_PIPE: Self = Self(0x00000001);
-    pub const DRAW_INDIRECT: Self = Self(0x00000002);
-    pub const VERTEX_INPUT: Self = Self(0x00000004);
-    pub const VERTEX_SHADER: Self = Self(0x00000008);
-    pub const TESSELLATION_CONTROL_SHADER: Self = Self(0x00000010);
-    pub const TESSELLATION_EVALUATION_SHADER: Self = Self(0x00000020);
-    pub const GEOMETRY_SHADER: Self = Self(0x00000040);
-    pub const FRAGMENT_SHADER: Self = Self(0x00000080);
-    pub const EARLY_FRAGMENT_TESTS: Self = Self(0x00000100);
-    pub const LATE_FRAGMENT_TESTS: Self = Self(0x00000200);
-    pub const COLOR_ATTACHMENT_OUTPUT: Self = Self(0x00000400);
-    pub const COMPUTE_SHADER: Self = Self(0x00000800);
-    pub const TRANSFER: Self = Self(0x00001000);
-    pub const BOTTOM_OF_PIPE: Self = Self(0x00002000);
-    pub const HOST: Self = Self(0x00004000);
-    pub const ALL_GRAPHICS: Self = Self(0x00008000);
-    pub const ALL_COMMANDS: Self = Self(0x00010000);
-    pub const TRANSFORM_FEEDBACK_EXT: Self = Self(0x01000000);
-    pub const CONDITIONAL_RENDERING_EXT: Self = Self(0x00040000);
-    pub const ACCELERATION_STRUCTURE_BUILD_KHR: Self = Self(0x02000000);
-    pub const RAY_TRACING_SHADER_KHR: Self = Self(0x00200000);
-    pub const FRAGMENT_DENSITY_PROCESS_EXT: Self = Self(0x00800000);
-    pub const FRAGMENT_SHADING_RATE_ATTACHMENT_KHR: Self = Self(0x00400000);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkDeviceQueueCreateFlagBits)]
+    pub struct DeviceQueueCreateFlags: u32 {
+        const PROTECTED = 0x1;
+    }
 }
-flags!(
-    PipelineStageFlags,
-    [
-        TOP_OF_PIPE,
-        DRAW_INDIRECT,
-        VERTEX_INPUT,
-        VERTEX_SHADER,
-        TESSELLATION_CONTROL_SHADER,
-        TESSELLATION_EVALUATION_SHADER,
-        GEOMETRY_SHADER,
-        FRAGMENT_SHADER,
-        EARLY_FRAGMENT_TESTS,
-        LATE_FRAGMENT_TESTS,
-        COLOR_ATTACHMENT_OUTPUT,
-        COMPUTE_SHADER,
-        TRANSFER,
-        BOTTOM_OF_PIPE,
-        HOST,
-        ALL_GRAPHICS,
-        ALL_COMMANDS,
-        TRANSFORM_FEEDBACK_EXT,
-        CONDITIONAL_RENDERING_EXT,
-        ACCELERATION_STRUCTURE_BUILD_KHR,
-        RAY_TRACING_SHADER_KHR,
-        FRAGMENT_DENSITY_PROCESS_EXT,
-        FRAGMENT_SHADING_RATE_ATTACHMENT_KHR
-    ]
-);
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkPipelineStageFlagBits)]
+    pub struct PipelineStageFlags: u32 {
+        const TOP_OF_PIPE = 0x00000001;
+        const DRAW_INDIRECT = 0x00000002;
+        const VERTEX_INPUT = 0x00000004;
+        const VERTEX_SHADER = 0x00000008;
+        const TESSELLATION_CONTROL_SHADER = 0x00000010;
+        const TESSELLATION_EVALUATION_SHADER = 0x00000020;
+        const GEOMETRY_SHADER = 0x00000040;
+        const FRAGMENT_SHADER = 0x00000080;
+        const EARLY_FRAGMENT_TESTS = 0x00000100;
+        const LATE_FRAGMENT_TESTS = 0x00000200;
+        const COLOR_ATTACHMENT_OUTPUT = 0x00000400;
+        const COMPUTE_SHADER = 0x00000800;
+        const TRANSFER = 0x00001000;
+        const BOTTOM_OF_PIPE = 0x00002000;
+        const HOST = 0x00004000;
+        const ALL_GRAPHICS = 0x00008000;
+        const ALL_COMMANDS = 0x00010000;
+        const TRANSFORM_FEEDBACK_EXT = 0x01000000;
+        const CONDITIONAL_RENDERING_EXT = 0x00040000;
+        const ACCELERATION_STRUCTURE_BUILD_KHR = 0x02000000;
+        const RAY_TRACING_SHADER_KHR = 0x00200000;
+        const FRAGMENT_DENSITY_PROCESS_EXT = 0x00800000;
+        const FRAGMENT_SHADING_RATE_ATTACHMENT_KHR = 0x00400000;
+    }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -279,62 +168,41 @@ impl ShaderStage {
     pub const COMPUTE: Self = Self(0x20);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkDependencyFlagBits)]
-pub struct DependencyFlags(u32);
-impl DependencyFlags {
-    pub const BY_REGION: Self = Self(0x1);
-    pub const DEVICE_GROUP: Self = Self(0x4);
-    pub const VIEW_LOCAL: Self = Self(0x2);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkDependencyFlagBits)]
+    pub struct DependencyFlags: u32 {
+        const BY_REGION = 0x1;
+        const DEVICE_GROUP = 0x4;
+        const VIEW_LOCAL = 0x2;
+    }
 }
-flags!(DependencyFlags, [BY_REGION, DEVICE_GROUP, VIEW_LOCAL]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkAccessFlagBits)]
-pub struct AccessFlags(u32);
-impl AccessFlags {
-    pub const INDIRECT_COMMAND_READ: Self = Self(0x00001);
-    pub const INDEX_READ: Self = Self(0x00002);
-    pub const VERTEX_ATTRIBUTE_READ: Self = Self(0x00004);
-    pub const UNIFORM_READ: Self = Self(0x00008);
-    pub const INPUT_ATTACHMENT_READ: Self = Self(0x00010);
-    pub const SHADER_READ: Self = Self(0x00020);
-    pub const SHADER_WRITE: Self = Self(0x00040);
-    pub const COLOR_ATTACHMENT_READ: Self = Self(0x00080);
-    pub const COLOR_ATTACHMENT_WRITE: Self = Self(0x00100);
-    pub const DEPTH_STENCIL_ATTACHMENT_READ: Self = Self(0x00200);
-    pub const DEPTH_STENCIL_ATTACHMENT_WRITE: Self = Self(0x00400);
-    pub const TRANSFER_READ: Self = Self(0x00800);
-    pub const TRANSFER_WRITE: Self = Self(0x01000);
-    pub const HOST_READ: Self = Self(0x02000);
-    pub const HOST_WRITE: Self = Self(0x04000);
-    pub const MEMORY_READ: Self = Self(0x08000);
-    pub const MEMORY_WRITE: Self = Self(0x10000);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkAccessFlagBits)]
+    pub struct AccessFlags: u32 {
+        const INDIRECT_COMMAND_READ = 0x00001;
+        const INDEX_READ = 0x00002;
+        const VERTEX_ATTRIBUTE_READ = 0x00004;
+        const UNIFORM_READ = 0x00008;
+        const INPUT_ATTACHMENT_READ = 0x00010;
+        const SHADER_READ = 0x00020;
+        const SHADER_WRITE = 0x00040;
+        const COLOR_ATTACHMENT_READ = 0x00080;
+        const COLOR_ATTACHMENT_WRITE = 0x00100;
+        const DEPTH_STENCIL_ATTACHMENT_READ = 0x00200;
+        const DEPTH_STENCIL_ATTACHMENT_WRITE = 0x00400;
+        const TRANSFER_READ = 0x00800;
+        const TRANSFER_WRITE = 0x01000;
+        const HOST_READ = 0x02000;
+        const HOST_WRITE = 0x04000;
+        const MEMORY_READ = 0x08000;
+        const MEMORY_WRITE = 0x10000;
+    }
 }
-flags!(
-    AccessFlags,
-    [
-        INDIRECT_COMMAND_READ,
-        INDEX_READ,
-        VERTEX_ATTRIBUTE_READ,
-        UNIFORM_READ,
-        INPUT_ATTACHMENT_READ,
-        SHADER_READ,
-        SHADER_WRITE,
-        COLOR_ATTACHMENT_READ,
-        COLOR_ATTACHMENT_WRITE,
-        DEPTH_STENCIL_ATTACHMENT_READ,
-        DEPTH_STENCIL_ATTACHMENT_WRITE,
-        TRANSFER_READ,
-        TRANSFER_WRITE,
-        HOST_READ,
-        HOST_WRITE,
-        MEMORY_READ,
-        MEMORY_WRITE
-    ]
-);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -345,108 +213,79 @@ impl SubpassContents {
     pub const SECONDARY_COMMAND_BUFFERS: Self = Self(1);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkAttachmentDescriptionFlagBits)]
-pub struct AttachmentDescriptionFlags(u32);
-impl AttachmentDescriptionFlags {
-    pub const MAY_ALIAS: Self = Self(0x1);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkAttachmentDescriptionFlagBits)]
+    pub struct AttachmentDescriptionFlags: u32 {
+        const MAY_ALIAS = 0x1;
+    }
 }
-flags!(AttachmentDescriptionFlags, [MAY_ALIAS]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkFenceCreateFlagBits)]
-pub struct FenceCreateFlags(u32);
-impl FenceCreateFlags {
-    pub const SIGNALLED: FenceCreateFlags = FenceCreateFlags(0x1);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkFenceCreateFlagBits)]
+    pub struct FenceCreateFlags: u32 {
+        const SIGNALLED = 0x1;
+    }
 }
-flags!(FenceCreateFlags, [SIGNALLED]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkSemaphoreCreateFlagBits)]
-pub struct SemaphoreCreateFlags(u32);
-flags!(SemaphoreCreateFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkBufferCreateFlagBits)]
-pub struct BufferCreateFlags(u32);
-impl BufferCreateFlags {
-    pub const SPARSE_BINDING: Self = Self(0x1);
-    pub const SPARSE_RESIDENCY: Self = Self(0x2);
-    pub const SPARSE_ALIASED: Self = Self(0x4);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct SemaphoreCreateFlags: u32 {}
 }
-flags!(BufferCreateFlags, [SPARSE_BINDING, SPARSE_RESIDENCY, SPARSE_ALIASED]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkBufferUsageFlagBits)]
-pub struct BufferUsageFlags(u32);
-impl BufferUsageFlags {
-    pub const TRANSFER_SRC: Self = Self(0x00001);
-    pub const TRANSFER_DST: Self = Self(0x00002);
-    pub const UNIFORM_TEXEL_BUFFER: Self = Self(0x00004);
-    pub const STORAGE_TEXEL_BUFFER: Self = Self(0x00008);
-    pub const UNIFORM_BUFFER: Self = Self(0x00010);
-    pub const STORAGE_BUFFER: Self = Self(0x00020);
-    pub const INDEX_BUFFER: Self = Self(0x00040);
-    pub const VERTEX_BUFFER: Self = Self(0x00080);
-    pub const INDIRECT_BUFFER: Self = Self(0x00100);
-    pub const SHADER_DEVICE_ADDRESS: Self = Self(0x20000);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkBufferCreateFlagBits)]
+    pub struct BufferCreateFlags: u32 {
+        const SPARSE_BINDING = 0x1;
+        const SPARSE_RESIDENCY = 0x2;
+        const SPARSE_ALIASED = 0x4;
+    }
 }
-flags!(
-    BufferUsageFlags,
-    [
-        TRANSFER_SRC,
-        TRANSFER_DST,
-        UNIFORM_TEXEL_BUFFER,
-        STORAGE_TEXEL_BUFFER,
-        UNIFORM_BUFFER,
-        STORAGE_BUFFER,
-        INDEX_BUFFER,
-        VERTEX_BUFFER,
-        INDIRECT_BUFFER,
-        SHADER_DEVICE_ADDRESS
-    ]
-);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkImageCreateFlagBits)]
-pub struct ImageCreateFlags(u32);
-impl ImageCreateFlags {
-    pub const SPARSE_BINDING: Self = Self(0x001);
-    pub const SPARSE_RESIDENCY: Self = Self(0x002);
-    pub const SPARSE_ALIASED: Self = Self(0x004);
-    pub const MUTABLE_FORMAT: Self = Self(0x008);
-    pub const CUBE_COMPATIBLE: Self = Self(0x010);
-    pub const ALIAS: Self = Self(0x400);
-    pub const SPLIT_INSTANCE_BIND_REGIONS: Self = Self(0x040);
-    pub const _2D_ARRAY_COMPATIBLE: Self = Self(0x020);
-    pub const BLOCK_TEXEL_VIEW_COMPATIBLE: Self = Self(0x080);
-    pub const EXTENDED_USAGE: Self = Self(0x100);
-    pub const PROTECTED: Self = Self(0x800);
-    pub const DISJOINT: Self = Self(0x200);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkBufferUsageFlagBits)]
+    pub struct BufferUsageFlags: u32 {
+        const TRANSFER_SRC = 0x00001;
+        const TRANSFER_DST = 0x00002;
+        const UNIFORM_TEXEL_BUFFER = 0x00004;
+        const STORAGE_TEXEL_BUFFER = 0x00008;
+        const UNIFORM_BUFFER = 0x00010;
+        const STORAGE_BUFFER = 0x00020;
+        const INDEX_BUFFER = 0x00040;
+        const VERTEX_BUFFER = 0x00080;
+        const INDIRECT_BUFFER = 0x00100;
+        const SHADER_DEVICE_ADDRESS = 0x20000;
+    }
 }
-flags!(
-    ImageCreateFlags,
-    [
-        SPARSE_BINDING,
-        SPARSE_RESIDENCY,
-        SPARSE_ALIASED,
-        MUTABLE_FORMAT,
-        CUBE_COMPATIBLE,
-        ALIAS,
-        SPLIT_INSTANCE_BIND_REGIONS,
-        _2D_ARRAY_COMPATIBLE,
-        BLOCK_TEXEL_VIEW_COMPATIBLE,
-        EXTENDED_USAGE,
-        PROTECTED,
-        DISJOINT
-    ]
-);
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkImageCreateFlagBits)]
+    pub struct ImageCreateFlags: u32 {
+        const SPARSE_BINDING = 0x001;
+        const SPARSE_RESIDENCY = 0x002;
+        const SPARSE_ALIASED = 0x004;
+        const MUTABLE_FORMAT = 0x008;
+        const CUBE_COMPATIBLE = 0x010;
+        const ALIAS = 0x400;
+        const SPLIT_INSTANCE_BIND_REGIONS = 0x040;
+        const _2D_ARRAY_COMPATIBLE = 0x020;
+        const BLOCK_TEXEL_VIEW_COMPATIBLE = 0x080;
+        const EXTENDED_USAGE = 0x100;
+        const PROTECTED = 0x800;
+        const DISJOINT = 0x200;
+    }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -472,11 +311,12 @@ impl ImageTiling {
     pub const LINEAR: Self = Self(1);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkImageViewCreateFlagBits)]
-pub struct ImageViewCreateFlags(u32);
-flags!(ImageViewCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct ImageViewCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -510,29 +350,33 @@ impl ComponentSwizzle {
     pub const A: Self = Self(6);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-/// Reserved
-pub struct MetalSurfaceCreateFlagsEXT(u32);
-flags!(MetalSurfaceCreateFlagsEXT, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct MetalSurfaceCreateFlagsEXT: u32 {}
+}
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-/// Reserved
-pub struct XlibSurfaceCreateFlagsKHR(u32);
-flags!(XlibSurfaceCreateFlagsKHR, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct XlibSurfaceCreateFlagsKHR: u32 {}
+}
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-/// Reserved
-pub struct WaylandSurfaceCreateFlagsKHR(u32);
-flags!(WaylandSurfaceCreateFlagsKHR, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct WaylandSurfaceCreateFlagsKHR: u32 {}
+}
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-/// Reserved
-pub struct Win32SurfaceCreateFlagsKHR(u32);
-flags!(Win32SurfaceCreateFlagsKHR, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct Win32SurfaceCreateFlagsKHR: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -551,7 +395,7 @@ impl SurfaceTransformKHR {
 }
 impl std::fmt::Debug for SurfaceTransformKHR {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        SurfaceTransformFlagsKHR::from(*self).fmt(f)
+        SurfaceTransformFlagsKHR::from_bits_truncate(self.0).fmt(f)
     }
 }
 impl Default for SurfaceTransformKHR {
@@ -560,38 +404,25 @@ impl Default for SurfaceTransformKHR {
     }
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkSurfaceTransformFlagBits)]
-pub struct SurfaceTransformFlagsKHR(u32);
-impl SurfaceTransformFlagsKHR {
-    pub const IDENTITY: Self = Self(0x01);
-    pub const ROTATE_90: Self = Self(0x002);
-    pub const ROTATE_180: Self = Self(0x004);
-    pub const ROTATE_270: Self = Self(0x008);
-    pub const HORIZONTAL_MIRROR: Self = Self(0x010);
-    pub const HORIZONTAL_MIRROR_ROTATE_90: Self = Self(0x020);
-    pub const HORIZONTAL_MIRROR_ROTATE_180: Self = Self(0x040);
-    pub const HORIZONTAL_MIRROR_ROTATE_270: Self = Self(0x080);
-    pub const INHERIT: Self = Self(0x100);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkSurfaceTransformFlagBits)]
+    pub struct SurfaceTransformFlagsKHR: u32 {
+        const IDENTITY = 0x01;
+        const ROTATE_90 = 0x002;
+        const ROTATE_180 = 0x004;
+        const ROTATE_270 = 0x008;
+        const HORIZONTAL_MIRROR = 0x010;
+        const HORIZONTAL_MIRROR_ROTATE_90 = 0x020;
+        const HORIZONTAL_MIRROR_ROTATE_180 = 0x040;
+        const HORIZONTAL_MIRROR_ROTATE_270 = 0x080;
+        const INHERIT = 0x100;
+    }
 }
-flags!(
-    SurfaceTransformFlagsKHR,
-    [
-        IDENTITY,
-        ROTATE_90,
-        ROTATE_180,
-        ROTATE_270,
-        HORIZONTAL_MIRROR,
-        HORIZONTAL_MIRROR_ROTATE_90,
-        HORIZONTAL_MIRROR_ROTATE_180,
-        HORIZONTAL_MIRROR_ROTATE_270,
-        INHERIT
-    ]
-);
 impl From<SurfaceTransformKHR> for SurfaceTransformFlagsKHR {
     fn from(bit: SurfaceTransformKHR) -> Self {
-        Self(bit.0)
+        Self::from_bits(bit.0).unwrap()
     }
 }
 
@@ -607,7 +438,7 @@ impl CompositeAlphaKHR {
 }
 impl std::fmt::Debug for CompositeAlphaKHR {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        CompositeAlphaFlagsKHR::from(*self).fmt(f)
+        CompositeAlphaFlagsKHR::from_bits_truncate(self.0).fmt(f)
     }
 }
 impl Default for CompositeAlphaKHR {
@@ -616,53 +447,38 @@ impl Default for CompositeAlphaKHR {
     }
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkCompositeAlphaFlagBits)]
-pub struct CompositeAlphaFlagsKHR(u32);
-impl CompositeAlphaFlagsKHR {
-    pub const OPAQUE: Self = Self(0x1);
-    pub const PRE_MULTIPLIED: Self = Self(0x2);
-    pub const POST_MULTIPLIED: Self = Self(0x4);
-    pub const INHERIT: Self = Self(0x8);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkCompositeAlphaFlagBits)]
+    pub struct CompositeAlphaFlagsKHR: u32 {
+        const OPAQUE = 0x1;
+        const PRE_MULTIPLIED = 0x2;
+        const POST_MULTIPLIED = 0x4;
+        const INHERIT = 0x8;
+    }
 }
-flags!(
-    CompositeAlphaFlagsKHR,
-    [OPAQUE, PRE_MULTIPLIED, POST_MULTIPLIED, INHERIT]
-);
 impl From<CompositeAlphaKHR> for CompositeAlphaFlagsKHR {
     fn from(bit: CompositeAlphaKHR) -> Self {
-        Self(bit.0)
+        Self::from_bits(bit.0).unwrap()
     }
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkImageUsageFlagBits)]
-pub struct ImageUsageFlags(u32);
-impl ImageUsageFlags {
-    pub const TRANSFER_SRC: Self = Self(0x01);
-    pub const TRANSFER_DST: Self = Self(0x02);
-    pub const SAMPLED: Self = Self(0x04);
-    pub const STORAGE: Self = Self(0x08);
-    pub const COLOR_ATTACHMENT: Self = Self(0x10);
-    pub const DEPTH_STENCIL_ATTACHMENT: Self = Self(0x20);
-    pub const TRANSIENT_ATTACHMENT: Self = Self(0x40);
-    pub const INPUT_ATTACHMENT: Self = Self(0x80);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkImageUsageFlagBits)]
+    pub struct ImageUsageFlags: u32 {
+        const TRANSFER_SRC = 0x01;
+        const TRANSFER_DST = 0x02;
+        const SAMPLED = 0x04;
+        const STORAGE = 0x08;
+        const COLOR_ATTACHMENT = 0x10;
+        const DEPTH_STENCIL_ATTACHMENT = 0x20;
+        const TRANSIENT_ATTACHMENT = 0x40;
+        const INPUT_ATTACHMENT = 0x80;
+    }
 }
-flags!(
-    ImageUsageFlags,
-    [
-        TRANSFER_SRC,
-        TRANSFER_DST,
-        SAMPLED,
-        STORAGE,
-        COLOR_ATTACHMENT,
-        DEPTH_STENCIL_ATTACHMENT,
-        TRANSIENT_ATTACHMENT,
-        INPUT_ATTACHMENT
-    ]
-);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1161,44 +977,40 @@ impl ImageLayout {
     pub const PRESENT_SRC_KHR: Self = Self(1000001002);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkImageAspectFlagBits)]
-pub struct ImageAspectFlags(u32);
-impl ImageAspectFlags {
-    pub const COLOR: Self = Self(0x01);
-    pub const DEPTH: Self = Self(0x02);
-    pub const STENCIL: Self = Self(0x04);
-    pub const METADATA: Self = Self(0x08);
-    pub const PLANE_0: Self = Self(0x10);
-    pub const PLANE_1: Self = Self(0x20);
-    pub const PLANE_2: Self = Self(0x40);
-    pub const NONE: Self = Self(0);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkImageAspectFlagBits)]
+    pub struct ImageAspectFlags: u32 {
+        const COLOR = 0x01;
+        const DEPTH = 0x02;
+        const STENCIL = 0x04;
+        const METADATA = 0x08;
+        const PLANE_0 = 0x10;
+        const PLANE_1 = 0x20;
+        const PLANE_2 = 0x40;
+    }
 }
-flags!(
-    ImageAspectFlags,
-    [COLOR, DEPTH, STENCIL, METADATA, PLANE_0, PLANE_1, PLANE_2]
-);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkCommandPoolCreateFlagBits)]
-pub struct CommandPoolCreateFlags(u32);
-impl CommandPoolCreateFlags {
-    pub const TRANSIENT: Self = Self(0x1);
-    pub const RESET_COMMAND_BUFFER: Self = Self(0x2);
-    pub const PROTECTED: Self = Self(0x4);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkCommandPoolCreateFlagBits)]
+    pub struct CommandPoolCreateFlags: u32 {
+        const TRANSIENT = 0x1;
+        const RESET_COMMAND_BUFFER = 0x2;
+        const PROTECTED = 0x4;
+    }
 }
-flags!(CommandPoolCreateFlags, [TRANSIENT, RESET_COMMAND_BUFFER, PROTECTED]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkCommandPoolResetFlagBits)]
-pub struct CommandPoolResetFlags(u32);
-impl CommandPoolResetFlags {
-    pub const RELEASE_RESOURCES: Self = Self(0x1);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkCommandPoolResetFlagBits)]
+    pub struct CommandPoolResetFlags: u32 {
+        const RELEASE_RESOURCES = 0x1;
+    }
 }
-flags!(CommandPoolResetFlags, [RELEASE_RESOURCES]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -1209,31 +1021,30 @@ impl CommandBufferLevel {
     pub const SECONDARY: Self = Self(1);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkQueryControlFlagBits)]
-pub struct QueryControlFlags(u32);
-flags!(QueryControlFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkQueryPipelineStatisticFlagBits)]
-pub struct QueryPipelineStatisticFlags(u32);
-flags!(QueryPipelineStatisticFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkCommandBufferUsageFlagBits)]
-pub struct CommandBufferUsageFlags(u32);
-impl CommandBufferUsageFlags {
-    pub const ONE_TIME_SUBMIT: Self = Self(0x1);
-    pub const RENDER_PASS_CONTINUE: Self = Self(0x2);
-    pub const SIMULTANEOUS_USE: Self = Self(0x4);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct QueryControlFlags: u32 {}
 }
-flags!(
-    CommandBufferUsageFlags,
-    [ONE_TIME_SUBMIT, RENDER_PASS_CONTINUE, SIMULTANEOUS_USE]
-);
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct QueryPipelineStatisticFlags: u32 {}
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkCommandBufferUsageFlagBits)]
+    pub struct CommandBufferUsageFlags: u32 {
+        const ONE_TIME_SUBMIT = 0x1;
+        const RENDER_PASS_CONTINUE = 0x2;
+        const SIMULTANEOUS_USE = 0x4;
+    }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -1268,11 +1079,12 @@ impl Default for AttachmentStoreOp {
     }
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkSubpassDescriptionFlagBits)]
-pub struct SubpassDescriptionFlags(u32);
-flags!(SubpassDescriptionFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct SubpassDescriptionFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1283,42 +1095,45 @@ impl PipelineBindPoint {
     pub const COMPUTE: Self = Self(1);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkFramebufferCreateFlagBits)]
-pub struct FramebufferCreateFlags(u32);
-impl FramebufferCreateFlags {
-    pub const IMAGELESS: Self = Self(0);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkFramebufferCreateFlagBits)]
+    pub struct FramebufferCreateFlags: u32 {
+        const IMAGELESS = 0x01;
+    }
 }
-flags!(FramebufferCreateFlags, [IMAGELESS]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkShaderModuleCreateFlagBits)]
-pub struct ShaderModuleCreateFlags(u32);
-flags!(ShaderModuleCreateFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineCacheCreateFlagBits)]
-pub struct PipelineCacheCreateFlags(u32);
-flags!(PipelineCacheCreateFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineShaderStageCreateFlagBits)]
-pub struct PipelineShaderStageCreateFlags(u32);
-impl PipelineShaderStageCreateFlags {
-    pub const ALLOW_VARYING_SUBGROUP_SIZE: Self = Self(0x1);
-    pub const REQUIRE_FULL_SUBGROUPS: Self = Self(0x2);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct ShaderModuleCreateFlags: u32 {}
 }
-flags!(PipelineShaderStageCreateFlags, []);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineVertexInputStateCreateFlagBits)]
-pub struct PipelineVertexInputStateCreateFlags(u32);
-flags!(PipelineVertexInputStateCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineCacheCreateFlags: u32 {}
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkPipelineShaderStageCreateFlagBits)]
+    pub struct PipelineShaderStageCreateFlags: u32 {
+        const ALLOW_VARYING_SUBGROUP_SIZE = 0x1;
+        const REQUIRE_FULL_SUBGROUPS = 0x2;
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineVertexInputStateCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -1329,11 +1144,12 @@ impl VertexInputRate {
     pub const INSTANCE: Self = Self(1);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineInputAssemblyStateCreateFlagBits)]
-pub struct PipelineInputAssemblyStateCreateFlags(u32);
-flags!(PipelineInputAssemblyStateCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineInputAssemblyStateCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1353,23 +1169,26 @@ impl PrimitiveTopology {
     pub const PATCH_LIST: Self = Self(10);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineTesselationStateCreateFlagBits)]
-pub struct PipelineTesselationStateCreateFlags(u32);
-flags!(PipelineTesselationStateCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineTesselationStateCreateFlags: u32 {}
+}
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineViewportStateCreateFlagBits)]
-pub struct PipelineViewportStateCreateFlags(u32);
-flags!(PipelineViewportStateCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineViewportStateCreateFlags: u32 {}
+}
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineRasterizationStateCreateFlagBits)]
-pub struct PipelineRasterizationStateCreateFlags(u32);
-flags!(PipelineRasterizationStateCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineRasterizationStateCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1381,17 +1200,16 @@ impl PolygonMode {
     pub const POINT: Self = Self(2);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkCullModeFlagBits)]
-pub struct CullModeFlags(u32);
-impl CullModeFlags {
-    pub const NONE: Self = Self(0);
-    pub const FRONT: Self = Self(0x1);
-    pub const BACK: Self = Self(0x2);
-    pub const FRONT_AND_BACK: Self = Self(0x3);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkCullModeFlagBits)]
+    pub struct CullModeFlags: u32 {
+        const FRONT = 0x1;
+        const BACK = 0x2;
+        const FRONT_AND_BACK = 0x3;
+    }
 }
-flags!(CullModeFlags, [FRONT, BACK]);
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1402,17 +1220,19 @@ impl FrontFace {
     pub const CLOCKWISE: Self = Self(1);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineMultisampleStateCreateFlagBits)]
-pub struct PipelineMultisampleStateCreateFlags(u32);
-flags!(PipelineMultisampleStateCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineMultisampleStateCreateFlags: u32 {}
+}
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineDepthStencilStateCreateFlagBits)]
-pub struct PipelineDepthStencilStateCreateFlags(u32);
-flags!(PipelineDepthStencilStateCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineDepthStencilStateCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1528,39 +1348,40 @@ impl BlendOp {
     pub const BLUE_EXT: Self = Self(1000148045);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkColorComponentFlagBits)]
-pub struct ColorComponentFlags(u32);
-impl ColorComponentFlags {
-    pub const R: Self = Self(0x1);
-    pub const G: Self = Self(0x2);
-    pub const B: Self = Self(0x4);
-    pub const A: Self = Self(0x8);
-    pub const RGBA: Self = Self(0xF);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkColorComponentFlagBits)]
+    pub struct ColorComponentFlags: u32 {
+        const R = 0x1;
+        const G = 0x2;
+        const B = 0x4;
+        const A = 0x8;
+        const RGBA = 0xF;
+    }
 }
-flags!(ColorComponentFlags, [R, G, B, A]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineColorBlendStateCreateFlagBits)]
-pub struct PipelineColorBlendStateCreateFlags(u32);
-flags!(PipelineColorBlendStateCreateFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineCreateFlagBits)]
-pub struct PipelineCreateFlags(u32);
-impl PipelineCreateFlags {
-    pub const DISABLE_OPTIMIZATION: Self = Self(0x00000001);
-    pub const ALLOW_DERIVATIVES: Self = Self(0x00000002);
-    pub const DERIVATIVE: Self = Self(0x00000004);
-    pub const VIEW_INDEX_FROM_DEVICE_INDEX: Self = Self(0x00000008);
-    pub const DISPATCH_BASE: Self = Self(0x00000010);
-    pub const FAIL_ON_PIPELINE_COMPILE_REQUIRED: Self = Self(0x00000100);
-    pub const EARLY_RETURN_ON_FAILURE: Self = Self(0x00000200);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct PipelineColorBlendStateCreateFlags: u32 {}
 }
-flags!(PipelineCreateFlags, []);
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkPipelineCreateFlagBits)]
+    pub struct PipelineCreateFlags: u32 {
+        const DISABLE_OPTIMIZATION = 0x00000001;
+        const ALLOW_DERIVATIVES = 0x00000002;
+        const DERIVATIVE = 0x00000004;
+        const VIEW_INDEX_FROM_DEVICE_INDEX = 0x00000008;
+        const DISPATCH_BASE = 0x00000010;
+        const FAIL_ON_PIPELINE_COMPILE_REQUIRED = 0x00000100;
+        const EARLY_RETURN_ON_FAILURE = 0x00000200;
+    }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1585,11 +1406,12 @@ impl LogicOp {
     pub const SET: Self = Self(15);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkDynamicStateCreateFlagBits)]
-pub struct DynamicStateCreateFlags(u32);
-flags!(DynamicStateCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct DynamicStateCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -1622,11 +1444,12 @@ impl DynamicState {
     pub const PRIMITIVE_RESTART_ENABLE: Self = Self(1000377004);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkRenderPassCreateFlagBits)]
-pub struct RenderPassCreateFlags(u32);
-flags!(RenderPassCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct RenderPassCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1636,48 +1459,47 @@ impl ColorSpaceKHR {
     pub const SRGB_NONLINEAR_KHR: Self = Self(0);
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkDescriptorSetLayoutCreateFlagBits)]
-pub struct DescriptorSetLayoutCreateFlags(u32);
-impl DescriptorSetLayoutCreateFlags {
-    pub const UPDATE_AFTER_BIND_POOL: Self = Self(0x2);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkDescriptorSetLayoutCreateFlagBits)]
+    pub struct DescriptorSetLayoutCreateFlags: u32 {
+        const UPDATE_AFTER_BIND_POOL = 0x2;
+    }
 }
-flags!(DescriptorSetLayoutCreateFlags, [UPDATE_AFTER_BIND_POOL]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkDescriptorPoolCreateFlagBits)]
-pub struct DescriptorPoolCreateFlags(u32);
-impl DescriptorPoolCreateFlags {
-    pub const CREATE_FREE_DESCRIPTOR_SET: Self = Self(0x1);
-    pub const CREATE_UPDATE_AFTER_BIND: Self = Self(0x2);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkDescriptorPoolCreateFlagBits)]
+    pub struct DescriptorPoolCreateFlags: u32 {
+        const CREATE_FREE_DESCRIPTOR_SET = 0x1;
+        const CREATE_UPDATE_AFTER_BIND = 0x2;
+    }
 }
-flags!(
-    DescriptorPoolCreateFlags,
-    [CREATE_FREE_DESCRIPTOR_SET, CREATE_UPDATE_AFTER_BIND]
-);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkDescriptorPoolResetFlagBits)]
-pub struct DescriptorPoolResetFlags(u32);
-flags!(DescriptorPoolResetFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkPipelineLayoutCreateFlagBits)]
-pub struct PipelineLayoutCreateFlags(u32);
-impl PipelineLayoutCreateFlags {
-    pub const INDEPENDENT_SETS_EXT: Self = Self(0x2);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct DescriptorPoolResetFlags: u32 {}
 }
-flags!(PipelineLayoutCreateFlags, [INDEPENDENT_SETS_EXT]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkSamplerCreateFlagBits)]
-pub struct SamplerCreateFlags(u32);
-flags!(SamplerCreateFlags, []);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkPipelineLayoutCreateFlagBits)]
+    pub struct PipelineLayoutCreateFlags: u32 {
+        const INDEPENDENT_SETS_EXT = 0x2;
+    }
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct SamplerCreateFlags: u32 {}
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -1748,85 +1570,63 @@ impl Default for DescriptorType {
     }
 }
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkShaderStageFlagBits)]
-pub struct ShaderStageFlags(u32);
-impl ShaderStageFlags {
-    pub const VERTEX: Self = Self(0x01);
-    pub const TESSELLATION_CONTROL: Self = Self(0x02);
-    pub const TESSELLATION_EVALUATION: Self = Self(0x04);
-    pub const GEOMETRY: Self = Self(0x08);
-    pub const FRAGMENT: Self = Self(0x10);
-    pub const COMPUTE: Self = Self(0x20);
-    pub const ALL_GRAPHICS: Self = Self(0x1F);
-    pub const ALL: Self = Self(0x7FFFFFFF);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkShaderStageFlagBits)]
+    pub struct ShaderStageFlags: u32 {
+        const VERTEX = 0x01;
+        const TESSELLATION_CONTROL = 0x02;
+        const TESSELLATION_EVALUATION = 0x04;
+        const GEOMETRY = 0x08;
+        const FRAGMENT = 0x10;
+        const COMPUTE = 0x20;
+        const ALL_GRAPHICS = 0x1F;
+        const ALL = 0x7FFFFFFF;
+    }
 }
-flags!(
-    ShaderStageFlags,
-    [
-        VERTEX,
-        TESSELLATION_CONTROL,
-        TESSELLATION_EVALUATION,
-        GEOMETRY,
-        FRAGMENT,
-        COMPUTE
-    ]
-);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkMemoryPropertyFlagBits)]
-pub struct MemoryPropertyFlags(u32);
-impl MemoryPropertyFlags {
-    pub const DEVICE_LOCAL: Self = Self(0x01);
-    pub const HOST_VISIBLE: Self = Self(0x02);
-    pub const HOST_COHERENT: Self = Self(0x04);
-    pub const HOST_CACHED: Self = Self(0x08);
-    pub const LAZILY_ALLOCATED: Self = Self(0x10);
-    pub const PROTECTED: Self = Self(0x20);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkMemoryPropertyFlagBits)]
+    pub struct MemoryPropertyFlags: u32 {
+        const DEVICE_LOCAL = 0x01;
+        const HOST_VISIBLE = 0x02;
+        const HOST_COHERENT = 0x04;
+        const HOST_CACHED = 0x08;
+        const LAZILY_ALLOCATED = 0x10;
+        const PROTECTED = 0x20;
+    }
 }
-flags!(
-    MemoryPropertyFlags,
-    [
-        DEVICE_LOCAL,
-        HOST_VISIBLE,
-        HOST_COHERENT,
-        HOST_CACHED,
-        LAZILY_ALLOCATED,
-        PROTECTED
-    ]
-);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkMemoryHeapFlagBits)]
-pub struct MemoryHeapFlags(u32);
-impl MemoryHeapFlags {
-    pub const DEVICE_LOCAL: Self = Self(0x1);
-    pub const MULTI_INSTANCE: Self = Self(0x2);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkMemoryHeapFlagBits)]
+    pub struct MemoryHeapFlags: u32 {
+        const DEVICE_LOCAL = 0x1;
+        const MULTI_INSTANCE = 0x2;
+    }
 }
-flags!(MemoryHeapFlags, [DEVICE_LOCAL, MULTI_INSTANCE]);
 
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkMemoryMapFlagBits)]
-pub struct MemoryMapFlags(u32);
-flags!(MemoryMapFlags, []);
-
-#[repr(transparent)]
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-#[doc = crate::man_link!(VkSwapchainCreateFlagBits)]
-pub struct SwapchainCreateFlagsKHR(u32);
-impl SwapchainCreateFlagsKHR {
-    pub const SPLIT_INSTANCE_BIND_REGIONS: Self = Self(0x1);
-    pub const PROTECTED: Self = Self(0x2);
-    pub const MUTABLE_FORMAT: Self = Self(0x4);
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    /// Reserved
+    pub struct MemoryMapFlags: u32 {}
 }
-flags!(
-    SwapchainCreateFlagsKHR,
-    [SPLIT_INSTANCE_BIND_REGIONS, PROTECTED, MUTABLE_FORMAT]
-);
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
+    #[doc = crate::man_link!(VkSwapchainCreateFlagBits)]
+    pub struct SwapchainCreateFlagsKHR: u32 {
+        const SPLIT_INSTANCE_BIND_REGIONS = 0x1;
+        const PROTECTED = 0x2;
+        const MUTABLE_FORMAT = 0x4;
+    }
+}
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]

@@ -1003,7 +1003,7 @@ impl Default for PipelineRasterizationStateCreateInfo {
             depth_clamp_enable: Bool::False,
             rasterizer_discard_enable: Bool::False,
             polygon_mode: PolygonMode::FILL,
-            cull_mode: CullModeFlags::NONE,
+            cull_mode: CullModeFlags::empty(),
             front_face: FrontFace::COUNTER_CLOCKWISE,
             depth_bias_enable: Bool::False,
             depth_bias_constant_factor: 0.0,
