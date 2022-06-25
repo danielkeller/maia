@@ -1405,6 +1405,12 @@ pub struct VkSubpassDescription<'a> {
     pub(crate) preserve_attachments: Slice<'a, AttachmentReference>,
 }
 
+impl<'a> Default for VkSubpassDescription<'a> {
+    fn default() -> Self {
+        SubpassDescription::default().try_into().unwrap()
+    }
+}
+
 #[derive(Default)]
 #[doc = crate::man_link!(VkSubpassDescription)]
 pub struct SubpassDescription<'a> {

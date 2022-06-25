@@ -57,11 +57,11 @@ impl Device {
         let mut queues = vec![0; props.len()];
         for q in info.queue_create_infos {
             let i = q.queue_family_index as usize;
-            assert!(i < props.len(), "Queue family index out of bounds");
-            assert!(
-                q.queue_priorities.len() <= props[i].queue_count,
-                "Too many queues requested"
-            );
+            if i >= props.len()
+                || q.queue_priorities.len() > props[i].queue_count
+            {
+                return Err(Error::OutOfBounds);
+            }
             queues[i] = q.queue_priorities.len();
         }
 

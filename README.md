@@ -17,10 +17,6 @@ To begin using the API, create an instance object with [vk::Instance::new()](cra
 
 To enable validation layers for debugging, set the environment variable `VK_INSTANCE_LAYERS="VK_LAYER_KHRONOS_validation"`.
 
-#### To run the demos
-
-To compile shaders in the demos, either CMake or the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) must be installed.
-
 #### On Linux
 
 To build, install your distro's Vulkan development libaries (eg for Debian, `sudo apt install libvulkan-dev`). You will also probably want to install the validation layers, either from the distro (eg `sudo apt install vulkan-validationlayers`) or by installing the Vulkan SDK.
@@ -36,3 +32,7 @@ To run, you will probably want to include the Vulkan loader and MoltenVK into yo
 #### On Windows
 
 A Vulkan-compatible graphics driver is sufficient to build and run. You will probably want to install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) for validation layers, though.
+
+#### To run the demos
+
+To compile shaders in the demos, either CMake or the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) must be installed.

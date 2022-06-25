@@ -147,3 +147,24 @@ impl BufferWithoutMemory {
         Buffer::bind_buffer_impl(self, &memory, 0)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::vk;
+    #[test]
+    fn wrong_mem() {
+        let inst = vk::Instance::new(&Default::default()).unwrap();
+        let (dev, _) = vk::Device::new(
+            &inst.enumerate_physical_devices().unwrap()[0],
+            &Default::default(),
+        )
+        .unwrap();
+        let buf = vk::BufferWithoutMemory::new(
+            &dev,
+            &BufferCreateInfo { size: 256, ..Default::default() },
+        )
+        .unwrap();
+        assert!(buf.allocate_memory(31).is_err());
+    }
+}

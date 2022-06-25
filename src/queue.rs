@@ -82,6 +82,10 @@ pub struct SubmitInfo<'a> {
 }
 
 impl Queue {
+    /// Returns [Error::InvalidArgument] if any semaphore in 'signal' already
+    /// has a signal operation pending, or if any semaphore in 'wait' does not,
+    /// or if any command buffer is not in the executable state.
+    #[doc = crate::man_link!(vkQueueSubmit)]
     pub fn submit(
         &mut self,
         infos: &mut [SubmitInfo<'_>],
@@ -160,5 +164,115 @@ impl Queue {
         self.resources.extend(recordings.into_iter());
 
         Ok(fence.to_pending(self.resources.new_cleanup()))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::vk;
+
+    #[test]
+    fn cmd_state() -> vk::Result<()> {
+        let inst = vk::Instance::new(&Default::default())?;
+        let (dev, mut qs) = vk::Device::new(
+            &inst.enumerate_physical_devices()?[0],
+            &vk::DeviceCreateInfo {
+                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
+                    queue_priorities: vk::slice(&[1.0]),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )?;
+        let mut pool = vk::CommandPool::new(&dev, 0)?;
+        assert!(pool.reset(Default::default()).is_ok());
+        let buf = pool.allocate()?;
+        let mut buf = pool.begin(buf)?.end()?;
+
+        let fence = qs[0][0].submit(
+            &mut [vk::SubmitInfo {
+                commands: &mut [&mut buf],
+                ..Default::default()
+            }],
+            vk::Fence::new(&dev)?,
+        )?;
+        assert!(qs[0][0]
+            .submit(
+                &mut [vk::SubmitInfo {
+                    commands: &mut [&mut buf],
+                    ..Default::default()
+                }],
+                vk::Fence::new(&dev)?,
+            )
+            .is_err());
+
+        assert!(pool.reset(Default::default()).is_err());
+        fence.wait()?;
+        assert!(pool.reset(Default::default()).is_ok());
+
+        assert!(qs[0][0]
+            .submit(
+                &mut [vk::SubmitInfo {
+                    commands: &mut [&mut buf],
+                    ..Default::default()
+                }],
+                vk::Fence::new(&dev)?,
+            )
+            .is_err());
+
+        Ok(())
+    }
+
+    #[test]
+    fn signaller() -> vk::Result<()> {
+        let inst = vk::Instance::new(&Default::default())?;
+        let (dev, mut qs) = vk::Device::new(
+            &inst.enumerate_physical_devices()?[0],
+            &vk::DeviceCreateInfo {
+                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
+                    queue_priorities: vk::slice(&[1.0]),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )?;
+        let mut sem = vk::Semaphore::new(&dev)?;
+        assert!(qs[0][0]
+            .submit(
+                &mut [vk::SubmitInfo {
+                    signal: &mut [&mut sem],
+                    ..Default::default()
+                }],
+                vk::Fence::new(&dev)?,
+            )
+            .is_ok());
+        assert!(qs[0][0]
+            .submit(
+                &mut [vk::SubmitInfo {
+                    signal: &mut [&mut sem],
+                    ..Default::default()
+                }],
+                vk::Fence::new(&dev)?,
+            )
+            .is_err());
+        assert!(qs[0][0]
+            .submit(
+                &mut [vk::SubmitInfo {
+                    wait: &mut [(&mut sem, Default::default())],
+                    ..Default::default()
+                }],
+                vk::Fence::new(&dev)?,
+            )
+            .is_ok());
+        assert!(qs[0][0]
+            .submit(
+                &mut [vk::SubmitInfo {
+                    wait: &mut [(&mut sem, Default::default())],
+                    ..Default::default()
+                }],
+                vk::Fence::new(&dev)?,
+            )
+            .is_err());
+        Ok(())
     }
 }

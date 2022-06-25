@@ -676,3 +676,143 @@ impl<'a> ExternalRenderPassRecording<'a> {
         Ok(self.rec)
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::vk;
+
+    #[test]
+    fn secondary_reset() -> vk::Result<()> {
+        let inst = vk::Instance::new(&Default::default())?;
+        let (dev, _) = vk::Device::new(
+            &inst.enumerate_physical_devices()?[0],
+            &vk::DeviceCreateInfo {
+                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
+                    queue_priorities: vk::slice(&[1.0]),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )?;
+        let pass = vk::RenderPass::new(
+            &dev,
+            &vk::RenderPassCreateInfo {
+                subpasses: vk::slice(&[Default::default()]),
+                ..Default::default()
+            },
+        )?;
+        let fb = vk::Framebuffer::new(
+            &pass,
+            Default::default(),
+            vec![],
+            Default::default(),
+        )?;
+        let mut pool1 = vk::CommandPool::new(&dev, 0)?;
+        let mut pool2 = vk::CommandPool::new(&dev, 0)?;
+
+        let sec = pool2.allocate_secondary()?;
+        let mut sec = pool2.begin_secondary(sec, &pass, 0)?.end()?;
+        let prim = pool1.allocate()?;
+        let rec = pool1.begin(prim)?;
+        let mut rec = rec.begin_render_pass_secondary(
+            &pass,
+            &fb,
+            &Default::default(),
+            Default::default(),
+        )?;
+        rec.execute_commands(&mut [&mut sec])?;
+        let prim = rec.end()?.end()?;
+
+        assert!(pool2.reset(Default::default()).is_err());
+        assert!(pool1.reset(Default::default()).is_ok());
+        assert!(pool2.reset(Default::default()).is_ok());
+
+        assert!(pool1.free_secondary(sec).is_err());
+        assert!(pool2.free(prim).is_err());
+
+        let sec = pool1.allocate_secondary()?;
+        let mut sec = pool1.begin_secondary(sec, &pass, 0)?.end()?;
+        let prim = pool1.allocate()?;
+        let rec = pool1.begin(prim)?;
+        let mut rec = rec.begin_render_pass_secondary(
+            &pass,
+            &fb,
+            &Default::default(),
+            Default::default(),
+        )?;
+        rec.execute_commands(&mut [&mut sec])?;
+        let _ = rec.end()?.end()?;
+
+        assert!(pool1.reset(Default::default()).is_ok());
+
+        Ok(())
+    }
+
+    #[test]
+    fn subpass() -> vk::Result<()> {
+        let inst = vk::Instance::new(&Default::default())?;
+        let (dev, _) = vk::Device::new(
+            &inst.enumerate_physical_devices()?[0],
+            &vk::DeviceCreateInfo {
+                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
+                    queue_priorities: vk::slice(&[1.0]),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )?;
+        let pass = vk::RenderPass::new(
+            &dev,
+            &vk::RenderPassCreateInfo {
+                subpasses: vk::slice(&[Default::default(), Default::default()]),
+                ..Default::default()
+            },
+        )?;
+        let fb = vk::Framebuffer::new(
+            &pass,
+            Default::default(),
+            vec![],
+            Default::default(),
+        )?;
+
+        let mut pool = vk::CommandPool::new(&dev, 0)?;
+
+        let buf = pool.allocate()?;
+        let rec = pool.begin(buf)?;
+        let rec = rec.begin_render_pass(
+            &pass,
+            &fb,
+            &Default::default(),
+            Default::default(),
+        )?;
+        assert!(rec.end().is_err());
+
+        let buf = pool.allocate()?;
+        let rec = pool.begin(buf)?;
+        let mut rec = rec.begin_render_pass(
+            &pass,
+            &fb,
+            &Default::default(),
+            Default::default(),
+        )?;
+        assert!(rec.next_subpass().is_ok());
+        assert!(rec.next_subpass().is_err());
+        assert!(rec.next_subpass_secondary().is_err());
+
+        pool.reset(Default::default())?;
+
+        let buf = pool.allocate()?;
+        let rec = pool.begin(buf)?;
+        let mut rec = rec.begin_render_pass_secondary(
+            &pass,
+            &fb,
+            &Default::default(),
+            Default::default(),
+        )?;
+        assert!(rec.next_subpass_secondary().is_ok());
+        assert!(rec.next_subpass_secondary().is_err());
+        assert!(rec.next_subpass().is_err());
+
+        Ok(())
+    }
+}

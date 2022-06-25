@@ -1248,7 +1248,7 @@ impl<'a> ExternalRenderPassRecording<'a> {
         self.rec.pool.resources.extend(resources);
         for command in commands {
             // Prevent this buffer from being reused.
-            self.rec.pool.resources.push(command.buf.clone());
+            self.rec.pool.resources.push(command.lock_self());
         }
         Ok(())
     }
