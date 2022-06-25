@@ -1,5 +1,5 @@
 use crate::enums::*;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::image::ImageView;
 use crate::render_pass::RenderPass;
 use crate::types::*;
@@ -23,6 +23,13 @@ impl Framebuffer {
     ) -> Result<Arc<Self>> {
         for iv in &attachments {
             assert_eq!(iv.device(), render_pass.device());
+        }
+        let lim = render_pass.device().limits();
+        if size.width > lim.max_framebuffer_width
+            || size.height > lim.max_framebuffer_height
+            || size.depth > lim.max_framebuffer_layers
+        {
+            return Err(Error::LimitExceeded);
         }
         let vk_attachments: Vec<_> =
             attachments.iter().map(|iv| iv.handle()).collect();

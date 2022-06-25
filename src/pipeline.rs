@@ -279,6 +279,20 @@ impl Pipeline {
                 return Err(Error::InvalidArgument);
             }
         }
+        if info.viewport_state.viewports.len() > lim.max_viewports {
+            return Err(Error::LimitExceeded);
+        }
+        for viewport in info.viewport_state.viewports {
+            if viewport.height as u32 > lim.max_viewport_dimensions[0]
+                || viewport.width as u32 > lim.max_viewport_dimensions[1]
+                || viewport.x < lim.viewport_bounds_range[0]
+                || viewport.y < lim.viewport_bounds_range[0]
+                || viewport.x + viewport.width > lim.viewport_bounds_range[1]
+                || viewport.y + viewport.height > lim.viewport_bounds_range[1]
+            {
+                return Err(Error::LimitExceeded);
+            }
+        }
         for stage in info.stages {
             check_specialization_constants(&stage)?;
         }

@@ -18,6 +18,13 @@ impl RenderPass {
         device: &Arc<Device>,
         info: &RenderPassCreateInfo,
     ) -> Result<Arc<Self>> {
+        for subpass in info.subpasses {
+            if subpass.color_attachments.len()
+                > device.limits().max_color_attachments
+            {
+                return Err(Error::LimitExceeded);
+            }
+        }
         let compat = RenderPassCompat::new(info)?;
         let mut handle = None;
         unsafe {

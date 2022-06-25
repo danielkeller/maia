@@ -121,7 +121,7 @@ impl DescriptorSetLayout {
         self.handle.borrow()
     }
     /// Returns the number of dynamic offsets the descriptor set will require.
-    pub fn num_dynamic_offsets(&self) -> u32 {
+    pub(crate) fn num_dynamic_offsets(&self) -> u32 {
         let mut result = 0;
         for b in &self.bindings {
             if b.descriptor_type == DescriptorType::UNIFORM_BUFFER_DYNAMIC
@@ -133,7 +133,7 @@ impl DescriptorSetLayout {
         result
     }
     /// Returns the number of bindings of the specified type and stage.
-    pub fn num_bindings(
+    pub(crate) fn num_bindings(
         &self,
         descriptor_type: DescriptorType,
         stage_flags: ShaderStageFlags,
