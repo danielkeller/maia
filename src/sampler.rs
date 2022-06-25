@@ -16,14 +16,19 @@ impl Sampler {
         device: &Arc<Device>,
         info: &SamplerCreateInfo,
     ) -> Result<Arc<Self>> {
+        device.increment_sampler_alloc_count()?;
         let mut handle = None;
-        unsafe {
+        let result = unsafe {
             (device.fun.create_sampler)(
                 device.handle(),
                 info,
                 None,
                 &mut handle,
-            )?;
+            )
+        };
+        if result.is_err() {
+            device.decrement_sampler_alloc_count();
+            result?
         }
         Ok(Arc::new(Self { handle: handle.unwrap(), device: device.clone() }))
     }
@@ -38,6 +43,7 @@ impl Drop for Sampler {
                 None,
             )
         }
+        self.device.decrement_sampler_alloc_count();
     }
 }
 

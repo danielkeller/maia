@@ -70,6 +70,7 @@ impl Drop for MemoryLifetime {
                 None,
             )
         }
+        self.device.decrement_memory_alloc_count();
     }
 }
 

@@ -14,6 +14,7 @@ pub struct Device {
     physical_device: PhysicalDevice,
     limits: PhysicalDeviceLimits,
     memory_allocation_count: AtomicU32,
+    sampler_allocation_count: AtomicU32,
     queues: Vec<u32>,
 }
 
@@ -81,6 +82,7 @@ impl Device {
             physical_device: phy.clone(),
             limits: phy.properties().limits,
             memory_allocation_count: AtomicU32::new(0),
+            sampler_allocation_count: AtomicU32::new(0),
             queues,
         });
         let queues = info
@@ -133,5 +135,21 @@ impl Device {
     pub(crate) fn decrement_memory_alloc_count(&self) {
         use std::sync::atomic::Ordering;
         self.memory_allocation_count.fetch_sub(1, Ordering::Relaxed);
+    }
+    pub(crate) fn increment_sampler_alloc_count(&self) -> Result<()> {
+        use std::sync::atomic::Ordering;
+        // Reserve allocation number 'val'.
+        // Overflow is incredibly unlikely here
+        let val = self.sampler_allocation_count.fetch_add(1, Ordering::Relaxed);
+        if val >= self.limits.max_sampler_allocation_count {
+            self.sampler_allocation_count.fetch_sub(1, Ordering::Relaxed);
+            Err(Error::LimitExceeded)
+        } else {
+            Ok(())
+        }
+    }
+    pub(crate) fn decrement_sampler_alloc_count(&self) {
+        use std::sync::atomic::Ordering;
+        self.sampler_allocation_count.fetch_sub(1, Ordering::Relaxed);
     }
 }
