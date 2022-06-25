@@ -26,9 +26,15 @@ pub enum Error {
     #[doc = crate::man_link!(VkResult)]
     OutOfHostMemory,
     #[doc = crate::man_link!(VkResult)]
+    OutOfDeviceMemory,
+    #[doc = crate::man_link!(VkResult)]
     InitializationFailed,
     #[doc = crate::man_link!(VkResult)]
     ExtensionNotPresent,
+    #[doc = crate::man_link!(VkResult)]
+    FeatureNotPresent,
+    #[doc = crate::man_link!(VkResult)]
+    IncompatibleDriver,
     #[doc = crate::man_link!(VkResult)]
     DeviceLost,
     #[doc = crate::man_link!(VkResult)]
@@ -57,9 +63,12 @@ impl From<VkError> for Error {
             2 => Self::Timeout,
             5 => Self::Incomplete,
             -1 => Self::OutOfHostMemory,
+            -2 => Self::OutOfDeviceMemory,
             -3 => Self::InitializationFailed,
             -4 => Self::DeviceLost,
             -7 => Self::ExtensionNotPresent,
+            -8 => Self::FeatureNotPresent,
+            -9 => Self::IncompatibleDriver,
             -1000000000 => Self::SurfaceLostKHR,
             -1000069000 => Self::OutOfPoolMemory,
             1000001003 => Self::SuboptimalHKR,
