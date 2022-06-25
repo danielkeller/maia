@@ -1,6 +1,6 @@
 # Maia
 
-![Crates.io](https://img.shields.io/crates/v/maia) ![docs.rs](https://img.shields.io/docsrs/maia) ![GitHub Workflow Status](https://img.shields.io/github/workflow/status/danielkeller/maia/CI)
+[![Crates.io](https://img.shields.io/crates/v/maia)](https://crates.io/crates/maia) [![docs.rs](https://img.shields.io/docsrs/maia)](https://docs.rs/maia/) [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/danielkeller/maia/CI)](https://github.com/danielkeller/maia/actions/workflows/ci.yml)
 
 Safe, low-level Vulkan bindings. The general properties of this library are
 
