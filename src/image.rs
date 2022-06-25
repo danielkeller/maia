@@ -171,7 +171,7 @@ impl ImageWithoutMemory {
             memory_type_index,
         ) {
             Ok(memory) => memory,
-            Err(err) => return Err(ErrorAndSelf(err.into(), self)),
+            Err(err) => return Err(ErrorAndSelf(err, self)),
         };
         // Don't need to check requirements
         Image::bind_image_impl(self, &memory, 0)

@@ -22,7 +22,7 @@ impl KHRXlibSurface {
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
         Self {
-            fun: XlibSurfaceFn::new(&instance),
+            fun: XlibSurfaceFn::new(instance),
             instance: instance.clone(),
         }
     }

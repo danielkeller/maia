@@ -90,6 +90,7 @@ impl Drop for BufferWithoutMemory {
     }
 }
 
+#[allow(clippy::len_without_is_empty)]
 impl Buffer {
     /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkBuffer> {
@@ -141,7 +142,7 @@ impl BufferWithoutMemory {
             memory_type_index,
         ) {
             Ok(memory) => memory,
-            Err(err) => return Err(ErrorAndSelf(err.into(), self)),
+            Err(err) => return Err(ErrorAndSelf(err, self)),
         };
         // Don't need to check requirements
         Buffer::bind_buffer_impl(self, &memory, 0)

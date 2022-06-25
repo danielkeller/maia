@@ -659,8 +659,8 @@ impl<'a> CommandRecording<'a> {
                 self.buffer.handle.borrow_mut(),
                 first_binding,
                 buffers.len() as u32,
-                Array::from_slice(&buffers).ok_or(Error::InvalidArgument)?,
-                Array::from_slice(&offsets).ok_or(Error::InvalidArgument)?,
+                Array::from_slice(buffers).ok_or(Error::InvalidArgument)?,
+                Array::from_slice(offsets).ok_or(Error::InvalidArgument)?,
             )
         }
         Ok(())
@@ -759,7 +759,7 @@ impl<'a> Bindings<'a> {
             .iter()
             .zip(layouts.iter())
             .position(|(a, b)| a != b)
-            .unwrap_or(self.layout.len().min(layouts.len()));
+            .unwrap_or_else(|| self.layout.len().min(layouts.len()));
         if i < end {
             // Some bindings were invalidated
             self.layout.clear();
@@ -919,7 +919,7 @@ impl<'a> Bindings<'a> {
                 return Ok(());
             }
         }
-        return Err(Error::InvalidState);
+        Err(Error::InvalidState)
     }
     fn check_render_pass(&self, pass: &RenderPass, subpass: u32) -> Result<()> {
         if let Some(pipeline) = self.pipeline.as_ref() {
@@ -927,7 +927,7 @@ impl<'a> Bindings<'a> {
                 return Ok(());
             }
         }
-        return Err(Error::InvalidState);
+        Err(Error::InvalidState)
     }
 }
 

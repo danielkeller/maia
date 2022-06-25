@@ -34,7 +34,8 @@ impl<'a> Str<'a> {
     pub fn from(s: &'a str) -> Result<Self, <Self as TryFrom<&str>>::Error> {
         s.try_into()
     }
-    // TODO: const checked constructor
+    /// # Safety
+    /// The slice must be nul terminated and not contain nul bytes
     pub const unsafe fn new_unchecked(b: &'a [u8]) -> Self {
         Str {
             _ptr: NonNull::new_unchecked(
@@ -128,6 +129,9 @@ impl<T, const N: usize> InlineSlice<T, N> {
     pub fn len(&self) -> u32 {
         self.count
     }
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
     /// Convert back into a normal rust slice
     #[inline]
     pub fn as_slice(&self) -> &[T] {
@@ -148,7 +152,7 @@ impl<'a, T, const N: usize> std::iter::IntoIterator for &'a InlineSlice<T, N> {
     type Item = &'a T;
     type IntoIter = std::slice::Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        self.as_slice().into_iter()
+        self.as_slice().iter()
     }
 }
 
@@ -200,6 +204,9 @@ impl<'a, T> Slice<'a, T> {
     pub fn len(&self) -> u32 {
         self.count
     }
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
     /// Convert back into a normal rust slice
     pub fn as_slice(&self) -> &'a [T] {
         unsafe {
@@ -247,7 +254,7 @@ impl<'a, T> std::iter::IntoIterator for Slice<'a, T> {
     type Item = &'a T;
     type IntoIter = std::slice::Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        self.as_slice().into_iter()
+        self.as_slice().iter()
     }
 }
 
@@ -297,6 +304,9 @@ impl<'a, T> Slice_<'a, T> {
     pub fn len(&self) -> u32 {
         self.count
     }
+    pub fn is_empty(&self) -> bool {
+        self.count == 0
+    }
     /// Convert back into a normal rust slice
     pub fn as_slice(&self) -> &'a [T] {
         unsafe {
@@ -339,7 +349,7 @@ impl<'a, T> std::iter::IntoIterator for Slice_<'a, T> {
     type Item = &'a T;
     type IntoIter = std::slice::Iter<'a, T>;
     fn into_iter(self) -> Self::IntoIter {
-        self.as_slice().into_iter()
+        self.as_slice().iter()
     }
 }
 
@@ -397,6 +407,9 @@ impl<'a> Bytes<'a> {
     }
     pub fn len(&self) -> usize {
         self.len
+    }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
     }
     /// Convert back into a normal rust slice
     pub fn as_slice(&self) -> &'a [u8] {
@@ -476,6 +489,8 @@ impl<'a, T> Array<'a, T> {
         }
     }
     /// Convert back into a normal rust slice
+    /// # Safety
+    /// 'len' must be less than or equal to the original length.
     pub unsafe fn as_slice(self, len: u32) -> &'a [T] {
         std::slice::from_raw_parts(self._ptr.as_ptr(), len as usize)
     }

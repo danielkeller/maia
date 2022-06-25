@@ -108,10 +108,10 @@ impl Queue {
         scratch.reset();
 
         // This needs to stay in a Vec because its destructor is important
-        let mut recordings = bumpalo::vec![in &scratch];
-        let mut vk_infos = bumpalo::vec![in &scratch];
+        let mut recordings = bumpalo::vec![in scratch];
+        let mut vk_infos = bumpalo::vec![in scratch];
         for info in infos.iter_mut() {
-            let mut commands = bumpalo::vec![in &scratch];
+            let mut commands = bumpalo::vec![in scratch];
             for c in info.commands.iter_mut() {
                 recordings
                     .push(c.lock_resources().ok_or(Error::InvalidArgument)?);
@@ -163,7 +163,7 @@ impl Queue {
         }
         self.resources.extend(recordings.into_iter());
 
-        Ok(fence.to_pending(self.resources.new_cleanup()))
+        Ok(fence.into_pending(self.resources.new_cleanup()))
     }
 }
 

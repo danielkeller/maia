@@ -20,7 +20,7 @@ impl KHRWin32Surface {
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
         Self {
-            fun: Win32SurfaceFn::new(&instance),
+            fun: Win32SurfaceFn::new(instance),
             instance: instance.clone(),
         }
     }

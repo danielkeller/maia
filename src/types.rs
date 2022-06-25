@@ -79,11 +79,13 @@ impl<T: Copy> Handle<T> {
     pub fn borrow_mut(&mut self) -> Mut<'_, T> {
         Mut { _value: self._value, _lt: PhantomData }
     }
+    /// # Safety
     /// The caller must ensure that uses of the result are externally
     /// synchronized as defined by Vulkan.
     pub unsafe fn clone(&self) -> Self {
         Self { ..*self }
     }
+    /// # Safety
     /// The caller must ensure that uses of the result are externally
     /// synchronized as defined by Vulkan.
     pub unsafe fn borrow_mut_unchecked(&self) -> Mut<'_, T> {
@@ -126,6 +128,7 @@ impl<'a, T: Copy> Mut<'a, T> {
     pub fn reborrow_mut(&mut self) -> Mut<'_, T> {
         Self { ..*self }
     }
+    /// # Safety
     /// The caller must ensure that uses of the result are externally
     /// synchronized as defined by Vulkan. Note that this is more unsafe than
     /// the other unchecked borrows, since it allows the lifetime to be extended

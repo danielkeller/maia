@@ -88,6 +88,7 @@ unsafe impl Sync for MappedMemory {}
 impl std::panic::UnwindSafe for MappedMemory {}
 impl std::panic::RefUnwindSafe for MappedMemory {}
 
+#[allow(clippy::len_without_is_empty)]
 impl DeviceMemory {
     /// Map the memory so it can be written to. Returns [Error::OutOfBounds] if
     /// 'offset' and 'size' are out of bounds.

@@ -22,7 +22,7 @@ impl KHRWaylandSurface {
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
         Self {
-            fun: WaylandSurfaceFn::new(&instance),
+            fun: WaylandSurfaceFn::new(instance),
             instance: instance.clone(),
         }
     }

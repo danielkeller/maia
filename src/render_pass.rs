@@ -106,7 +106,7 @@ fn att_ref_array_compat(
             return false;
         }
     }
-    return true;
+    true
 }
 
 impl PartialEq for SubpassCompat {

@@ -1,3 +1,5 @@
+#![allow(clippy::redundant_allocation)]
+
 use std::cell::Cell;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -6,14 +8,14 @@ use std::sync::Arc;
 pub struct CleanupQueue {
     cursor: usize,
     level: u64,
-    array: Arc<Box<[QueueEntry]>>,
+    array: Arc<Vec<QueueEntry>>,
 }
 
 #[derive(Debug)]
 pub struct Cleanup {
     cursor: usize,
     level: u64,
-    array: Arc<Box<[QueueEntry]>>,
+    array: Arc<Vec<QueueEntry>>,
 }
 
 /// Cleans up on drop
@@ -48,10 +50,10 @@ impl Default for QueueEntry {
 }
 
 impl CleanupQueue {
-    fn new_array(capacity: usize) -> Arc<Box<[QueueEntry]>> {
+    fn new_array(capacity: usize) -> Arc<Vec<QueueEntry>> {
         let mut vec = Vec::new();
         vec.resize_with(capacity.max(1), Default::default);
-        Arc::new(vec.into_boxed_slice())
+        Arc::new(vec)
     }
 
     pub fn new(capacity: usize) -> Self {

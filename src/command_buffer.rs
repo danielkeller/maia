@@ -256,7 +256,8 @@ impl CommandPool {
         if !Owner::ptr_eq(&self.res, &buffer.0.pool) {
             return Err(Error::InvalidArgument);
         }
-        Ok(self.free_impl(buffer.mut_handle()?))
+        self.free_impl(buffer.mut_handle()?);
+        Ok(())
     }
 
     #[doc = crate::man_link!(vkFreeCommandBuffers)]
@@ -267,7 +268,8 @@ impl CommandPool {
         if !Owner::ptr_eq(&self.res, &buffer.buf.pool) {
             return Err(Error::InvalidArgument);
         }
-        Ok(self.free_impl(buffer.mut_handle()?))
+        self.free_impl(buffer.mut_handle()?);
+        Ok(())
     }
 
     fn free_impl(&mut self, buffer: Mut<VkCommandBuffer>) {
@@ -286,10 +288,10 @@ impl CommandPool {
     /// pool or is in the executable state. Returns
     /// [Error::SynchronizationError] if the buffer is in the pending state.
     #[doc = crate::man_link!(vkBeginCommandBuffer)]
-    pub fn begin<'a>(
-        &'a mut self,
+    pub fn begin(
+        &mut self,
         buffer: CommandBuffer,
-    ) -> ResultAndSelf<CommandRecording<'a>, CommandBuffer> {
+    ) -> ResultAndSelf<CommandRecording<'_>, CommandBuffer> {
         if !Owner::ptr_eq(&self.res, &buffer.0.pool)
             // In executable state
             || buffer.lock_resources().is_some()

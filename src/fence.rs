@@ -58,7 +58,7 @@ impl Fence {
     pub fn mut_handle(&mut self) -> Mut<VkFence> {
         self.handle.as_mut().unwrap().borrow_mut()
     }
-    pub(crate) fn to_pending(mut self, resources: Cleanup) -> PendingFence {
+    pub(crate) fn into_pending(mut self, resources: Cleanup) -> PendingFence {
         PendingFence {
             handle: self.handle.take().unwrap(),
             device: self.device.clone(),

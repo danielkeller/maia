@@ -123,6 +123,7 @@ fn load(instance: Option<Ref<VkInstance>>, name: &str) -> NonNull<c_void> {
     })
 }
 
+#[allow(clippy::type_complexity)]
 pub struct DeviceFn {
     pub destroy_device: unsafe extern "system" fn(
         Mut<VkDevice>,

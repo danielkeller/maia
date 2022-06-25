@@ -208,7 +208,7 @@ impl PipelineLayout {
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 
@@ -294,7 +294,7 @@ impl Pipeline {
             }
         }
         for stage in info.stages {
-            check_specialization_constants(&stage)?;
+            check_specialization_constants(stage)?;
         }
         let vk_info = VkGraphicsPipelineCreateInfo {
             stype: Default::default(),

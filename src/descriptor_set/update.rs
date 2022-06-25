@@ -122,7 +122,7 @@ pub struct DescriptorSetUpdates<'a> {
 impl DescriptorSetUpdateBuilder {
     /// Begin creating a call to vkUpdateDescriptorSets. Since these calls are
     /// expensive, try to combine them as much as possible.
-    pub fn begin<'a>(&'a mut self) -> DescriptorSetUpdates<'a> {
+    pub fn begin(&mut self) -> DescriptorSetUpdates<'_> {
         let bump = &*self.scratch.get_mut();
         DescriptorSetUpdates {
             device: &self.device,

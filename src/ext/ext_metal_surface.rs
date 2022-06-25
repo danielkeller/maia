@@ -18,7 +18,7 @@ impl EXTMetalSurface {
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
         Self {
-            fun: MetalSurfaceFn::new(&instance),
+            fun: MetalSurfaceFn::new(instance),
             instance: instance.clone(),
         }
     }
