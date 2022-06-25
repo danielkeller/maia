@@ -16,8 +16,76 @@ use bumpalo::collections::Vec as BumpVec;
 
 /// An object to build calls to vkUpdateDescriptorSets. It's best to re-use it
 /// as much as possible, since it holds onto some memory to avoid allocating.
-///  
+///
 #[doc = crate::man_link!(vkUpdateDescriptorSets)]
+///
+/// ```rust
+/// # use ember::vk;
+/// # let instance = vk::Instance::new(&Default::default())?;
+/// # let (device, _) = vk::Device::new(
+/// #     &instance.enumerate_physical_devices()?[0], &Default::default())?;
+/// # let layout = vk::DescriptorSetLayout::new(
+/// #     &device,
+/// #     vec![vk::DescriptorSetLayoutBinding {
+/// #         descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+/// #         descriptor_count: 1,
+/// #         stage_flags: vk::ShaderStageFlags::VERTEX,
+/// #         immutable_samplers: vec![],
+/// #     },
+/// #     vk::DescriptorSetLayoutBinding {
+/// #         descriptor_type: vk::DescriptorType::SAMPLER,
+/// #         descriptor_count: 1,
+/// #         stage_flags: vk::ShaderStageFlags::FRAGMENT,
+/// #         immutable_samplers: vec![],
+/// #     }],
+/// # )?;
+/// # let mut pool = vk::DescriptorPool::new(
+/// #     &device,
+/// #     2,
+/// #     &[vk::DescriptorPoolSize {
+/// #         descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+/// #         descriptor_count: 2,
+/// #     },
+/// #     vk::DescriptorPoolSize {
+/// #         descriptor_type: vk::DescriptorType::SAMPLER,
+/// #         descriptor_count: 2,
+/// #     }],
+/// # )?;
+/// let mut desc_set1 = vk::DescriptorSet::new(&mut pool, &layout)?;
+/// let mut desc_set2 = vk::DescriptorSet::new(&mut pool, &layout)?;
+/// # let buffer = vk::BufferWithoutMemory::new(&device, &vk::BufferCreateInfo {
+/// #         size: 256,
+/// #         ..Default::default()
+/// #     })?.allocate_memory(0)?;
+/// # let sampler = vk::Sampler::new(&device, &Default::default())?;
+/// let mut update = vk::DescriptorSetUpdateBuilder::new(&device);
+/// update
+///     .begin()
+///     .dst_set(&mut desc_set1)
+///         .uniform_buffers(
+///             0,
+///             0,
+///             &[vk::DescriptorBufferInfo {
+///                 buffer: &buffer,
+///                 offset: 0,
+///                 range: buffer.len(),
+///             }],
+///         )?
+///         .samplers(1, 0, &[&sampler])?
+///     .dst_set(&mut desc_set2)
+///         .uniform_buffers(
+///             0,
+///             0,
+///             &[vk::DescriptorBufferInfo {
+///                 buffer: &buffer,
+///                 offset: 0,
+///                 range: buffer.len(),
+///             }],
+///         )?
+///         .samplers(1, 0, &[&sampler])?
+///     .end();
+/// # Ok::<_, vk::Error>(())
+/// ```
 pub struct DescriptorSetUpdateBuilder {
     pub(crate) device: Arc<Device>,
     pub(crate) scratch: Exclusive<bumpalo::Bump>,

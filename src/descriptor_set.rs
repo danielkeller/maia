@@ -222,6 +222,9 @@ impl DescriptorPool {
 /// A
 #[doc = concat!(crate::spec_link!("descriptor set", "descriptorsets-sets"), ".")]
 ///
+/// The descriptor set may be written to by creating a
+/// [DescriptorSetUpdateBuilder](crate::vk::DescriptorSetUpdateBuilder).
+///
 /// Any resources that are written into the descriptor set have their reference
 /// count incremented and held by the set. To decrement the count and allow the
 /// resources to be freed, the descriptor set must be dropped. (Note that calling

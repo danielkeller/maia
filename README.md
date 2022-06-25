@@ -17,27 +17,22 @@ To begin using the API, create an instance object with [vk::Instance::new()](cra
 
 To enable validation layers for debugging, set the environment variable `VK_INSTANCE_LAYERS="VK_LAYER_KHRONOS_validation"`.
 
-### To run the demos
+#### To run the demos
 
 To compile shaders in the demos, either CMake or the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) must be installed.
 
-### On Linux
+#### On Linux
 
 To build, install your distro's Vulkan development libaries (eg for Debian, `sudo apt install libvulkan-dev`). You will also probably want to install the validation layers, either from the distro (eg `sudo apt install vulkan-validationlayers`) or by installing the Vulkan SDK.
 
 To run, a Vulkan-compatible graphics driver should suffice.
 
-### On MacOS
+#### On MacOS
 
 To build, install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home), and enable the "System Global Files" option during installation.
 
-To run, you will probably want to include the Vulkan loader and MoltenVK into your .app bundle. To do so, add the following to your binary's `build.rs` so the binary can find the dylibs:
-```rust
-println!("cargo:rustc-link-arg=-rpath");
-println!("cargo:rustc-link-arg=@executable_path/../Frameworks");
-```
-and copy the dylibs into `Frameworks`. An example `build.rs` and shell script to do this can be found in the `demo/` directory.
+To run, you will probably want to include the Vulkan loader and MoltenVK into your .app bundle. Full instructions are available [here](macos_instructions), and an example can be found in the `demo/` directory.
 
-### On Windows
+#### On Windows
 
 A Vulkan-compatible graphics driver is sufficient to build and run. You will probably want to install the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) for validation layers, though.

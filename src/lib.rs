@@ -1,5 +1,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![doc = include_str!("../README.md")]
+#![doc = include_str!("../INDEX.md")]
 #![doc = include_str!("../hello-triangle/README.md")]
 #![doc = "```rust"]
 #![doc = include_str!("../hello-triangle/src/main.rs")]
@@ -33,6 +34,8 @@ mod types;
 #[cfg_attr(docsrs, doc(cfg(feature = "window")))]
 pub mod window;
 pub mod ext;
+#[cfg(doc)]
+pub mod macos_instructions;
 
 use crate::error::Result;
 use crate::types::*;
