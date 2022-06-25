@@ -22,6 +22,7 @@ jobs:
         with:
           toolchain: ${{matrix.rust}}
           components: rust-src
+      - run: sudo apt install -y libvulkan-dev
       - run: cargo test
 
   build:
@@ -37,6 +38,7 @@ jobs:
         with:
           toolchain: ${{matrix.rust}}
           components: rust-src
+      - run: sudo apt install -y libvulkan-dev
       - run: cargo check
 
   windows:
