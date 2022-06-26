@@ -80,7 +80,7 @@ pub fn presentation_support(
         },
         RawWindowHandle::Win32(_) => KHRWin32Surface::new(phy.instance())
             .presentation_support(phy, queue_family_index),
-        _ => false,
+        handle => panic!("Unimplemented window handle type: {:?}", handle),
     }
 }
 
