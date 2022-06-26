@@ -89,7 +89,7 @@ pub(crate) fn test_device() -> Result<(Arc<device::Device>, queue::Queue)> {
 
 pub mod vk {
     pub use crate::buffer::{Buffer, BufferWithoutMemory};
-    pub use crate::command_buffer::command::{
+    pub use crate::command_buffer::barrier::{
         BufferMemoryBarrier, ImageMemoryBarrier,
     };
     pub use crate::command_buffer::{

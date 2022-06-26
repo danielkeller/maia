@@ -13,7 +13,10 @@ use crate::render_pass::RenderPass;
 use crate::subobject::{Owner, Subobject};
 use crate::types::*;
 
-pub mod command;
+mod transfer;
+pub mod barrier;
+mod bind;
+mod draw;
 
 /// A command pool.
 ///
