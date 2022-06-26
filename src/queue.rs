@@ -173,30 +173,20 @@ mod test {
 
     #[test]
     fn cmd_state() -> vk::Result<()> {
-        let inst = vk::Instance::new(&Default::default())?;
-        let (dev, mut qs) = vk::Device::new(
-            &inst.enumerate_physical_devices()?[0],
-            &vk::DeviceCreateInfo {
-                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
-                    queue_priorities: vk::slice(&[1.0]),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            },
-        )?;
+        let (dev, mut q) = crate::test_device()?;
         let mut pool = vk::CommandPool::new(&dev, 0)?;
         assert!(pool.reset(Default::default()).is_ok());
         let buf = pool.allocate()?;
         let mut buf = pool.begin(buf)?.end()?;
 
-        let fence = qs[0][0].submit(
+        let fence = q.submit(
             &mut [vk::SubmitInfo {
                 commands: &mut [&mut buf],
                 ..Default::default()
             }],
             vk::Fence::new(&dev)?,
         )?;
-        assert!(qs[0][0]
+        assert!(q
             .submit(
                 &mut [vk::SubmitInfo {
                     commands: &mut [&mut buf],
@@ -210,7 +200,7 @@ mod test {
         fence.wait()?;
         assert!(pool.reset(Default::default()).is_ok());
 
-        assert!(qs[0][0]
+        assert!(q
             .submit(
                 &mut [vk::SubmitInfo {
                     commands: &mut [&mut buf],
@@ -225,19 +215,9 @@ mod test {
 
     #[test]
     fn signaller() -> vk::Result<()> {
-        let inst = vk::Instance::new(&Default::default())?;
-        let (dev, mut qs) = vk::Device::new(
-            &inst.enumerate_physical_devices()?[0],
-            &vk::DeviceCreateInfo {
-                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
-                    queue_priorities: vk::slice(&[1.0]),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            },
-        )?;
+        let (dev, mut q) = crate::test_device()?;
         let mut sem = vk::Semaphore::new(&dev)?;
-        assert!(qs[0][0]
+        assert!(q
             .submit(
                 &mut [vk::SubmitInfo {
                     signal: &mut [&mut sem],
@@ -246,7 +226,7 @@ mod test {
                 vk::Fence::new(&dev)?,
             )
             .is_ok());
-        assert!(qs[0][0]
+        assert!(q
             .submit(
                 &mut [vk::SubmitInfo {
                     signal: &mut [&mut sem],
@@ -255,7 +235,7 @@ mod test {
                 vk::Fence::new(&dev)?,
             )
             .is_err());
-        assert!(qs[0][0]
+        assert!(q
             .submit(
                 &mut [vk::SubmitInfo {
                     wait: &mut [(&mut sem, Default::default())],
@@ -264,7 +244,7 @@ mod test {
                 vk::Fence::new(&dev)?,
             )
             .is_ok());
-        assert!(qs[0][0]
+        assert!(q
             .submit(
                 &mut [vk::SubmitInfo {
                     wait: &mut [(&mut sem, Default::default())],

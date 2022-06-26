@@ -1253,3 +1253,343 @@ impl<'a> ExternalRenderPassRecording<'a> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::vk;
+    use std::sync::Arc;
+
+    #[test]
+    fn bounds_check() -> vk::Result<()> {
+        let (dev, _) = crate::test_device()?;
+        let buf = vk::BufferWithoutMemory::new(
+            &dev,
+            &vk::BufferCreateInfo { size: 1024, ..Default::default() },
+        )?
+        .allocate_memory(0)?;
+        let img = vk::ImageWithoutMemory::new(
+            &dev,
+            &vk::ImageCreateInfo {
+                extent: vk::Extent3D { width: 512, height: 512, depth: 1 },
+                format: vk::Format::R8G8B8A8_SRGB,
+                mip_levels: 10,
+                ..Default::default()
+            },
+        )?
+        .allocate_memory(0)?;
+        let mut pool = vk::CommandPool::new(&dev, 0)?;
+        let cmd = pool.allocate()?;
+        let mut rec = pool.begin(cmd)?;
+        assert!(rec.fill_buffer(&buf, 100, Some(1024), 42).is_err());
+        assert!(rec.fill_buffer(&buf, 2000, None, 42).is_err());
+        assert!(rec
+            .copy_buffer(
+                &buf,
+                &buf,
+                &[vk::BufferCopy {
+                    size: 1024,
+                    src_offset: 0,
+                    dst_offset: 100
+                }]
+            )
+            .is_err());
+        assert!(rec
+            .copy_buffer(
+                &buf,
+                &buf,
+                &[vk::BufferCopy {
+                    size: 1024,
+                    src_offset: 100,
+                    dst_offset: 0
+                }]
+            )
+            .is_err());
+        assert!(rec
+            .copy_buffer_to_image(
+                &buf,
+                &img,
+                vk::ImageLayout::GENERAL,
+                &[vk::BufferImageCopy {
+                    image_offset: vk::Offset3D { x: 5, y: 0, z: 0 },
+                    image_extent: vk::Extent3D {
+                        width: 512,
+                        height: 512,
+                        depth: 1
+                    },
+                    ..Default::default()
+                }]
+            )
+            .is_err());
+        assert!(rec
+            .copy_buffer_to_image(
+                &buf,
+                &img,
+                vk::ImageLayout::GENERAL,
+                &[vk::BufferImageCopy {
+                    image_extent: vk::Extent3D {
+                        width: 512,
+                        height: 512,
+                        depth: 1
+                    },
+                    image_subresource: vk::ImageSubresourceLayers {
+                        layer_count: 4,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }]
+            )
+            .is_err());
+        assert!(rec
+            .copy_buffer_to_image(
+                &buf,
+                &img,
+                vk::ImageLayout::GENERAL,
+                &[vk::BufferImageCopy {
+                    image_extent: vk::Extent3D {
+                        width: 512,
+                        height: 512,
+                        depth: 1
+                    },
+                    ..Default::default()
+                }]
+            )
+            .is_err());
+
+        Ok(())
+    }
+
+    const SPV: &[u32] = &[
+        0x07230203, 0x00010000, 0x000d000a, 0x00000006, 0x00000000, 0x00020011,
+        0x00000001, 0x0006000b, 0x00000001, 0x4c534c47, 0x6474732e, 0x3035342e,
+        0x00000000, 0x0003000e, 0x00000000, 0x00000001, 0x0005000f, 0x00000005,
+        0x00000004, 0x6e69616d, 0x00000000, 0x00060010, 0x00000004, 0x00000011,
+        0x00000001, 0x00000001, 0x00000001, 0x00030003, 0x00000002, 0x000001c2,
+        0x000a0004, 0x475f4c47, 0x4c474f4f, 0x70635f45, 0x74735f70, 0x5f656c79,
+        0x656e696c, 0x7269645f, 0x69746365, 0x00006576, 0x00080004, 0x475f4c47,
+        0x4c474f4f, 0x6e695f45, 0x64756c63, 0x69645f65, 0x74636572, 0x00657669,
+        0x00040005, 0x00000004, 0x6e69616d, 0x00000000, 0x00020013, 0x00000002,
+        0x00030021, 0x00000003, 0x00000002, 0x00050036, 0x00000002, 0x00000004,
+        0x00000000, 0x00000003, 0x000200f8, 0x00000005, 0x000100fd, 0x00010038,
+    ];
+
+    #[test]
+    fn descriptor_set_typecheck() -> vk::Result<()> {
+        let (dev, _) = crate::test_device()?;
+        let mut cmd_pool = vk::CommandPool::new(&dev, 0)?;
+
+        let ds_layout1 = vk::DescriptorSetLayout::new(
+            &dev,
+            vec![vk::DescriptorSetLayoutBinding {
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                immutable_samplers: vec![vk::Sampler::new(
+                    &dev,
+                    &Default::default(),
+                )?],
+            }],
+        )?;
+
+        let ds_layout2 = vk::DescriptorSetLayout::new(
+            &dev,
+            vec![vk::DescriptorSetLayoutBinding {
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                immutable_samplers: vec![],
+            }],
+        )?;
+
+        let pipe_layout1 = vk::PipelineLayout::new(
+            &dev,
+            Default::default(),
+            vec![ds_layout1.clone()],
+            vec![],
+        )?;
+        let pipe_layout2 = vk::PipelineLayout::new(
+            &dev,
+            Default::default(),
+            vec![ds_layout1.clone(), ds_layout2.clone()],
+            vec![],
+        )?;
+        let pipe_layout3 = vk::PipelineLayout::new(
+            &dev,
+            Default::default(),
+            vec![ds_layout2.clone(), ds_layout2.clone()],
+            vec![],
+        )?;
+        let pipe = vk::Pipeline::new_compute(
+            vk::PipelineShaderStageCreateInfo::compute(
+                &vk::ShaderModule::new(&dev, SPV).unwrap(),
+            ),
+            &pipe_layout2,
+            None,
+        )
+        .unwrap();
+
+        let buf = vk::BufferWithoutMemory::new(
+            &dev,
+            &vk::BufferCreateInfo { size: 1024, ..Default::default() },
+        )?
+        .allocate_memory(0)?;
+        let img = vk::ImageWithoutMemory::new(
+            &dev,
+            &vk::ImageCreateInfo {
+                extent: vk::Extent3D { width: 512, height: 512, depth: 1 },
+                format: vk::Format::R8G8B8A8_SRGB,
+                mip_levels: 10,
+                ..Default::default()
+            },
+        )?
+        .allocate_memory(0)?;
+        let img = vk::ImageView::new(&img, &Default::default())?;
+        let mut desc_pool = vk::DescriptorPool::new(
+            &dev,
+            4,
+            &[
+                vk::DescriptorPoolSize {
+                    descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                    descriptor_count: 4,
+                },
+                vk::DescriptorPoolSize {
+                    descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                    descriptor_count: 4,
+                },
+            ],
+        )?;
+
+        let desc_set1 =
+            Arc::new(vk::DescriptorSet::new(&mut desc_pool, &ds_layout1)?);
+
+        let cmd = cmd_pool.allocate()?;
+        let mut rec = cmd_pool.begin(cmd)?;
+
+        // Can't bind uninitialized set
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout1,
+                0,
+                &[&desc_set1],
+                &[]
+            )
+            .is_err());
+
+        let mut desc_set1 =
+            vk::DescriptorSet::new(&mut desc_pool, &ds_layout1)?;
+        let mut desc_set2 =
+            vk::DescriptorSet::new(&mut desc_pool, &ds_layout2)?;
+
+        vk::DescriptorSetUpdateBuilder::new(&dev)
+            .begin()
+            .dst_set(&mut desc_set1)
+            .combined_image_samplers(0, 0, &[(&img, Default::default())])?
+            .dst_set(&mut desc_set2)
+            .uniform_buffers(
+                0,
+                0,
+                &[vk::DescriptorBufferInfo {
+                    buffer: &buf,
+                    offset: 0,
+                    range: 1024,
+                }],
+            )?
+            .end();
+
+        let desc_set1 = Arc::new(desc_set1);
+        let desc_set2 = Arc::new(desc_set2);
+
+        // Wrong layout
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout2,
+                1,
+                &[&desc_set1],
+                &[]
+            )
+            .is_err());
+
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout1,
+                0,
+                &[&desc_set1],
+                &[]
+            )
+            .is_ok());
+
+        rec.bind_pipeline(&pipe);
+
+        // Not everything bound
+        assert!(rec.dispatch(1, 1, 1).is_err());
+
+        // Invalidates earlier binding
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout3,
+                1,
+                &[&desc_set2],
+                &[]
+            )
+            .is_ok());
+        assert!(rec.dispatch(1, 1, 1).is_err());
+
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout1,
+                0,
+                &[&desc_set1],
+                &[]
+            )
+            .is_ok());
+        // Keeps earlier binding
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout2,
+                1,
+                &[&desc_set2],
+                &[]
+            )
+            .is_ok());
+        assert!(rec.dispatch(1, 1, 1).is_ok());
+
+        // Invalidate
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout3,
+                1,
+                &[&desc_set2],
+                &[]
+            )
+            .is_ok());
+
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout2,
+                1,
+                &[&desc_set2],
+                &[]
+            )
+            .is_ok());
+        // Keeps later binding
+        assert!(rec
+            .bind_descriptor_sets(
+                vk::PipelineBindPoint::COMPUTE,
+                &pipe_layout1,
+                0,
+                &[&desc_set1],
+                &[]
+            )
+            .is_ok());
+        assert!(rec.dispatch(1, 1, 1).is_ok());
+
+        Ok(())
+    }
+}

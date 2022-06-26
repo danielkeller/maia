@@ -155,12 +155,7 @@ mod test {
     use crate::vk;
     #[test]
     fn wrong_mem() {
-        let inst = vk::Instance::new(&Default::default()).unwrap();
-        let (dev, _) = vk::Device::new(
-            &inst.enumerate_physical_devices().unwrap()[0],
-            &Default::default(),
-        )
-        .unwrap();
+        let (dev, _) = crate::test_device().unwrap();
         let buf = vk::BufferWithoutMemory::new(
             &dev,
             &BufferCreateInfo { size: 256, ..Default::default() },

@@ -246,9 +246,7 @@ impl DescriptorSet {
         pool: &mut DescriptorPool,
         layout: &Arc<DescriptorSetLayout>,
     ) -> Result<Self> {
-        if !Arc::ptr_eq(&pool.res.device, &layout.device) {
-            return Err(Error::InvalidArgument);
-        }
+        assert!(Arc::ptr_eq(&pool.res.device, &layout.device));
         let mut handle = MaybeUninit::uninit();
         let res = &mut *pool.res;
         let handle = unsafe {

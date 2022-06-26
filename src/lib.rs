@@ -71,6 +71,22 @@ pub fn instance_extension_properties() -> Result<Vec<ExtensionProperties>> {
     Ok(result)
 }
 
+#[cfg(test)]
+pub(crate) fn test_device() -> Result<(Arc<device::Device>, queue::Queue)> {
+    let inst = vk::Instance::new(&Default::default())?;
+    let (dev, mut qs) = vk::Device::new(
+        &inst.enumerate_physical_devices()?[0],
+        &vk::DeviceCreateInfo {
+            queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
+                queue_priorities: vk::slice(&[1.0]),
+                ..Default::default()
+            }]),
+            ..Default::default()
+        },
+    )?;
+    Ok((dev, qs.remove(0).remove(0)))
+}
+
 pub mod vk {
     pub use crate::buffer::{Buffer, BufferWithoutMemory};
     pub use crate::command_buffer::command::{

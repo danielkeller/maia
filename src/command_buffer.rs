@@ -685,17 +685,7 @@ mod test {
 
     #[test]
     fn secondary_reset() -> vk::Result<()> {
-        let inst = vk::Instance::new(&Default::default())?;
-        let (dev, _) = vk::Device::new(
-            &inst.enumerate_physical_devices()?[0],
-            &vk::DeviceCreateInfo {
-                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
-                    queue_priorities: vk::slice(&[1.0]),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            },
-        )?;
+        let (dev, _) = crate::test_device()?;
         let pass = vk::RenderPass::new(
             &dev,
             &vk::RenderPassCreateInfo {
@@ -752,17 +742,7 @@ mod test {
 
     #[test]
     fn subpass() -> vk::Result<()> {
-        let inst = vk::Instance::new(&Default::default())?;
-        let (dev, _) = vk::Device::new(
-            &inst.enumerate_physical_devices()?[0],
-            &vk::DeviceCreateInfo {
-                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
-                    queue_priorities: vk::slice(&[1.0]),
-                    ..Default::default()
-                }]),
-                ..Default::default()
-            },
-        )?;
+        let (dev, _) = crate::test_device()?;
         let pass = vk::RenderPass::new(
             &dev,
             &vk::RenderPassCreateInfo {

@@ -883,6 +883,18 @@ impl<'a> PipelineShaderStageCreateInfo<'a> {
             specialization_info: None,
         }
     }
+    /// Create a compute shader with entry point "main"
+    pub fn compute(module: &'a crate::shader::ShaderModule) -> Self {
+        Self {
+            stype: Default::default(),
+            next: Default::default(),
+            flags: Default::default(),
+            stage: ShaderStage::COMPUTE,
+            module: module.handle(),
+            name: Self::MAIN,
+            specialization_info: None,
+        }
+    }
 }
 
 #[repr(C)]
