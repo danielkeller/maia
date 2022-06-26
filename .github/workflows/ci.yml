@@ -9,25 +9,21 @@ env:
   RUSTFLAGS: -Dwarnings
 
 jobs:
-  test:
-    name: Rust ${{matrix.rust}}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        rust: [nightly, beta, stable, 1.60.0]
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{matrix.rust}}
-          components: rust-src
-      - uses: humbletim/setup-vulkan-sdk@v1.2.0
-        with:
-          vulkan-query-version: latest
-          vulkan-components: Vulkan-Loader
-          vulkan-use-cache: true
-      - run: cargo test
+  # test:
+  #   name: Rust ${{matrix.rust}}
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       rust: [nightly, beta, stable, 1.60.0]
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #     - uses: dtolnay/rust-toolchain@master
+  #       with:
+  #         toolchain: ${{matrix.rust}}
+  #         components: rust-src
+  #     - run: sudo apt install -y libvulkan-dev
+  #     - run: cargo test
 
   build:
     name: Rust ${{matrix.rust}}
