@@ -23,7 +23,7 @@ jobs:
           toolchain: ${{matrix.rust}}
           components: rust-src
       - run: sudo apt install -y libvulkan-dev mesa-vulkan-drivers
-      - run: cargo test
+      - run: cargo test --test
 
   build:
     name: Rust ${{matrix.rust}}
