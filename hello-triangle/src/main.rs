@@ -5,11 +5,13 @@ fn main() -> vk::Result<()> {
     let event_loop = EventLoop::new();
     let window = winit::window::Window::new(&event_loop).unwrap();
 
-    // Create the instance
     let mut instance_exts = vec![];
+    // Get the instance extensions needed to create a surface for the window
     instance_exts
         .extend(maia::window::required_instance_extensions(&window)?.iter());
+    // Get the instance extension needed by MoltenVK, if neccesary
     instance_exts.extend(required_instance_extensions()?.iter());
+    // Create the instance
     let inst = vk::Instance::new(&vk::InstanceCreateInfo {
         enabled_extension_names: vk::slice(&instance_exts),
         ..Default::default()
@@ -20,7 +22,9 @@ fn main() -> vk::Result<()> {
 
     // Pick an appropriate physical device
     let phy = pick_physical_device(&inst.enumerate_physical_devices()?);
+    // Pick a queue family that supports presenting to the surface
     let queue_family = pick_queue_family(&phy, &surf, &window)?;
+    // Make sure the surface format we want is supported
     if !surf.surface_formats(&phy)?.iter().any(|f| {
         f == &vk::SurfaceFormatKHR {
             format: vk::Format::B8G8R8A8_SRGB,
@@ -30,11 +34,13 @@ fn main() -> vk::Result<()> {
         panic!("Desired surface format not found");
     }
 
-    // Create the virtual device
+    // We need the swapchain extension, plus the extension needed by MoltenVK
     let device_extensions = required_device_extensions(&phy)?;
+    // Create the virtual device
     let (device, mut queues) = vk::Device::new(
         &phy,
         &vk::DeviceCreateInfo {
+            // Create one queue
             queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
                 queue_family_index: queue_family,
                 queue_priorities: vk::slice(&[1.0]),
@@ -62,6 +68,7 @@ fn main() -> vk::Result<()> {
             ..Default::default()
         },
     )?;
+    // We need one framebuffer per image, so put them in a hashmap
     let mut framebuffers = std::collections::HashMap::new();
 
     // Create the render pass
@@ -88,7 +95,7 @@ fn main() -> vk::Result<()> {
         },
     )?;
 
-    // Create the graphics pipeline
+    // Create the shader modules and graphics pipeline
     let vertex_shader = vk::ShaderModule::new(
         &device,
         inline_spirv::inline_spirv!(
@@ -156,6 +163,9 @@ fn main() -> vk::Result<()> {
             multisample_state: &Default::default(),
             depth_stencil_state: None,
             color_blend_state: &Default::default(),
+            // It's good practice to specify the viewport as dynamic state, so
+            // we don't need to recompile every pipeline when the window is
+            // resized
             dynamic_state: Some(&vk::PipelineDynamicStateCreateInfo {
                 dynamic_states: vk::slice(&[
                     vk::DynamicState::VIEWPORT,
@@ -198,6 +208,7 @@ fn main() -> vk::Result<()> {
     // Create the command buffer
     let mut cmd_buf = Some(cmd_pool.allocate()?);
     let mut queue = queues.remove(0).remove(0);
+    // Since we wait between frames we only need one acquire semaphore
     let mut acquire_sem = vk::Semaphore::new(&device)?;
     let mut fence = Some(vk::Fence::new(&device)?);
 
@@ -227,8 +238,10 @@ fn main() -> vk::Result<()> {
         let (framebuffer, present_sem) = framebuffers.get_mut(&img).unwrap();
 
         // Command buffer recoding uses a builder pattern
-        let mut pass =
-            cmd_pool.begin(cmd_buf.take().unwrap())?.begin_render_pass(
+        let mut pass = cmd_pool
+            .begin(cmd_buf.take().unwrap())?
+            // The render pass is recorded on a builder that wraps the main one
+            .begin_render_pass(
                 &render_pass,
                 &framebuffer,
                 &vk::Rect2D { extent: window_extent, ..Default::default() },

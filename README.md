@@ -37,4 +37,4 @@ A Vulkan-compatible graphics driver is sufficient to build and run. You will pro
 
 #### To run the demos
 
-To compile shaders in the demos, either CMake or the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) must be installed.
+To compile shaders in the demos, either CMake or the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) must be installed. (CMake appears to be the easier approach on Linux, and the Vulkan SDK on other systems.)
