@@ -47,7 +47,7 @@ impl Drop for Device {
 
 impl Device {
     /// Create a logical device for this physical device. Queues are returned in
-    /// the order requested in 'info.queue_create_infos'.
+    /// the order requested in `info.queue_create_infos`.
     #[doc = crate::man_link!(vkCreateDevice)]
     pub fn new(
         phy: &PhysicalDevice,

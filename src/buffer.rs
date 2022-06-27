@@ -4,8 +4,8 @@ use crate::subobject::Subobject;
 use crate::types::*;
 use crate::vk::Device;
 
-/// A buffer with no memory. Call [Buffer::new()] to bind memory and create a
-/// [Buffer].
+/// A buffer with no memory. Call [`Buffer::new`] to bind memory and create a
+/// [`Buffer`].
 #[derive(Debug)]
 pub struct BufferWithoutMemory {
     handle: Handle<VkBuffer>,

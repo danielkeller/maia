@@ -84,7 +84,7 @@ pub fn presentation_support(
     }
 }
 
-/// Create a surface for 'window' with the appropriate extension for the current
+/// Create a surface for `window` with the appropriate extension for the current
 /// platform.
 pub fn create_surface(
     instance: &Arc<Instance>,

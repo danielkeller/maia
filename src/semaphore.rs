@@ -46,7 +46,7 @@ impl Semaphore {
 
 impl Drop for Semaphore {
     /// **Warning:** If a semaphore is passed to
-    /// [SwapchainKHR::acquire_next_image()](crate::vk::ext::SwapchainKHR::acquire_next_image())
+    /// [`SwapchainKHR::acquire_next_image`](crate::vk::ext::SwapchainKHR::acquire_next_image())
     /// and then dropped without being waited on, the swapchain and semaphore
     /// will be leaked, since there is no way to know when it can be safely
     /// dropped other than waiting on it.

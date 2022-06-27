@@ -63,7 +63,7 @@ impl Framebuffer {
     pub fn handle(&self) -> Ref<VkFramebuffer> {
         self.handle.borrow()
     }
-    /// Returns true if this framebuffer is compatible with 'pass'
+    /// Returns true if this framebuffer is compatible with `pass`
     pub fn is_compatible_with(&self, pass: &RenderPass) -> bool {
         self.render_pass.compatible(pass)
     }

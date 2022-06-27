@@ -14,7 +14,7 @@ pub struct EXTMetalSurface {
 }
 
 impl EXTMetalSurface {
-    /// Creates an [EXTMetalSurface] extension object. Panics if the extension
+    /// Creates an [`EXTMetalSurface`] extension object. Panics if the extension
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
         Self {
@@ -23,8 +23,8 @@ impl EXTMetalSurface {
         }
     }
 
-    /// Creates a metal surface. The 'layer' member of
-    /// [MetalSurfaceCreateInfoEXT] must refer to a valid Metal layer.
+    /// Creates a metal surface. The `layer` member of
+    /// [`MetalSurfaceCreateInfoEXT`] must refer to a valid Metal layer.
     #[doc = crate::man_link!(vkCreateMetalSurfaceEXT)]
     pub unsafe fn create_metal_surface_ext(
         &self,

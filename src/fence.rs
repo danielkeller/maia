@@ -5,7 +5,7 @@ use crate::types::*;
 
 /// A
 #[doc = concat!(crate::spec_link!("fence", "synchronization-fences"), ".")]
-/// When submitted to a [Queue](crate::vk::Queue), becomes a [PendingFence].
+/// When submitted to a [`Queue`](crate::vk::Queue), becomes a [`PendingFence`].
 #[derive(Debug)]
 pub struct Fence {
     handle: Option<Handle<VkFence>>,
@@ -73,7 +73,7 @@ impl PendingFence {
         self.handle.borrow()
     }
     /// Waits for the fence, decrements the reference count of any objects
-    /// (including [CommandPools](crate::vk::CommandPool)) submitted to
+    /// (including [`CommandPools`](crate::vk::CommandPool)) submitted to
     /// the queue, and resets the fence.
     #[doc = crate::man_link!(vkWaitForFences)]
     pub fn wait(mut self) -> Result<Fence> {

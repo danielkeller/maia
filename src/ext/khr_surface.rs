@@ -18,7 +18,7 @@ pub struct SurfaceLifetime {
 /// A
 #[doc = crate::spec_link!("surface", "_wsi_surface")]
 ///
-/// Can be created with [crate::window::create_surface()].
+/// Can be created with [`crate::window::create_surface`].
 #[derive(Debug)]
 pub struct SurfaceKHR {
     inner: Owner<SurfaceLifetime>,
@@ -67,8 +67,8 @@ impl SurfaceKHR {
         Subobject::new(&self.inner)
     }
 
-    /// Returns true if the surface supports 'phy' on 'queue_family'. Returns
-    /// [Error::OutOfBounds] if 'queue_family' is out of bounds.
+    /// Returns true if the surface supports `phy` on `queue_family`. Returns
+    /// [`Error::OutOfBounds`] if `queue_family` is out of bounds.
     #[doc = crate::man_link!(vkGetPhysicalDeviceSurfaceSupportKHR)]
     pub fn support(
         &self,

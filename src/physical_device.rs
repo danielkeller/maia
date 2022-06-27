@@ -8,7 +8,7 @@ use crate::types::*;
 /// A physical device. It is not freed separately from the instance and so can
 /// be freely cloned.
 ///
-/// Returned from [Instance::enumerate_physical_devices()]
+/// Returned from [`Instance::enumerate_physical_devices`]
 #[derive(Debug)]
 pub struct PhysicalDevice {
     handle: Handle<VkPhysicalDevice>,

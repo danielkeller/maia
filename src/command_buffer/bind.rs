@@ -12,7 +12,7 @@ use super::{
 
 impl<'a> RenderPassRecording<'a> {
     /// Binds the pipeline to the appropriate bind point. The reference count of
-    /// 'pipeline' is incremented.
+    /// `pipeline` is incremented.
     #[doc = crate::man_link!(vkCmdBindPipeline)]
     pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
         self.rec.bind_pipeline(pipeline)
@@ -21,7 +21,7 @@ impl<'a> RenderPassRecording<'a> {
 
 impl<'a> SecondaryCommandRecording<'a> {
     /// Binds the pipeline to the appropriate bind point. The reference count of
-    /// 'pipeline' is incremented.
+    /// `pipeline` is incremented.
     #[doc = crate::man_link!(vkCmdBindPipeline)]
     pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
         self.rec.bind_pipeline(pipeline)
@@ -30,7 +30,7 @@ impl<'a> SecondaryCommandRecording<'a> {
 
 impl<'a> CommandRecording<'a> {
     /// Binds the pipeline to the appropriate bind point. The reference count of
-    /// 'pipeline' is incremented.
+    /// `pipeline` is incremented.
     #[doc = crate::man_link!(vkCmdBindPipeline)]
     pub fn bind_pipeline(&mut self, pipeline: &Arc<Pipeline>) {
         if pipeline.render_pass().is_some() {

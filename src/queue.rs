@@ -13,7 +13,7 @@ use crate::vk::PipelineStageFlags;
 
 /// A queue.
 ///
-/// Returned from [Device::new()].
+/// Returned from [`Device::new`].
 #[derive(Debug)]
 pub struct Queue {
     handle: Handle<VkQueue>,
@@ -82,8 +82,8 @@ pub struct SubmitInfo<'a> {
 }
 
 impl Queue {
-    /// Returns [Error::InvalidArgument] if any semaphore in 'signal' already
-    /// has a signal operation pending, or if any semaphore in 'wait' does not,
+    /// Returns [`Error::InvalidArgument`] if any semaphore in `signal` already
+    /// has a signal operation pending, or if any semaphore in `wait` does not,
     /// or if any command buffer is not in the executable state.
     #[doc = crate::man_link!(vkQueueSubmit)]
     pub fn submit(

@@ -21,11 +21,11 @@ pub struct DescriptorSetLayout {
 }
 
 /// Note that unlike in Vulkan, the binding number is implicitly the index of
-/// the array that is passed into [DescriptorSetLayout::new()].
+/// the array that is passed into [`DescriptorSetLayout::new`].
 /// If non-consecutive binding numbers are desired, create dummy descriptors to
 /// fill the gaps.
 ///
-/// For [DescriptorType::COMBINED_IMAGE_SAMPLER], currently the use of
+/// For [`DescriptorType::COMBINED_IMAGE_SAMPLER`], currently the use of
 /// immutable samplers is required.
 ///
 #[doc = crate::man_link!(VkDescriptorSetLayoutBinding)]
@@ -202,7 +202,7 @@ impl Drop for DescriptorPoolLifetime {
 
 impl DescriptorPool {
     /// If all descriptor sets allocated from the pool have not been dropped,
-    /// returns [Error::SynchronizationError].
+    /// returns [`Error::SynchronizationError`].
     pub fn reset(&mut self) -> Result<()> {
         if Arc::get_mut(&mut self.allocated).is_none() {
             return Err(Error::SynchronizationError);
@@ -223,14 +223,14 @@ impl DescriptorPool {
 #[doc = concat!(crate::spec_link!("descriptor set", "descriptorsets-sets"), ".")]
 ///
 /// The descriptor set may be written to by creating a
-/// [DescriptorSetUpdateBuilder](crate::vk::DescriptorSetUpdateBuilder).
+/// [`DescriptorSetUpdateBuilder`](crate::vk::DescriptorSetUpdateBuilder).
 ///
 /// Any resources that are written into the descriptor set have their reference
 /// count incremented and held by the set. To decrement the count and allow the
 /// resources to be freed, the descriptor set must be dropped. (Note that calling
-/// [bind_descriptor_sets()](crate::command_buffer::CommandRecording::bind_descriptor_sets)
+/// [`bind_descriptor_sets`](crate::command_buffer::CommandRecording::bind_descriptor_sets)
 /// will prevent the set from being freed until the command pool is
-/// [reset](crate::command_buffer::CommandPool::reset).)
+/// [`reset`](crate::command_buffer::CommandPool::reset).)
 #[derive(Debug)]
 pub struct DescriptorSet {
     handle: Handle<VkDescriptorSet>,

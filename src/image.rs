@@ -8,8 +8,8 @@ use crate::vk::Device;
 
 use std::fmt::Debug;
 
-/// An image with no memory. Call [Image::new()] to bind memory and create an
-/// [Image].
+/// An image with no memory. Call [`Image::new`] to bind memory and create an
+/// [`Image`].
 #[derive(Debug)]
 pub struct ImageWithoutMemory {
     handle: Handle<VkImage>,

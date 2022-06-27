@@ -141,8 +141,8 @@ macro_rules! raw_handle {
     ($name:ident($kind:ident)) => {
         #[repr(transparent)]
         #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-        /// Raw Vulkan handle. Used either in owned form ([Handle]), borrowed
-        /// form ([Ref]), or exclusive borrowed form ([Mut]).
+        /// Raw Vulkan handle. Used either in owned form ([`Handle`]), borrowed
+        /// form ([`Ref`]), or exclusive borrowed form ([`Mut`]).
         pub struct $name($kind);
     };
 }
@@ -201,12 +201,26 @@ pub struct Extent2D {
     pub height: u32,
 }
 
+impl Extent2D {
+    /// Create a new `Extent2D` object
+    pub fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Extent3D {
     pub width: u32,
     pub height: u32,
     pub depth: u32,
+}
+
+impl Extent3D {
+    /// Create a new `Extent3D` object
+    pub fn new(width: u32, height: u32, depth: u32) -> Self {
+        Self { width, height, depth }
+    }
 }
 
 impl From<Extent2D> for Extent3D {
@@ -222,12 +236,26 @@ pub struct Offset2D {
     pub y: i32,
 }
 
+impl Offset2D {
+    /// Create a new `Offeset2D` object
+    pub fn new(x: i32, y: i32) -> Self {
+        Self { x, y }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Offset3D {
     pub x: i32,
     pub y: i32,
     pub z: i32,
+}
+
+impl Offset3D {
+    /// Create a new `Offeset3D` object
+    pub fn new(x: i32, y: i32, z: i32) -> Self {
+        Self { x, y, z }
+    }
 }
 
 #[repr(C)]
@@ -1399,7 +1427,7 @@ pub struct AttachmentDescription {
 #[derive(Debug, Default)]
 #[doc = crate::man_link!(VkAttachmentReference)]
 pub struct AttachmentReference {
-    /// Either an index in the attachments member of [RenderPassCreateInfo] or
+    /// Either an index in the attachments member of [`RenderPassCreateInfo`] or
     /// u32::MAX if unused
     pub attachment: u32,
     pub layout: ImageLayout,

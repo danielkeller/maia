@@ -75,9 +75,9 @@ pub(crate) struct SwapchainImages {
 }
 
 impl SwapchainKHR {
-    /// If create_from is [CreateSwapchainFrom::OldSwapchain], images in that
+    /// If create_from is [`CreateSwapchainFrom::OldSwapchain`], images in that
     /// swapchain that aren't acquired by the application are deleted. If any
-    /// references remain to those images, returns [Error::SynchronizationError].
+    /// references remain to those images, returns [`Error::SynchronizationError`].
     /// Panics if the extension functions can't be loaded.
     ///
     #[doc = crate::man_link!(vkCreateSwapchainKHR)]
@@ -211,10 +211,10 @@ impl SwapchainKHR {
         &self.surface
     }
 
-    /// Acquires the next swapchain image. [Error::SuboptimalHKR] is returned
-    /// in the [Ok] variant.
+    /// Acquires the next swapchain image. [`Error::SuboptimalHKR`] is returned
+    /// in the [`Ok`] variant.
     ///
-    /// **Warning:** If 'signal' is dropped without being waited on, it and the
+    /// **Warning:** If `signal` is dropped without being waited on, it and the
     /// swapchain will be leaked.
     ///
     #[doc = crate::man_link!(vkAcquireNextImageKHR)]
@@ -249,7 +249,7 @@ impl SwapchainKHR {
         Ok((image, is_optimal))
     }
 
-    /// Present the image. Returns [Error::InvalidArgument] if 'wait' has no
+    /// Present the image. Returns [`Error::InvalidArgument`] if `wait` has no
     /// signal operation pending, or if the image did not come from this
     /// swapchain.
     pub fn present(

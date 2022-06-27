@@ -42,7 +42,7 @@ use crate::types::*;
 
 macro_rules! man_link{
     ($name:ident) => {
-        concat!("(see [", stringify!($name), "](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/", stringify!($name), ".html))")
+        concat!("(see [`", stringify!($name), "`](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/man/html/", stringify!($name), ".html))")
     }
 }
 pub(crate) use man_link;

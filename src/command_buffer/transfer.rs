@@ -8,8 +8,8 @@ use crate::types::*;
 use super::CommandRecording;
 
 impl<'a> CommandRecording<'a> {
-    /// The reference count of 'dst' is incremented. Offset and size are rounded
-    /// down to the nearest multiple of 4. Returns [Error::OutOfBounds] if they
+    /// The reference count of `dst` is incremented. Offset and size are rounded
+    /// down to the nearest multiple of 4. Returns [`Error::OutOfBounds`] if they
     /// are out of bounds.
     #[doc = crate::man_link!(vkCmdFillBuffer)]
     pub fn fill_buffer(
@@ -47,7 +47,7 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
 
-    /// The reference counts of 'src' and 'dst' are incremented.
+    /// The reference counts of `src` and `dst` are incremented.
     /// Returns [Error::OutOfBounds] if a region is out of bounds.
     #[doc = crate::man_link!(vkCmdCopyBuffer)]
     pub fn copy_buffer(
@@ -77,7 +77,7 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
 
-    /// The reference counts of 'src' and 'dst' are incremented.
+    /// The reference counts of `src` and `dst` are incremented.
     /// Returns [Error::OutOfBounds] if a region is out of bounds. Returns
     /// [Error::InvalidArgument] if 'regions' is empty.
     #[doc = crate::man_link!(vkCmdCopyBufferToImage)]
@@ -120,7 +120,7 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
 
-    /// The reference counts of 'src' and 'dst' are incremented.
+    /// The reference counts of `src` and `dst` are incremented.
     /// Returns [Error::OutOfBounds] if a region is out of bounds. Returns
     /// [Error::InvalidArgument] if 'regions' is empty.
     #[doc = crate::man_link!(vkCmdBlitImage)]

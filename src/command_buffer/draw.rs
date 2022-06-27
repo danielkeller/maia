@@ -115,7 +115,7 @@ impl<'a> RenderPassRecording<'a> {
     }
     #[doc = draw_state!()]
     ///
-    /// The reference count of 'buffer' is incremented.
+    /// The reference count of `buffer` is incremented.
     ///
     #[doc = crate::man_link!(vkCmdDrawIndirect)]
     pub fn draw_indirect(
@@ -150,7 +150,7 @@ impl<'a> RenderPassRecording<'a> {
     }
     #[doc = draw_state!()]
     ///
-    /// The reference count of 'buffer' is incremented.
+    /// The reference count of `buffer` is incremented.
     ///
     #[doc = crate::man_link!(vkCmdDrawIndexedIndirect)]
     pub fn draw_indexed_indirect(
@@ -185,7 +185,7 @@ impl<'a> SecondaryCommandRecording<'a> {
     }
     #[doc = draw_state!()]
     ///
-    /// The reference count of 'buffer' is incremented.
+    /// The reference count of `buffer` is incremented.
     ///
     #[doc = crate::man_link!(vkCmdDrawIndirect)]
     pub fn draw_indirect(
@@ -220,7 +220,7 @@ impl<'a> SecondaryCommandRecording<'a> {
     }
     #[doc = draw_state!()]
     ///
-    /// The reference count of 'buffer' is incremented.
+    /// The reference count of `buffer` is incremented.
     ///
     #[doc = crate::man_link!(vkCmdDrawIndexedIndirect)]
     pub fn draw_indexed_indirect(

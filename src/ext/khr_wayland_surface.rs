@@ -18,7 +18,7 @@ pub struct KHRWaylandSurface {
 }
 
 impl KHRWaylandSurface {
-    /// Creates an [KHRWaylandSurface] extension object. Panics if the extension
+    /// Creates an [`KHRWaylandSurface`] extension object. Panics if the extension
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
         Self {

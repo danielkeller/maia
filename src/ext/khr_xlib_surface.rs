@@ -18,7 +18,7 @@ pub struct KHRXlibSurface {
 }
 
 impl KHRXlibSurface {
-    /// Creates an [KHRXlibSurface] extension object. Panics if the extension
+    /// Creates an [`KHRXlibSurface`] extension object. Panics if the extension
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
         Self {

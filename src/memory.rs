@@ -19,7 +19,7 @@ pub struct DeviceMemory {
 }
 
 impl DeviceMemory {
-    /// Returns [Error::OutOfBounds] if no memory type exists with the given
+    /// Returns [`Error::OutOfBounds`] if no memory type exists with the given
     /// index.
     #[doc = crate::man_link!(vkAllocateMemory)]
     pub fn new(
@@ -74,7 +74,7 @@ impl Drop for MemoryLifetime {
     }
 }
 
-/// A [DeviceMemory] which has been mapped and can be written to
+/// A [`DeviceMemory`] which has been mapped and can be written to
 pub struct MappedMemory {
     memory: DeviceMemory,
     _offset: u64,
@@ -90,8 +90,8 @@ impl std::panic::RefUnwindSafe for MappedMemory {}
 
 #[allow(clippy::len_without_is_empty)]
 impl DeviceMemory {
-    /// Map the memory so it can be written to. Returns [Error::OutOfBounds] if
-    /// 'offset' and 'size' are out of bounds.
+    /// Map the memory so it can be written to. Returns [`Error::OutOfBounds`] if
+    /// `offset` and `size` are out of bounds.
     pub fn map(
         mut self,
         offset: u64,
@@ -182,7 +182,7 @@ impl DeviceMemory {
     pub fn resource(&self) -> Subobject<MemoryLifetime> {
         Subobject::new(&self.inner)
     }
-    /// Check if the memory meets 'requirements' at the given offset.
+    /// Check if the memory meets `requirements` at the given offset.
     pub fn check(&self, offset: u64, requirements: MemoryRequirements) -> bool {
         let (end, overflow) = offset.overflowing_add(requirements.size);
         (1 << self.memory_type_index) & requirements.memory_type_bits != 0

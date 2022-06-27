@@ -51,7 +51,7 @@ impl RenderPass {
     pub fn device(&self) -> &Arc<Device> {
         &self.device
     }
-    /// Returns true if this render pass is compatible with 'other'
+    /// Returns true if this render pass is compatible with `other`
     pub fn compatible(&self, other: &Self) -> bool {
         std::ptr::eq(self, other) || self.compat == other.compat
     }

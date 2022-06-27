@@ -183,7 +183,7 @@ impl PipelineLayout {
     pub fn layouts(&self) -> &[Arc<DescriptorSetLayout>] {
         &self.set_layouts
     }
-    /// Checks that the push constants are in bounds and 'stage_flags' are
+    /// Checks that the push constants are in bounds and `stage_flags` are
     /// correct.
     pub(crate) fn bounds_check_push_constants(
         &self,
@@ -242,9 +242,9 @@ pub struct GraphicsPipelineCreateInfo<'a> {
 
 impl Pipeline {
     // TODO: Bulk create
-    /// Returns [Error::OutOfBounds] if 'info.subpass' is out of bounds of
-    /// 'info.render_pass', or the specialization constants are out of bounds.
-    /// Returns [Error::InvalidArgument] if any vertex input binding number are
+    /// Returns [`Error::OutOfBounds`] if `info.subpass` is out of bounds of
+    /// `info.render_pass`, or the specialization constants are out of bounds.
+    /// Returns [`Error::InvalidArgument`] if any vertex input binding number are
     /// repeated, any vertex attribute locations are repeated, or any vertex
     /// attributes refer to a nonexistent binding.
     #[doc = crate::man_link!(vkCreateGraphicsPipeline)]
@@ -334,7 +334,7 @@ impl Pipeline {
             subpass: info.subpass,
         }))
     }
-    /// Returns [Error::OutOfBounds] if the specialization constants are out of
+    /// Returns [`Error::OutOfBounds`] if the specialization constants are out of
     /// bounds.
     #[doc = crate::man_link!(vkCreateComputePipeline)]
     pub fn new_compute(
@@ -429,8 +429,8 @@ pub struct PipelineCache {
 }
 
 impl PipelineCache {
-    /// Safety: 'data' must either be empty or have been retuned from a previous
-    /// call to [PipelineCache::data()]. Hilariously, this function is
+    /// Safety: `data` must either be empty or have been retuned from a previous
+    /// call to [`PipelineCache::data`]. Hilariously, this function is
     /// actually impossible to make safe; Vulkan provides no way to validate the
     /// cache data, and the data is generally written to a file where it could
     /// be damaged or altered. Caveat emptor.

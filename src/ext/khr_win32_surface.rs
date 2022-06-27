@@ -16,7 +16,7 @@ pub struct KHRWin32Surface {
 }
 
 impl KHRWin32Surface {
-    /// Creates an [KHRWin32Surface] extension object. Panics if the extension
+    /// Creates an [`KHRWin32Surface`] extension object. Panics if the extension
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
         Self {
