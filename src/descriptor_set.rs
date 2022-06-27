@@ -227,7 +227,8 @@ impl DescriptorPool {
 ///
 /// Any resources that are written into the descriptor set have their reference
 /// count incremented and held by the set. To decrement the count and allow the
-/// resources to be freed, the descriptor set must be dropped. (Note that calling
+/// resources to be freed, either the descriptor must be overwritten with
+/// another resource, or the descriptor set must be dropped. (Note that calling
 /// [`bind_descriptor_sets`](crate::command_buffer::CommandRecording::bind_descriptor_sets)
 /// will prevent the set from being freed until the command pool is
 /// [`reset`](crate::command_buffer::CommandPool::reset).)

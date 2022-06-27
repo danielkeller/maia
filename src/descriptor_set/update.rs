@@ -101,22 +101,22 @@ impl DescriptorSetUpdateBuilder {
     }
 }
 
-pub(crate) struct Resource {
-    pub(crate) set: usize,
-    pub(crate) binding: usize,
-    pub(crate) element: usize,
-    pub(crate) resource: Arc<dyn Send + Sync + Debug>,
+struct Resource {
+    set: usize,
+    binding: usize,
+    element: usize,
+    resource: Arc<dyn Send + Sync + Debug>,
 }
 
 /// A builder for a call to vkUpdateDescriptorSets.
 #[must_use = "This object does nothing until end() is called."]
 pub struct DescriptorSetUpdates<'a> {
-    pub(crate) device: &'a Device,
-    pub(crate) bump: &'a bumpalo::Bump,
-    pub(crate) writes: BumpVec<'a, VkWriteDescriptorSet<'a>>,
-    pub(crate) copies: BumpVec<'a, VkCopyDescriptorSet<'a>>,
-    pub(crate) dst_sets: BumpVec<'a, &'a mut DescriptorSet>,
-    pub(crate) resources: BumpVec<'a, Resource>,
+    device: &'a Device,
+    bump: &'a bumpalo::Bump,
+    writes: BumpVec<'a, VkWriteDescriptorSet<'a>>,
+    copies: BumpVec<'a, VkCopyDescriptorSet<'a>>,
+    dst_sets: BumpVec<'a, &'a mut DescriptorSet>,
+    resources: BumpVec<'a, Resource>,
 }
 
 impl DescriptorSetUpdateBuilder {
@@ -522,14 +522,14 @@ impl<'a> DescriptorSetUpdate<'a> {
 /// Gets the binding and element number for a series of consecutive bindings,
 /// doing bounds and type checking on each.
 struct BindingIter<'a> {
-    pub(crate) bindings: &'a [DescriptorSetLayoutBinding],
-    pub(crate) binding: usize,
-    pub(crate) element: u32,
-    pub(crate) descriptor_type: DescriptorType,
+    bindings: &'a [DescriptorSetLayoutBinding],
+    binding: usize,
+    element: u32,
+    descriptor_type: DescriptorType,
 }
 
 impl<'a> BindingIter<'a> {
-    pub(crate) fn new(
+    fn new(
         bindings: &'a [DescriptorSetLayoutBinding],
         binding: usize,
         element: u32,
