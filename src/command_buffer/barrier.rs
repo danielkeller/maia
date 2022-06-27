@@ -1,3 +1,4 @@
+#![allow(clippy::too_many_arguments)]
 use crate::buffer::Buffer;
 use crate::enums::*;
 use crate::ffi::Array;

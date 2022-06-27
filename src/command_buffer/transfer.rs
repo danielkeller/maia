@@ -48,7 +48,7 @@ impl<'a> CommandRecording<'a> {
     }
 
     /// The reference counts of `src` and `dst` are incremented.
-    /// Returns [Error::OutOfBounds] if a region is out of bounds.
+    /// Returns [`Error::OutOfBounds`] if a region is out of bounds.
     #[doc = crate::man_link!(vkCmdCopyBuffer)]
     pub fn copy_buffer(
         &mut self,
@@ -78,8 +78,8 @@ impl<'a> CommandRecording<'a> {
     }
 
     /// The reference counts of `src` and `dst` are incremented.
-    /// Returns [Error::OutOfBounds] if a region is out of bounds. Returns
-    /// [Error::InvalidArgument] if 'regions' is empty.
+    /// Returns [`Error::OutOfBounds`] if a region is out of bounds. Returns
+    /// [`Error::InvalidArgument`] if `regions` is empty.
     #[doc = crate::man_link!(vkCmdCopyBufferToImage)]
     pub fn copy_buffer_to_image(
         &mut self,
@@ -121,8 +121,8 @@ impl<'a> CommandRecording<'a> {
     }
 
     /// The reference counts of `src` and `dst` are incremented.
-    /// Returns [Error::OutOfBounds] if a region is out of bounds. Returns
-    /// [Error::InvalidArgument] if 'regions' is empty.
+    /// Returns [`Error::OutOfBounds`] if a region is out of bounds. Returns
+    /// [`Error::InvalidArgument`] if `regions` is empty.
     #[doc = crate::man_link!(vkCmdBlitImage)]
     pub fn blit_image(
         &mut self,
@@ -173,8 +173,8 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
 
-    /// The reference count of 'image' is incremented. Returns
-    /// [Error::InvalidArgument] if 'ranges' is empty.
+    /// The reference count of `image` is incremented. Returns
+    /// [`Error::InvalidArgument`] if `ranges` is empty.
     #[doc = crate::man_link!(vkCmdClearColorImage)]
     pub fn clear_color_image(
         &mut self,

@@ -56,7 +56,7 @@ impl<'a> CommandRecording<'a> {
 
 impl<'a> RenderPassRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self,
@@ -65,8 +65,8 @@ impl<'a> RenderPassRecording<'a> {
     ) -> Result<()> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
-    /// Reference count of 'buffer' is incremented. Returns
-    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    /// Reference count of `buffer` is incremented. Returns
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self,
@@ -79,7 +79,7 @@ impl<'a> RenderPassRecording<'a> {
 }
 impl<'a> SecondaryCommandRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self,
@@ -88,8 +88,8 @@ impl<'a> SecondaryCommandRecording<'a> {
     ) -> Result<()> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
-    /// Reference count of 'buffer' is incremented. Returns
-    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    /// Reference count of `buffer` is incremented. Returns
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self,
@@ -102,7 +102,7 @@ impl<'a> SecondaryCommandRecording<'a> {
 }
 impl<'a> CommandRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self,
@@ -130,8 +130,8 @@ impl<'a> CommandRecording<'a> {
         }
         Ok(())
     }
-    /// Reference count of 'buffer' is incremented. Returns
-    /// [Error::InvalidArgument] if 'buffers_offsets' is empty.
+    /// Reference count of `buffer` is incremented. Returns
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self,
@@ -152,15 +152,15 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
-    /// Returns [Error::InvalidArgument] if a member of 'sets' is not compatible
-    /// with the corresponding member of 'layout', if the length of
-    /// 'dynamic_offsets' is not correct for 'layout', or if any binding in any
-    /// of 'sets' is not initialized.
+    /// Returns [`Error::InvalidArgument`] if a member of `sets` is not compatible
+    /// with the corresponding member of `layout`, if the length of
+    /// `dynamic_offsets` is not correct for `layout`, or if any binding in any
+    /// of `sets` is not initialized.
     ///
     /// If the value of the binding will not be used, create a dummy object of
     /// the appropriate type and bind it.
     ///
-    /// The reference count of each member of 'sets' is incremented.
+    /// The reference count of each member of `sets` is incremented.
     ///
     #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
@@ -181,15 +181,15 @@ impl<'a> RenderPassRecording<'a> {
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
-    /// Returns [Error::InvalidArgument] if a member of 'sets' is not compatible
-    /// with the corresponding member of 'layout', if the length of
-    /// 'dynamic_offsets' is not correct for 'layout', or if any binding in any
-    /// of 'sets' is not initialized.
+    /// Returns [`Error::InvalidArgument`] if a member of `sets` is not compatible
+    /// with the corresponding member of `layout`, if the length of
+    /// `dynamic_offsets` is not correct for `layout`, or if any binding in any
+    /// of `sets` is not initialized.
     ///
     /// If the value of the binding will not be used, create a dummy object of
     /// the appropriate type and bind it.
     ///
-    /// The reference count of each member of 'sets' is incremented.
+    /// The reference count of each member of `sets` is incremented.
     ///
     #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
@@ -240,15 +240,15 @@ impl<'a> Bindings<'a> {
 }
 
 impl<'a> CommandRecording<'a> {
-    /// Returns [Error::InvalidArgument] if a member of 'sets' is not compatible
-    /// with the corresponding member of 'layout', if the length of
-    /// 'dynamic_offsets' is not correct for 'layout', or if any binding in any
-    /// of 'sets' is not [initialized](DescriptorSet::is_initialized).
+    /// Returns [`Error::InvalidArgument`] if a member of `sets` is not compatible
+    /// with the corresponding member of `layout`, if the length of
+    /// `dynamic_offsets` is not correct for `layout`, or if any binding in any
+    /// of `sets` is not [initialized](DescriptorSet::is_initialized).
     ///
     /// If the value of the binding will not be used, create a dummy object of
     /// the appropriate type and bind it.
     ///
-    /// The reference count of each member of 'sets' is incremented.
+    /// The reference count of each member of `sets` is incremented.
     ///
     #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
@@ -311,9 +311,9 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
-    /// Sets push constants. Returns [Error::OutOfBounds] if the data is out of
-    /// bounds for push contants in 'layout' or if 'stage_flags' is incorrect.
-    /// Returns [Error::InvalidArgument] if 'data' is empty.
+    /// Sets push constants. Returns [`Error::OutOfBounds`] if the data is out of
+    /// bounds for push contants in `layout` or if `stage_flags` is incorrect.
+    /// Returns [`Error::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self,
@@ -326,9 +326,9 @@ impl<'a> RenderPassRecording<'a> {
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
-    /// Sets push constants. Returns [Error::OutOfBounds] if the data is out of
-    /// bounds for push contants in 'layout' or if 'stage_flags' is incorrect.
-    /// Returns [Error::InvalidArgument] if 'data' is empty.
+    /// Sets push constants. Returns [`Error::OutOfBounds`] if the data is out of
+    /// bounds for push contants in `layout` or if `stage_flags` is incorrect.
+    /// Returns [`Error::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self,
@@ -341,9 +341,9 @@ impl<'a> SecondaryCommandRecording<'a> {
     }
 }
 impl<'a> CommandRecording<'a> {
-    /// Sets push constants. Returns [Error::OutOfBounds] if the data is out of
-    /// bounds for push contants in 'layout' or if 'stage_flags' is incorrect.
-    /// Returns [Error::InvalidArgument] if 'data' is empty.
+    /// Sets push constants. Returns [`Error::OutOfBounds`] if the data is out of
+    /// bounds for push contants in `layout` or if `stage_flags` is incorrect.
+    /// Returns [`Error::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self,
