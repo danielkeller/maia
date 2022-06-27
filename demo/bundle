@@ -1,9 +1,10 @@
 #!/bin/sh
 
-cargo build --release || exit 1
+TARGET=../target
+BINARY=$TARGET/release/demo
+OUT=$TARGET/release/Demo.app
 
-OUT=../target/release/Demo.app
-rm -Rf $OUT
+cargo build --release || exit 1
 
 which_lib() {
     ld -t -dylib -o /dev/null -arch x86_64 -macosx_version_min 10.12.0 -l$1
@@ -19,12 +20,13 @@ VK_SONAME="$LIBDIR/$(soname $LINKED)"
 VK_REALNAME="$LIBDIR/$(readlink $VK_SONAME)"
 MOLTENVK="$(which_lib MoltenVK)"
 
+rm -Rf $OUT
 mkdir -p $OUT/Contents/MacOS
 mkdir -p $OUT/Contents/Frameworks
 mkdir -p $OUT/Contents/Resources/vulkan/icd.d
 
 cp macos/Info.plist $OUT/Contents/
-cp ../target/release/demo $OUT/Contents/MacOS
+cp $BINARY $OUT/Contents/MacOS
 cp -R assets $OUT/Contents/Resources/
 cp macos/MoltenVK_icd.json $OUT/Contents/Resources/vulkan/icd.d
 cp $VK_SONAME $OUT/Contents/Frameworks

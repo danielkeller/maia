@@ -15,7 +15,7 @@
 //!                 * icd.d
 //!                     * MoltenVK_icd.json
 //!
-//! Info.plist contains the metadata for the app. The minimum information required is the executable name and an app identifier:
+//! Info.plist contains the metadata for the app. (See [Apple's documentation](https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/AboutInformationPropertyListFiles.html) for more info.) The minimum information required is the executable name and an app identifier:
 //! ```xml
 //! <?xml version="1.0" encoding="UTF-8"?>
 //! <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
@@ -30,7 +30,7 @@
 //! </plist>
 //! ```
 //!
-//! Libvulkan asks the linker to search for it with a path like `@rpath/libvulkan.1.dylib`, where `@rpath` is stored in the executable. To set `@rpath` appropriately, use a build.rs like the following:
+//! Libvulkan asks the dynamic loader to search for it with a path like `@rpath/libvulkan.1.dylib`, where `@rpath` is stored in the executable. To set `@rpath` appropriately, use a [build.rs](https://doc.rust-lang.org/cargo/reference/build-scripts.html) like the following:
 //! ```rust
 //! fn main() {
 //!     #[cfg(target_os = "macos")]
@@ -40,7 +40,7 @@
 //!     }
 //! }
 //! ```
-//! For `libvulkan` (the loader) to find `libMoltenVK` (the implementation), it needs an "icd" file. It will automatically search the current .app bundle for one, and we can use it to point to the MoltenVK dylib inside our bundle (library_path is relative to the icd file), like so:
+//! For `libvulkan` (the [Vulkan loader](https://github.com/KhronosGroup/Vulkan-Loader/blob/master/docs/LoaderInterfaceArchitecture.md)) to find `libMoltenVK` (the implementation), it needs an "icd" file. It will automatically search the current .app bundle for one, and we can use it to point to the MoltenVK dylib inside our bundle (`library_path` is relative to the icd file), like so:
 //!
 //! ```json
 //! {
@@ -53,7 +53,7 @@
 //! }
 //! ```
 //!
-//! The actual path of the Vulkan dylib can be found using the linker with the "trace" option, and the preferred search path found using objdump. Since this file is a symbolic link to the real dylib, that must be included as well. The MoltenVK dylib can be found using the linker in the same way. So a complete shell script to build an .app bundle looks like the following:
+//! The actual path of the Vulkan dylib can be found using the linker with the "trace" (`-t`) option, and the preferred search path found using `objdump`. Since that file is just a symbolic link to the real dylib, the real one must be included as well. The MoltenVK dylib can be found using the linker in the same way. So a complete shell script to build an .app bundle looks like the following (with the variables at the top modified appropriately for your package):
 //!
 //! ```shell
 #![doc = include_str!("../demo/bundle")]
