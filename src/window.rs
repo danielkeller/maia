@@ -63,14 +63,16 @@ pub fn presentation_support(
 ) -> bool {
     match window.raw_window_handle() {
         RawWindowHandle::AppKit(_) => true,
-        RawWindowHandle::Xlib(handle) => unsafe {
-            KHRXlibSurface::new(phy.instance()).presentation_support(
-                phy,
-                queue_family_index,
-                NonNull::new(handle.display).unwrap(),
-                handle.visual_id as usize,
-            )
-        },
+        RawWindowHandle::Xlib(_) => true,
+        // winit doesn't set the visual_id for some reason so this doesn't work
+        // unsafe {
+        //     KHRXlibSurface::new(phy.instance()).presentation_support(
+        //         phy,
+        //         queue_family_index,
+        //         NonNull::new(handle.display).unwrap(),
+        //         handle.visual_id as usize,
+        //     )
+        // },
         RawWindowHandle::Wayland(handle) => unsafe {
             KHRWaylandSurface::new(phy.instance()).presentation_support(
                 phy,
