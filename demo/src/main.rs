@@ -498,11 +498,7 @@ fn main() -> anyhow::Result<()> {
         &device,
         Default::default(),
         vec![descriptor_set_layout.clone()],
-        vec![vk::PushConstantRange {
-            stage_flags: vk::ShaderStageFlags::VERTEX,
-            offset: 0,
-            size: std::mem::size_of::<MVP>() as u32,
-        }],
+        vec![],
     )?;
 
     let pipeline =
