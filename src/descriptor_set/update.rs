@@ -172,7 +172,7 @@ impl<'a> DescriptorSetUpdates<'a> {
 pub struct DescriptorBufferInfo<'a> {
     pub buffer: &'a Arc<Buffer>,
     pub offset: u64,
-    pub range: u64,
+    pub range: Option<u64>,
 }
 
 impl<'a> DescriptorSetUpdate<'a> {
@@ -215,7 +215,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (b, be) in buffers.iter().zip(iter) {
             let (binding, element) = be?;
-            if b.range > max_range as u64 {
+            if b.range.map_or(false, |r| r > max_range as u64) {
                 return Err(Error::LimitExceeded);
             }
             assert!(std::ptr::eq(&**b.buffer.device(), self.updates.device));
@@ -232,7 +232,7 @@ impl<'a> DescriptorSetUpdate<'a> {
                 VkDescriptorBufferInfo {
                     buffer: b.buffer.handle(),
                     offset: b.offset,
-                    range: b.range,
+                    range: b.range.unwrap_or(u64::MAX),
                 }
             }));
         let dst_set = self.set_ref();
