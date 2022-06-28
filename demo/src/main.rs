@@ -363,6 +363,26 @@ fn main() -> anyhow::Result<()> {
         vk::PipelineStageFlags::VERTEX_INPUT,
         vk::AccessFlags::INDEX_READ,
     )?;
+    let uniform_buffer = vk::BufferWithoutMemory::new(
+        &device,
+        &vk::BufferCreateInfo {
+            size: size_of::<MVP>() as u64,
+            usage: vk::BufferUsageFlags::UNIFORM_BUFFER,
+            ..Default::default()
+        },
+    )?;
+    let uniform_memory = vk::DeviceMemory::new(
+        &device,
+        uniform_buffer.memory_requirements().size,
+        memory_type(
+            &device.physical_device(),
+            vk::MemoryPropertyFlags::DEVICE_LOCAL
+                | vk::MemoryPropertyFlags::HOST_VISIBLE
+                | vk::MemoryPropertyFlags::HOST_COHERENT,
+        ),
+    )?;
+    let uniform_buffer = vk::Buffer::new(uniform_buffer, &uniform_memory, 0)?;
+    let mut mapped = uniform_memory.map(0, size_of::<MVP>())?;
 
     let image = vk::ImageWithoutMemory::new(
         &device,
@@ -418,23 +438,37 @@ fn main() -> anyhow::Result<()> {
 
     let descriptor_set_layout = vk::DescriptorSetLayout::new(
         &device,
-        vec![vk::DescriptorSetLayoutBinding {
-            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-            descriptor_count: 1,
-            stage_flags: vk::ShaderStageFlags::FRAGMENT,
-            immutable_samplers: vec![vk::Sampler::new(
-                &device,
-                &Default::default(),
-            )?],
-        }],
+        vec![
+            vk::DescriptorSetLayoutBinding {
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::VERTEX,
+                immutable_samplers: vec![],
+            },
+            vk::DescriptorSetLayoutBinding {
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+                stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                immutable_samplers: vec![vk::Sampler::new(
+                    &device,
+                    &Default::default(),
+                )?],
+            },
+        ],
     )?;
     let mut descriptor_pool = vk::DescriptorPool::new(
         &device,
         1,
-        &[vk::DescriptorPoolSize {
-            descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
-            descriptor_count: 1,
-        }],
+        &[
+            vk::DescriptorPoolSize {
+                descriptor_type: vk::DescriptorType::UNIFORM_BUFFER,
+                descriptor_count: 1,
+            },
+            vk::DescriptorPoolSize {
+                descriptor_type: vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
+                descriptor_count: 1,
+            },
+        ],
     )?;
     let mut desc_set =
         vk::DescriptorSet::new(&mut descriptor_pool, &descriptor_set_layout)?;
@@ -443,8 +477,17 @@ fn main() -> anyhow::Result<()> {
     update
         .begin()
         .dst_set(&mut desc_set)
-        .combined_image_samplers(
+        .uniform_buffers(
             0,
+            0,
+            &[vk::DescriptorBufferInfo {
+                buffer: &uniform_buffer,
+                offset: 0,
+                range: None,
+            }],
+        )?
+        .combined_image_samplers(
+            1,
             0,
             &[(&image_view, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)],
         )?
@@ -569,7 +612,7 @@ fn main() -> anyhow::Result<()> {
 
         let time = Instant::now().duration_since(begin);
 
-        let mvp = MVP {
+        *bytemuck::from_bytes_mut(mapped.slice_mut()) = MVP {
             model: Mat4::from_rotation_y(time.as_secs_f32() * 2.0),
             view: Mat4::look_at(
                 Vec3::new(1., 1., 1.),
@@ -602,12 +645,6 @@ fn main() -> anyhow::Result<()> {
             0,
             &[&desc_set],
             &[],
-        )?;
-        subpass.push_constants(
-            &pipeline_layout,
-            vk::ShaderStageFlags::VERTEX,
-            0,
-            bytemuck::bytes_of(&mvp),
         )?;
         subpass.draw_indexed(6, 1, 0, 0, 0)?;
         let mut subpass = subpass.end()?;

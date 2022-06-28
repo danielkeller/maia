@@ -3,7 +3,7 @@
 layout(location = 0) in vec4 i_Position;
 layout(location = 1) in vec2 i_Uv;
 
-layout(push_constant) uniform UniformBufferObject {
+layout(binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
