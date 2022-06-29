@@ -610,7 +610,7 @@ mod test {
                 &[vk::DescriptorBufferInfo {
                     buffer: &buf,
                     offset: 0,
-                    range: 1024,
+                    range: Some(1024),
                 }],
             )?
             .end();
