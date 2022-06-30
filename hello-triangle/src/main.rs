@@ -268,7 +268,7 @@ fn main() -> vk::Result<()> {
         cmd_buf = Some(pass.end()?.end()?);
 
         // Submit the command buffer
-        let pending_fence = queue.submit(
+        let pending_fence = queue.submit_with_fence(
             &mut [vk::SubmitInfo {
                 wait: &mut [(
                     &mut acquire_sem,

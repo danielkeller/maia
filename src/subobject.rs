@@ -60,9 +60,18 @@ impl<T> Subobject<T> {
     pub fn new(value: &Owner<T>) -> Subobject<T> {
         Subobject(value.0.clone())
     }
-    // pub fn downgrade(this: &Self) -> WeakSubobject<T> {
-    //     WeakSubobject(Arc::downgrade(&this.0))
+    // pub fn downgrade(&self) -> WeakSubobject<T> {
+    //     WeakSubobject(Arc::downgrade(&self.0))
     // }
+}
+
+impl<T: Send + Sync + 'static> Subobject<T> {
+    pub fn erase(self) -> Arc<dyn Send + Sync> {
+        // Safety: UnsafeCell is repr(transparent)
+        // Safety: You can't access the object through dyn Send + Sync
+        let arc: Arc<T> = unsafe { std::mem::transmute(self.0) };
+        arc
+    }
 }
 
 impl<T> WeakSubobject<T> {

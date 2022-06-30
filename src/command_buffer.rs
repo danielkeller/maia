@@ -27,10 +27,9 @@ mod draw;
 /// from it.
 ///
 /// `reset`, in turn, returns [`Error::SynchronizationError`] if any command
-/// buffers allocated from the pool are still pending.  To wait for them to
-/// finish execution, call
-/// [`PendingFence::wait`](crate::vk::PendingFence::wait()) on a fence passed to
-/// [`Queue::submit`](crate::vk::Queue::submit())
+/// buffers allocated from the pool are still pending.
+/// See the documentation of [`Queue`](crate::vk::Queue) for more details
+/// on how to wait for them.
 pub struct CommandPool {
     recording: Option<Arc<RecordedCommands>>,
     res: Owner<CommandPoolLifetime>,
@@ -189,10 +188,8 @@ impl CommandPool {
         self.res.handle.borrow_mut()
     }
 
-    /// Return [`Error::SynchronizationError`] if any command buffers are pending.
-    /// To wait for commands to finish execution, call
-    /// [`PendingFence::wait`](crate::vk::PendingFence::wait()) on a fence
-    /// passed to [`Queue::submit`](crate::vk::Queue::submit())
+    /// Return [`Error::SynchronizationError`] if any command buffers are
+    /// pending.
     pub fn reset(&mut self, flags: CommandPoolResetFlags) -> Result<()> {
         match Arc::try_unwrap(self.recording.take().unwrap()) {
             // Buffer in pending state
@@ -260,6 +257,7 @@ impl CommandPool {
         }))
     }
 
+    /// Return [`Error::SynchronizationError`] if `buffer` is pending.
     #[doc = crate::man_link!(vkFreeCommandBuffers)]
     pub fn free(&mut self, mut buffer: CommandBuffer) -> Result<()> {
         if !Owner::ptr_eq(&self.res, &buffer.0.pool) {
@@ -269,6 +267,7 @@ impl CommandPool {
         Ok(())
     }
 
+    /// Return [`Error::SynchronizationError`] if `buffer` is pending.
     #[doc = crate::man_link!(vkFreeCommandBuffers)]
     pub fn free_secondary(
         &mut self,

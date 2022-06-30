@@ -75,9 +75,10 @@ pub(crate) struct SwapchainImages {
 }
 
 impl SwapchainKHR {
-    /// If create_from is [`CreateSwapchainFrom::OldSwapchain`], images in that
-    /// swapchain that aren't acquired by the application are deleted. If any
-    /// references remain to those images, returns [`Error::SynchronizationError`].
+    /// If `create_from` is [`CreateSwapchainFrom::OldSwapchain`], images in
+    /// that swapchain that aren't acquired by the application are deleted. If
+    /// any references remain to those images, returns
+    /// [`Error::SynchronizationError`].
     /// Panics if the extension functions can't be loaded.
     ///
     #[doc = crate::man_link!(vkCreateSwapchainKHR)]
@@ -251,7 +252,7 @@ impl SwapchainKHR {
 
     /// Present the image. Returns [`Error::InvalidArgument`] if `wait` has no
     /// signal operation pending, or if the image did not come from this
-    /// swapchain.
+    /// swapchain. The lifetime of the swapchain is also extended by the queue.
     pub fn present(
         &mut self,
         queue: &mut Queue,
@@ -266,7 +267,6 @@ impl SwapchainKHR {
         if wait.signaller.is_none() {
             return Err(Error::InvalidArgument);
         }
-        let acquired = &mut self.images[index].1;
 
         let res = unsafe {
             (self.res.fun.queue_present_khr)(
@@ -288,9 +288,14 @@ impl SwapchainKHR {
                 other => return Err(other),
             },
         };
-        *acquired = false;
+
+        // Unacquire
+        self.images[index].1 = false;
+        // Semaphore signal op
         queue.add_resource(wait.take_signaller()); // Always needed?
         queue.add_resource(wait.inner.clone());
+        // Actual present
+        queue.add_resource(Subobject::new(&self.res).erase());
         Ok(is_optimal)
     }
 }

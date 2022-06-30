@@ -160,7 +160,7 @@ fn upload_data(
     );
     let mut transfer = rec.end()?;
     let fence = vk::Fence::new(device)?;
-    let pending_fence = queue.submit(
+    let pending_fence = queue.submit_with_fence(
         &mut [vk::SubmitInfo {
             commands: &mut [&mut transfer],
             ..Default::default()
@@ -237,7 +237,7 @@ fn upload_image(
     );
     let mut transfer = rec.end()?;
     let fence = vk::Fence::new(device)?;
-    let pending_fence = queue.submit(
+    let pending_fence = queue.submit_with_fence(
         &mut [vk::SubmitInfo {
             commands: &mut [&mut transfer],
             ..Default::default()
@@ -663,7 +663,7 @@ fn main() -> anyhow::Result<()> {
         pass.execute_commands(&mut [&mut subpass])?;
         let mut buf = pass.end()?.end()?;
 
-        let pending_fence = queue.submit(
+        let pending_fence = queue.submit_with_fence(
             &mut [vk::SubmitInfo {
                 wait: &mut [(
                     &mut acquire_sem,
