@@ -39,11 +39,11 @@ impl<T> Owner<T> {
             return Err(arc);
         }
         // Safety: UnsafeCell is repr(transparent)
-        Ok(Self(unsafe { std::mem::transmute(arc) }))
+        Ok(Self(unsafe { arc_transmute(arc) }))
     }
     pub fn into_arc(this: Self) -> Arc<T> {
         // Safety: UnsafeCell is repr(transparent)
-        unsafe { std::mem::transmute(this.0) }
+        unsafe { arc_transmute(this.0) }
     }
     // pub fn downgrade(this: &Self) -> WeakSubobject<T> {
     //     WeakSubobject(Arc::downgrade(&this.0))
@@ -69,8 +69,7 @@ impl<T: Send + Sync + 'static> Subobject<T> {
     pub fn erase(self) -> Arc<dyn Send + Sync> {
         // Safety: UnsafeCell is repr(transparent)
         // Safety: You can't access the object through dyn Send + Sync
-        let arc: Arc<T> = unsafe { std::mem::transmute(self.0) };
-        arc
+        unsafe { arc_transmute::<UnsafeCell<T>, T>(self.0) }
     }
 }
 
@@ -112,4 +111,8 @@ impl<T> std::fmt::Debug for WeakSubobject<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("WeakSubobject").field(&self.0).finish()
     }
+}
+
+unsafe fn arc_transmute<T, U>(arc: Arc<T>) -> Arc<U> {
+    Arc::from_raw(Arc::into_raw(arc) as *const U)
 }
