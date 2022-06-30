@@ -87,7 +87,7 @@ impl<'a> Bindings<'a> {
 
 macro_rules! draw_state {
     () => {
-        "Returns [Error::InvalidState] if the bound pipeline is not compatible 
+        "Returns [`Error::InvalidState`] if the bound pipeline is not compatible 
         with the current render pass and subpass, if the bound descriptor sets 
         and bound graphics pipeline do not have a compatible layout, or if a 
         descriptor set mentioned in the pipeline's layout is not bound."
