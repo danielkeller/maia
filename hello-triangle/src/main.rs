@@ -301,8 +301,6 @@ fn main() -> vk::Result<()> {
                     println!("{:?}", e);
                     *control_flow = ControlFlow::Exit;
                 }
-                // (prevent doctests from hanging. remove this in real code)
-                *control_flow = ControlFlow::Exit;
             }
             _ => (),
         }

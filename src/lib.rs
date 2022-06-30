@@ -2,7 +2,7 @@
 #![doc = include_str!("../README.md")]
 #![doc = include_str!("../INDEX.md")]
 #![doc = include_str!("../hello-triangle/README.md")]
-#![doc = "```rust"]
+#![doc = "```no_run"]
 #![doc = include_str!("../hello-triangle/src/main.rs")]
 #![doc = "```"]
 
