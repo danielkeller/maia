@@ -1,8 +1,7 @@
 use maia::vk;
 
 fn main() -> vk::Result<()> {
-    use winit::event_loop::EventLoop;
-    let event_loop = EventLoop::new();
+    let event_loop = winit::event_loop::EventLoop::new();
     let window = winit::window::Window::new(&event_loop).unwrap();
 
     let mut instance_exts = vec![];
@@ -17,22 +16,20 @@ fn main() -> vk::Result<()> {
         ..Default::default()
     })?;
 
-    // Create the surface
+    // Create a surface with the appropriate platform extension
     let surf = maia::window::create_surface(&inst, &window)?;
 
-    // Pick an appropriate physical device
+    // Pick a suitable physical device
     let phy = pick_physical_device(&inst.enumerate_physical_devices()?);
     // Pick a queue family that supports presenting to the surface
     let queue_family = pick_queue_family(&phy, &surf, &window)?;
     // Make sure the surface format we want is supported
-    if !surf.surface_formats(&phy)?.iter().any(|f| {
+    assert!(surf.surface_formats(&phy)?.iter().any(|f| {
         f == &vk::SurfaceFormatKHR {
             format: vk::Format::B8G8R8A8_SRGB,
             color_space: vk::ColorSpaceKHR::SRGB_NONLINEAR_KHR,
         }
-    }) {
-        panic!("Desired surface format not found");
-    }
+    }));
 
     // We need the swapchain extension, plus the extension needed by MoltenVK
     let device_extensions = required_device_extensions(&phy)?;
@@ -185,11 +182,10 @@ fn main() -> vk::Result<()> {
         })?;
 
     // Create the vertex buffer and fill it with data
-    let vertex_size = std::mem::size_of_val(&VERTEX_DATA) as u64;
     let vertex_buffer = vk::BufferWithoutMemory::new(
         &device,
         &vk::BufferCreateInfo {
-            size: vertex_size,
+            size: std::mem::size_of_val(&VERTEX_DATA) as u64,
             usage: vk::BufferUsageFlags::VERTEX_BUFFER,
             ..Default::default()
         },
