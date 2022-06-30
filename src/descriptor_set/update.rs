@@ -68,7 +68,7 @@ use bumpalo::collections::Vec as BumpVec;
 ///             &[vk::DescriptorBufferInfo {
 ///                 buffer: &buffer,
 ///                 offset: 0,
-///                 range: buffer.len(),
+///                 range: Some(128),
 ///             }],
 ///         )?
 ///         .samplers(1, 0, &[&sampler])?
@@ -78,8 +78,8 @@ use bumpalo::collections::Vec as BumpVec;
 ///             0,
 ///             &[vk::DescriptorBufferInfo {
 ///                 buffer: &buffer,
-///                 offset: 0,
-///                 range: buffer.len(),
+///                 offset: 128,
+///                 range: None,
 ///             }],
 ///         )?
 ///         .samplers(1, 0, &[&sampler])?

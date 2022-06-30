@@ -33,6 +33,18 @@ impl<T> Owner<T> {
     pub fn new(value: T) -> Self {
         Self(Arc::new(UnsafeCell::new(value)))
     }
+    /// Fails if `arc` has other strong or weak refs.
+    pub fn from_arc(mut arc: Arc<T>) -> Result<Self, Arc<T>> {
+        if Arc::get_mut(&mut arc).is_none() {
+            return Err(arc);
+        }
+        // Safety: UnsafeCell is repr(transparent)
+        Ok(Self(unsafe { std::mem::transmute(arc) }))
+    }
+    pub fn into_arc(this: Self) -> Arc<T> {
+        // Safety: UnsafeCell is repr(transparent)
+        unsafe { std::mem::transmute(this.0) }
+    }
     // pub fn downgrade(this: &Self) -> WeakSubobject<T> {
     //     WeakSubobject(Arc::downgrade(&this.0))
     // }

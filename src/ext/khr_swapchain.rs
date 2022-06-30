@@ -289,7 +289,7 @@ impl SwapchainKHR {
             },
         };
         *acquired = false;
-        queue.add_resource(wait.take_signaller());
+        queue.add_resource(wait.take_signaller()); // Always needed?
         queue.add_resource(wait.inner.clone());
         Ok(is_optimal)
     }

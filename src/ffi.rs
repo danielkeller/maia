@@ -1,8 +1,10 @@
 pub(crate) use std::ffi::c_void;
+use std::ffi::CStr;
+use std::fmt::Debug;
 pub(crate) use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 use std::os::raw::c_char;
 pub(crate) use std::ptr::NonNull;
-use std::{ffi::CStr, mem::MaybeUninit};
 
 /// The null pointer
 #[repr(transparent)]
@@ -10,7 +12,7 @@ use std::{ffi::CStr, mem::MaybeUninit};
 pub struct Null(Option<&'static Never>);
 enum Never {}
 
-impl std::fmt::Debug for Null {
+impl Debug for Null {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Null")
     }
@@ -95,7 +97,7 @@ impl<const N: usize> CharArray<N> {
     }
 }
 
-impl<const N: usize> std::fmt::Debug for CharArray<N> {
+impl<const N: usize> Debug for CharArray<N> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("CharArray<")?;
         N.fmt(f)?;
@@ -175,7 +177,6 @@ pub struct UUID(pub [u8; 16]);
 /// An immutably borrowed contiguous sequence of T. Represented as a u32
 /// followed by a pointer. Create using the [`slice()`] function.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Slice<'a, T> {
     count: u32,
     ptr: *const T,
@@ -190,6 +191,12 @@ impl<'a, T> Copy for Slice<'a, T> {}
 impl<'a, T> Clone for Slice<'a, T> {
     fn clone(&self) -> Self {
         Self { count: self.count, ptr: self.ptr, _lt: self._lt }
+    }
+}
+
+impl<'a, T: Debug> Debug for Slice<'a, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_slice().fmt(f)
     }
 }
 
@@ -266,25 +273,35 @@ impl<'a, T> std::iter::IntoIterator for Slice<'a, T> {
 /// use unaligned loads or stores and has no special alignment requirement
 /// itself.
 #[repr(C)]
-#[derive(Debug)]
 pub struct Slice_<'a, T> {
     count: u32,
-    #[cfg(target_pointer_width = "32")]
-    ptr: u32,
-    // Avoid unaligned stores
-    #[cfg(target_pointer_width = "64")]
-    ptr: [u32; 2],
+    ptr: SlicePtr<T>,
     _lt: PhantomData<&'a T>,
 }
+
+#[repr(packed)]
+struct SlicePtr<T>(*const T);
 
 // Safety: As with &
 unsafe impl<'a, T: Sync> Send for Slice_<'a, T> {}
 unsafe impl<'a, T: Sync> Sync for Slice_<'a, T> {}
 
+impl<T> Copy for SlicePtr<T> {}
+impl<T> Clone for SlicePtr<T> {
+    fn clone(&self) -> Self {
+        Self(self.0)
+    }
+}
 impl<'a, T> Copy for Slice_<'a, T> {}
 impl<'a, T> Clone for Slice_<'a, T> {
     fn clone(&self) -> Self {
         Self { count: self.count, ptr: self.ptr, _lt: self._lt }
+    }
+}
+
+impl<'a, T: Debug> Debug for Slice_<'a, T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_slice().fmt(f)
     }
 }
 
@@ -298,7 +315,7 @@ impl<'a, T> Slice_<'a, T> {
     fn from_slice(arr: &'a [T]) -> Self {
         Self {
             count: arr.len() as u32,
-            ptr: unsafe { std::mem::transmute(arr.as_ptr()) },
+            ptr: SlicePtr(arr.as_ptr()),
             _lt: PhantomData,
         }
     }
@@ -311,7 +328,7 @@ impl<'a, T> Slice_<'a, T> {
     /// Convert back into a normal rust slice
     pub fn as_slice(&self) -> &'a [T] {
         unsafe {
-            let ptr = std::mem::transmute(self.ptr);
+            let ptr = self.ptr.0;
             let len = self.count as usize;
             std::slice::from_raw_parts(ptr, len)
         }
@@ -340,7 +357,7 @@ impl<'a, T, const N: usize> From<&'a [T; N]> for Slice_<'a, T> {
     fn from(ts: &'a [T; N]) -> Self {
         Self {
             count: N as u32,
-            ptr: unsafe { std::mem::transmute(ts.as_ptr()) },
+            ptr: SlicePtr(ts.as_ptr()),
             _lt: PhantomData,
         }
     }

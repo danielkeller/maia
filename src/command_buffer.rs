@@ -79,7 +79,7 @@ pub struct CommandRecording<'a> {
     scratch: &'a bumpalo::Bump,
     graphics: Bindings<'a>,
     compute: Bindings<'a>,
-    buffer: CommandBufferLifetime,
+    buffer: Owner<CommandBufferLifetime>,
 }
 
 /// An in-progress command buffer recording, inside a render pass.
@@ -308,7 +308,7 @@ impl CommandPool {
             return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
         // In pending state
-        let mut inner = Arc::try_unwrap(buffer.0).map_err(|arc| {
+        let mut inner = Owner::from_arc(buffer.0).map_err(|arc| {
             ErrorAndSelf(Error::SynchronizationError, CommandBuffer(arc))
         })?;
         unsafe {
@@ -318,7 +318,7 @@ impl CommandPool {
             ) {
                 return Err(ErrorAndSelf(
                     err.into(),
-                    CommandBuffer(Arc::new(inner)),
+                    CommandBuffer(Owner::into_arc(inner)),
                 ));
             };
         }
@@ -355,7 +355,7 @@ impl CommandPool {
             return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
         }
         // In pending state
-        let mut inner = Arc::try_unwrap(buffer.buf).map_err(|arc| {
+        let mut inner = Owner::from_arc(buffer.buf).map_err(|arc| {
             ErrorAndSelf(
                 Error::SynchronizationError,
                 SecondaryCommandBuffer { buf: arc, pass: None, subpass: 0 },
@@ -382,7 +382,7 @@ impl CommandPool {
                 return Err(ErrorAndSelf(
                     err.into(),
                     SecondaryCommandBuffer {
-                        buf: Arc::new(inner),
+                        buf: Owner::into_arc(inner),
                         pass: None,
                         subpass: 0,
                     },
@@ -476,7 +476,7 @@ impl<'a> CommandRecording<'a> {
             )?;
         }
         self.buffer.recording = Arc::downgrade(self.recording);
-        Ok(CommandBuffer(Arc::new(self.buffer)))
+        Ok(CommandBuffer(Owner::into_arc(self.buffer)))
     }
 }
 
@@ -492,7 +492,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         }
         self.rec.buffer.recording = Arc::downgrade(self.rec.recording);
         Ok(SecondaryCommandBuffer {
-            buf: Arc::new(self.rec.buffer),
+            buf: Owner::into_arc(self.rec.buffer),
             pass: Some(self.pass),
             subpass: self.subpass,
         })
