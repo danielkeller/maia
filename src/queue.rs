@@ -146,6 +146,7 @@ impl Queue {
         drop(vk_infos);
 
         // Everything fallible is done, mark resources as in use
+        self.resources.extend(recordings.into_iter());
         for info in infos {
             for (sem, _) in info.wait.iter_mut() {
                 self.resources.push(sem.take_signaller());
@@ -161,7 +162,6 @@ impl Queue {
                 self.resources.push(sem.inner.clone());
             }
         }
-        self.resources.extend(recordings.into_iter());
 
         Ok(fence.into_pending(self.resources.new_cleanup()))
     }
