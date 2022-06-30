@@ -179,7 +179,7 @@ impl DeviceMemory {
         &self.inner.device
     }
     /// Extend the lifetime of the memory until the returned object is dropped.
-    pub fn resource(&self) -> Subobject<MemoryLifetime> {
+    pub(crate) fn resource(&self) -> Subobject<MemoryLifetime> {
         Subobject::new(&self.inner)
     }
     /// Check if the memory meets `requirements` at the given offset.
