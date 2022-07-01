@@ -719,4 +719,73 @@ mod test {
 
         Ok(())
     }
+
+    #[test]
+    fn push_constant_check() -> vk::Result<()> {
+        let (dev, _) = crate::test_device()?;
+        let layout = vk::PipelineLayout::new(
+            &dev,
+            Default::default(),
+            vec![],
+            vec![
+                vk::PushConstantRange {
+                    stage_flags: vk::ShaderStageFlags::VERTEX,
+                    offset: 0,
+                    size: 16,
+                },
+                vk::PushConstantRange {
+                    stage_flags: vk::ShaderStageFlags::FRAGMENT,
+                    offset: 32,
+                    size: 16,
+                },
+                vk::PushConstantRange {
+                    stage_flags: vk::ShaderStageFlags::VERTEX,
+                    offset: 48,
+                    size: 16,
+                },
+            ],
+        )?;
+        let mut cmd_pool = vk::CommandPool::new(&dev, 0)?;
+        let buf = cmd_pool.allocate()?;
+        let mut rec = cmd_pool.begin(buf)?;
+
+        // Overflow
+        assert!(rec
+            .push_constants(
+                &layout,
+                vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+                u32::MAX,
+                &[0; 48]
+            )
+            .is_err());
+        // Touches void
+        assert!(rec
+            .push_constants(
+                &layout,
+                vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+                0,
+                &[0; 48]
+            )
+            .is_err());
+        // Stage missing
+        assert!(rec
+            .push_constants(
+                &layout,
+                vk::ShaderStageFlags::FRAGMENT,
+                32,
+                &[0; 32]
+            )
+            .is_err());
+        // Ok
+        assert!(rec
+            .push_constants(
+                &layout,
+                vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+                32,
+                &[0; 32]
+            )
+            .is_ok());
+
+        Ok(())
+    }
 }
