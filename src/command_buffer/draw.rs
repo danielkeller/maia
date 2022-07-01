@@ -107,10 +107,7 @@ impl<'a> RenderPassRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdDraw)]
     pub fn draw(
-        &mut self,
-        vertex_count: u32,
-        instance_count: u32,
-        first_vertex: u32,
+        &mut self, vertex_count: u32, instance_count: u32, first_vertex: u32,
         first_instance: u32,
     ) -> Result<()> {
         self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
@@ -127,10 +124,7 @@ impl<'a> RenderPassRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdDrawIndirect)]
     pub fn draw_indirect(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        draw_count: u32,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, draw_count: u32,
         stride: u32,
     ) -> Result<()> {
         self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
@@ -140,12 +134,8 @@ impl<'a> RenderPassRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdDrawIndexed)]
     pub fn draw_indexed(
-        &mut self,
-        index_count: u32,
-        instance_count: u32,
-        first_index: u32,
-        vertex_offset: i32,
-        first_instance: u32,
+        &mut self, index_count: u32, instance_count: u32, first_index: u32,
+        vertex_offset: i32, first_instance: u32,
     ) -> Result<()> {
         self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw_indexed(
@@ -162,10 +152,7 @@ impl<'a> RenderPassRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdDrawIndexedIndirect)]
     pub fn draw_indexed_indirect(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        draw_count: u32,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, draw_count: u32,
         stride: u32,
     ) -> Result<()> {
         self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
@@ -177,10 +164,7 @@ impl<'a> SecondaryCommandRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdDraw)]
     pub fn draw(
-        &mut self,
-        vertex_count: u32,
-        instance_count: u32,
-        first_vertex: u32,
+        &mut self, vertex_count: u32, instance_count: u32, first_vertex: u32,
         first_instance: u32,
     ) -> Result<()> {
         self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
@@ -197,10 +181,7 @@ impl<'a> SecondaryCommandRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdDrawIndirect)]
     pub fn draw_indirect(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        draw_count: u32,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, draw_count: u32,
         stride: u32,
     ) -> Result<()> {
         self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
@@ -210,12 +191,8 @@ impl<'a> SecondaryCommandRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdDrawIndexed)]
     pub fn draw_indexed(
-        &mut self,
-        index_count: u32,
-        instance_count: u32,
-        first_index: u32,
-        vertex_offset: i32,
-        first_instance: u32,
+        &mut self, index_count: u32, instance_count: u32, first_index: u32,
+        vertex_offset: i32, first_instance: u32,
     ) -> Result<()> {
         self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
         self.rec.draw_indexed(
@@ -232,10 +209,7 @@ impl<'a> SecondaryCommandRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdDrawIndexedIndirect)]
     pub fn draw_indexed_indirect(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        draw_count: u32,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, draw_count: u32,
         stride: u32,
     ) -> Result<()> {
         self.rec.graphics.check_render_pass(&self.pass, self.subpass)?;
@@ -244,10 +218,7 @@ impl<'a> SecondaryCommandRecording<'a> {
 }
 impl<'a> CommandRecording<'a> {
     fn draw(
-        &mut self,
-        vertex_count: u32,
-        instance_count: u32,
-        first_vertex: u32,
+        &mut self, vertex_count: u32, instance_count: u32, first_vertex: u32,
         first_instance: u32,
     ) -> Result<()> {
         self.graphics.check()?;
@@ -263,10 +234,7 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
     fn draw_indirect(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        draw_count: u32,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, draw_count: u32,
         stride: u32,
     ) -> Result<()> {
         self.graphics.check()?;
@@ -283,12 +251,8 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
     fn draw_indexed(
-        &mut self,
-        index_count: u32,
-        instance_count: u32,
-        first_index: u32,
-        vertex_offset: i32,
-        first_instance: u32,
+        &mut self, index_count: u32, instance_count: u32, first_index: u32,
+        vertex_offset: i32, first_instance: u32,
     ) -> Result<()> {
         self.graphics.check()?;
         unsafe {
@@ -304,10 +268,7 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
     fn draw_indexed_indirect(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        draw_count: u32,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, draw_count: u32,
         stride: u32,
     ) -> Result<()> {
         self.graphics.check()?;
@@ -327,10 +288,7 @@ impl<'a> CommandRecording<'a> {
 
 impl<'a> CommandRecording<'a> {
     pub fn dispatch(
-        &mut self,
-        group_count_x: u32,
-        group_count_y: u32,
-        group_count_z: u32,
+        &mut self, group_count_x: u32, group_count_y: u32, group_count_z: u32,
     ) -> Result<()> {
         self.compute.check()?;
         unsafe {
@@ -344,9 +302,7 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
     pub fn dispatch_indirect(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
+        &mut self, buffer: &Arc<Buffer>, offset: u64,
     ) -> Result<()> {
         self.compute.check()?;
         self.add_resource(buffer.clone());
@@ -377,8 +333,7 @@ impl<'a> ExternalRenderPassRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdExecuteCommands)]
     pub fn execute_commands(
-        &mut self,
-        commands: &mut [&mut SecondaryCommandBuffer],
+        &mut self, commands: &mut [&mut SecondaryCommandBuffer],
     ) -> Result<()> {
         let mut resources = bumpalo::vec![in self.rec.scratch];
         let mut handles = bumpalo::vec![in self.rec.scratch];

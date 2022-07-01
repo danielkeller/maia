@@ -79,9 +79,7 @@ impl SurfaceKHR {
     /// [`Error::OutOfBounds`] if `queue_family` is out of bounds.
     #[doc = crate::man_link!(vkGetPhysicalDeviceSurfaceSupportKHR)]
     pub fn support(
-        &self,
-        phy: &PhysicalDevice,
-        queue_family: u32,
+        &self, phy: &PhysicalDevice, queue_family: u32,
     ) -> Result<bool> {
         let mut result = Bool::False;
         assert!(Arc::ptr_eq(&self.inner.instance, phy.instance()));
@@ -101,8 +99,7 @@ impl SurfaceKHR {
 
     #[doc = crate::man_link!(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)]
     pub fn capabilities(
-        &self,
-        phy: &PhysicalDevice,
+        &self, phy: &PhysicalDevice,
     ) -> Result<SurfaceCapabilitiesKHR> {
         assert!(Arc::ptr_eq(&self.inner.instance, phy.instance()));
         // Check phy support?
@@ -119,8 +116,7 @@ impl SurfaceKHR {
 
     #[doc = crate::man_link!(vkGetPhysicalDeviceSurfaceFormatsKHR)]
     pub fn surface_formats(
-        &self,
-        phy: &PhysicalDevice,
+        &self, phy: &PhysicalDevice,
     ) -> Result<Vec<SurfaceFormatKHR>> {
         assert!(Arc::ptr_eq(&self.inner.instance, phy.instance()));
         let mut len = 0;

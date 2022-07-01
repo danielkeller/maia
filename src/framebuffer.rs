@@ -24,10 +24,8 @@ pub struct Framebuffer {
 impl Framebuffer {
     #[doc = crate::man_link!(vkCreateFrameuffer)]
     pub fn new(
-        render_pass: &Arc<RenderPass>,
-        flags: FramebufferCreateFlags,
-        attachments: Vec<Arc<ImageView>>,
-        size: Extent3D,
+        render_pass: &Arc<RenderPass>, flags: FramebufferCreateFlags,
+        attachments: Vec<Arc<ImageView>>, size: Extent3D,
     ) -> Result<Arc<Self>> {
         for iv in &attachments {
             assert_eq!(iv.device(), render_pass.device());

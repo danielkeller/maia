@@ -21,11 +21,7 @@ impl<'a> CommandRecording<'a> {
     /// are out of bounds.
     #[doc = crate::man_link!(vkCmdFillBuffer)]
     pub fn fill_buffer(
-        &mut self,
-        dst: &Arc<Buffer>,
-        offset: u64,
-        size: Option<u64>,
-        data: u32,
+        &mut self, dst: &Arc<Buffer>, offset: u64, size: Option<u64>, data: u32,
     ) -> Result<()> {
         let offset = offset & !3;
         let size = match size {
@@ -59,10 +55,7 @@ impl<'a> CommandRecording<'a> {
     /// Returns [`Error::OutOfBounds`] if a region is out of bounds.
     #[doc = crate::man_link!(vkCmdCopyBuffer)]
     pub fn copy_buffer(
-        &mut self,
-        src: &Arc<Buffer>,
-        dst: &Arc<Buffer>,
-        regions: &[BufferCopy],
+        &mut self, src: &Arc<Buffer>, dst: &Arc<Buffer>, regions: &[BufferCopy],
     ) -> Result<()> {
         for r in regions {
             if !src.bounds_check(r.src_offset, r.size)
@@ -90,11 +83,8 @@ impl<'a> CommandRecording<'a> {
     /// [`Error::InvalidArgument`] if `regions` is empty.
     #[doc = crate::man_link!(vkCmdCopyBufferToImage)]
     pub fn copy_buffer_to_image(
-        &mut self,
-        src: &Arc<Buffer>,
-        dst: &Arc<Image>,
-        dst_layout: ImageLayout,
-        regions: &[BufferImageCopy],
+        &mut self, src: &Arc<Buffer>, dst: &Arc<Image>,
+        dst_layout: ImageLayout, regions: &[BufferImageCopy],
     ) -> Result<()> {
         for r in regions {
             let bytes = image_byte_size_3d(dst.format(), r.image_extent)
@@ -133,13 +123,8 @@ impl<'a> CommandRecording<'a> {
     /// [`Error::InvalidArgument`] if `regions` is empty.
     #[doc = crate::man_link!(vkCmdBlitImage)]
     pub fn blit_image(
-        &mut self,
-        src: &Arc<Image>,
-        src_layout: ImageLayout,
-        dst: &Arc<Image>,
-        dst_layout: ImageLayout,
-        regions: &[ImageBlit],
-        filter: Filter,
+        &mut self, src: &Arc<Image>, src_layout: ImageLayout, dst: &Arc<Image>,
+        dst_layout: ImageLayout, regions: &[ImageBlit], filter: Filter,
     ) -> Result<()> {
         for r in regions {
             if !src.array_bounds_check(
@@ -185,11 +170,8 @@ impl<'a> CommandRecording<'a> {
     /// [`Error::InvalidArgument`] if `ranges` is empty.
     #[doc = crate::man_link!(vkCmdClearColorImage)]
     pub fn clear_color_image(
-        &mut self,
-        image: &Arc<Image>,
-        layout: ImageLayout,
-        color: ClearColorValue,
-        ranges: &[ImageSubresourceRange],
+        &mut self, image: &Arc<Image>, layout: ImageLayout,
+        color: ClearColorValue, ranges: &[ImageSubresourceRange],
     ) -> Result<()> {
         let array = Array::from_slice(ranges).ok_or(Error::InvalidArgument)?;
         unsafe {

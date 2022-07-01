@@ -37,9 +37,7 @@ impl KHRWaylandSurface {
 
     #[doc = crate::man_link!(vkGetPhysicalDeviceWaylandPresentationSupportKHR)]
     pub unsafe fn presentation_support(
-        &self,
-        phy: &PhysicalDevice,
-        queue_family_index: u32,
+        &self, phy: &PhysicalDevice, queue_family_index: u32,
         display: NonNull<c_void>,
     ) -> bool {
         (self.fun.get_physical_device_wayland_presentation_support_khr)(
@@ -51,8 +49,7 @@ impl KHRWaylandSurface {
     }
     #[doc = crate::man_link!(vkCreateWaylandSurfaceKHR)]
     pub unsafe fn create_wayland_surface_ext(
-        &self,
-        info: &WaylandSurfaceCreateInfoKHR,
+        &self, info: &WaylandSurfaceCreateInfoKHR,
     ) -> Result<SurfaceKHR> {
         let mut handle = None;
         (self.fun.create_wayland_surface_khr)(

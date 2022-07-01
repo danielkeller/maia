@@ -19,8 +19,7 @@ use std::mem::MaybeUninit;
 #[link(name = "vulkan")]
 extern "system" {
     fn vkGetInstanceProcAddr(
-        instance: Option<Ref<VkInstance>>,
-        name: Str<'_>,
+        instance: Option<Ref<VkInstance>>, name: Str<'_>,
     ) -> Option<NonNull<c_void>>;
 }
 

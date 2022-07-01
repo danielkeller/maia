@@ -33,8 +33,7 @@ pub struct PipelineLayout {
 impl PipelineLayout {
     #[doc = crate::man_link!(vkCreatePipelineLayout)]
     pub fn new(
-        device: &Arc<Device>,
-        flags: PipelineLayoutCreateFlags,
+        device: &Arc<Device>, flags: PipelineLayoutCreateFlags,
         set_layouts: Vec<Arc<DescriptorSetLayout>>,
         push_constant_ranges: Vec<PushConstantRange>,
     ) -> Result<Arc<PipelineLayout>> {
@@ -163,8 +162,7 @@ fn find_voids(ranges: &[PushConstantRange]) -> Result<Vec<Range<u32>>> {
 }
 
 fn matching_resources(
-    sets: &[Arc<DescriptorSetLayout>],
-    descriptor_type: DescriptorType,
+    sets: &[Arc<DescriptorSetLayout>], descriptor_type: DescriptorType,
     stage_flags: ShaderStageFlags,
 ) -> u32 {
     sets.iter().map(|s| s.num_bindings(descriptor_type, stage_flags)).sum()
@@ -194,10 +192,7 @@ impl PipelineLayout {
     /// Checks that the push constants are in bounds and `stage_flags` are
     /// correct.
     pub(crate) fn bounds_check_push_constants(
-        &self,
-        stage_flags: ShaderStageFlags,
-        offset: u32,
-        size: u32,
+        &self, stage_flags: ShaderStageFlags, offset: u32, size: u32,
     ) -> bool {
         let (end, overflow) = offset.overflowing_add(size);
         if overflow {
@@ -346,8 +341,7 @@ impl Pipeline {
     /// bounds.
     #[doc = crate::man_link!(vkCreateComputePipeline)]
     pub fn new_compute(
-        stage: PipelineShaderStageCreateInfo,
-        layout: &Arc<PipelineLayout>,
+        stage: PipelineShaderStageCreateInfo, layout: &Arc<PipelineLayout>,
         cache: Option<&PipelineCache>,
     ) -> Result<Arc<Pipeline>> {
         check_specialization_constants(&stage)?;

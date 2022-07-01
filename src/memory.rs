@@ -31,9 +31,7 @@ impl DeviceMemory {
     /// index.
     #[doc = crate::man_link!(vkAllocateMemory)]
     pub fn new(
-        device: &Arc<Device>,
-        allocation_size: u64,
-        memory_type_index: u32,
+        device: &Arc<Device>, allocation_size: u64, memory_type_index: u32,
     ) -> Result<Self> {
         let mem_types = device.physical_device().memory_properties();
         if memory_type_index >= mem_types.memory_types.len() {
@@ -101,9 +99,7 @@ impl DeviceMemory {
     /// Map the memory so it can be written to. Returns [`Error::OutOfBounds`] if
     /// `offset` and `size` are out of bounds.
     pub fn map(
-        mut self,
-        offset: u64,
-        size: usize,
+        mut self, offset: u64, size: usize,
     ) -> ResultAndSelf<MappedMemory, Self> {
         let (end, overflow) = offset.overflowing_add(size as u64);
         if overflow || end > self.allocation_size {

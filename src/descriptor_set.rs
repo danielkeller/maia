@@ -48,8 +48,7 @@ pub struct DescriptorSetLayoutBinding {
 impl DescriptorSetLayout {
     #[doc = crate::man_link!(vkDescriptorSetLayout)]
     pub fn new(
-        device: &Arc<Device>,
-        bindings: Vec<DescriptorSetLayoutBinding>,
+        device: &Arc<Device>, bindings: Vec<DescriptorSetLayoutBinding>,
     ) -> Result<Arc<Self>> {
         for b in &bindings {
             if !b.immutable_samplers.is_empty()
@@ -138,9 +137,7 @@ impl DescriptorSetLayout {
     }
     /// Returns the number of bindings of the specified type and stage.
     pub(crate) fn num_bindings(
-        &self,
-        descriptor_type: DescriptorType,
-        stage_flags: ShaderStageFlags,
+        &self, descriptor_type: DescriptorType, stage_flags: ShaderStageFlags,
     ) -> u32 {
         self.bindings
             .iter()
@@ -170,9 +167,7 @@ pub struct DescriptorPool {
 impl DescriptorPool {
     #[doc = crate::man_link!(vkCreateDescriptorPool)]
     pub fn new(
-        device: &Arc<Device>,
-        max_sets: u32,
-        pool_sizes: &[DescriptorPoolSize],
+        device: &Arc<Device>, max_sets: u32, pool_sizes: &[DescriptorPoolSize],
     ) -> Result<Self> {
         let mut handle = None;
         unsafe {
@@ -252,8 +247,7 @@ pub struct DescriptorSet {
 impl DescriptorSet {
     #[doc = crate::man_link!(vkAllocateDescriptorSets)]
     pub fn new(
-        pool: &mut DescriptorPool,
-        layout: &Arc<DescriptorSetLayout>,
+        pool: &mut DescriptorPool, layout: &Arc<DescriptorSetLayout>,
     ) -> Result<Self> {
         assert!(Arc::ptr_eq(&pool.res.device, &layout.device));
         let mut handle = MaybeUninit::uninit();

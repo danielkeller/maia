@@ -33,8 +33,7 @@ pub struct Buffer {
 impl BufferWithoutMemory {
     #[doc = crate::man_link!(vkCreateBuffer)]
     pub fn new(
-        device: &Arc<Device>,
-        info: &BufferCreateInfo<'_>,
+        device: &Arc<Device>, info: &BufferCreateInfo<'_>,
     ) -> Result<Self> {
         let mut handle = None;
         unsafe {
@@ -56,9 +55,7 @@ impl Buffer {
     // TODO: Bulk bind
     #[doc = crate::man_link!(vkBindBufferMemory)]
     pub fn new(
-        buffer: BufferWithoutMemory,
-        memory: &DeviceMemory,
-        offset: u64,
+        buffer: BufferWithoutMemory, memory: &DeviceMemory, offset: u64,
     ) -> ResultAndSelf<Arc<Self>, BufferWithoutMemory> {
         assert_eq!(memory.device(), &buffer.device);
         if !memory.check(offset, buffer.memory_requirements()) {
@@ -68,9 +65,7 @@ impl Buffer {
     }
 
     fn bind_buffer_impl(
-        mut inner: BufferWithoutMemory,
-        memory: &DeviceMemory,
-        offset: u64,
+        mut inner: BufferWithoutMemory, memory: &DeviceMemory, offset: u64,
     ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
         if let Err(err) = unsafe {
             (memory.device().fun.bind_buffer_memory)(
@@ -137,8 +132,7 @@ impl BufferWithoutMemory {
     }
     /// Allocate a single piece of memory for the buffer and bind it.
     pub fn allocate_memory(
-        self,
-        memory_type_index: u32,
+        self, memory_type_index: u32,
     ) -> ResultAndSelf<Arc<Buffer>, Self> {
         let mem_req = self.memory_requirements();
         if (1 << memory_type_index) & mem_req.memory_type_bits == 0 {

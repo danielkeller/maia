@@ -1,5 +1,5 @@
 max_width = 80
-struct_lit_width = 50
+fn_args_layout = 'Compressed'
 use_small_heuristics = 'Max'
 # Need this to get methods in the right order in rustdoc
 reorder_modules = false

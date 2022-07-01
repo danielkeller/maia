@@ -67,9 +67,7 @@ impl<'a> RenderPassRecording<'a> {
     /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
-        &mut self,
-        first_binding: u32,
-        buffers_offsets: &[(&Arc<Buffer>, u64)],
+        &mut self, first_binding: u32, buffers_offsets: &[(&Arc<Buffer>, u64)],
     ) -> Result<()> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
@@ -77,10 +75,7 @@ impl<'a> RenderPassRecording<'a> {
     /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        index_type: IndexType,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, index_type: IndexType,
     ) {
         self.rec.bind_index_buffer(buffer, offset, index_type)
     }
@@ -90,9 +85,7 @@ impl<'a> SecondaryCommandRecording<'a> {
     /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
-        &mut self,
-        first_binding: u32,
-        buffers_offsets: &[(&Arc<Buffer>, u64)],
+        &mut self, first_binding: u32, buffers_offsets: &[(&Arc<Buffer>, u64)],
     ) -> Result<()> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
@@ -100,10 +93,7 @@ impl<'a> SecondaryCommandRecording<'a> {
     /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        index_type: IndexType,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, index_type: IndexType,
     ) {
         self.rec.bind_index_buffer(buffer, offset, index_type)
     }
@@ -113,9 +103,7 @@ impl<'a> CommandRecording<'a> {
     /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
-        &mut self,
-        first_binding: u32,
-        buffers_offsets: &[(&Arc<Buffer>, u64)],
+        &mut self, first_binding: u32, buffers_offsets: &[(&Arc<Buffer>, u64)],
     ) -> Result<()> {
         for &(buffer, _) in buffers_offsets {
             self.add_resource(buffer.clone());
@@ -142,10 +130,7 @@ impl<'a> CommandRecording<'a> {
     /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
-        &mut self,
-        buffer: &Arc<Buffer>,
-        offset: u64,
-        index_type: IndexType,
+        &mut self, buffer: &Arc<Buffer>, offset: u64, index_type: IndexType,
     ) {
         self.add_resource(buffer.clone());
         unsafe {
@@ -172,11 +157,8 @@ impl<'a> RenderPassRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
-        &mut self,
-        pipeline_bind_point: PipelineBindPoint,
-        layout: &PipelineLayout,
-        first_set: u32,
-        sets: &[&Arc<DescriptorSet>],
+        &mut self, pipeline_bind_point: PipelineBindPoint,
+        layout: &PipelineLayout, first_set: u32, sets: &[&Arc<DescriptorSet>],
         dynamic_offsets: &[u32],
     ) -> Result<()> {
         self.rec.bind_descriptor_sets(
@@ -201,11 +183,8 @@ impl<'a> SecondaryCommandRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
-        &mut self,
-        pipeline_bind_point: PipelineBindPoint,
-        layout: &PipelineLayout,
-        first_set: u32,
-        sets: &[&Arc<DescriptorSet>],
+        &mut self, pipeline_bind_point: PipelineBindPoint,
+        layout: &PipelineLayout, first_set: u32, sets: &[&Arc<DescriptorSet>],
         dynamic_offsets: &[u32],
     ) -> Result<()> {
         self.rec.bind_descriptor_sets(
@@ -220,10 +199,7 @@ impl<'a> SecondaryCommandRecording<'a> {
 
 impl<'a> Bindings<'a> {
     fn bind_descriptor_sets(
-        &mut self,
-        layout: &PipelineLayout,
-        begin: usize,
-        sets: usize,
+        &mut self, layout: &PipelineLayout, begin: usize, sets: usize,
     ) {
         let end = begin + sets;
         let layouts = &layout.layouts()[0..end];
@@ -260,11 +236,8 @@ impl<'a> CommandRecording<'a> {
     ///
     #[doc = crate::man_link!(vkCmdBindDescriptorSets)]
     pub fn bind_descriptor_sets(
-        &mut self,
-        pipeline_bind_point: PipelineBindPoint,
-        layout: &PipelineLayout,
-        first_set: u32,
-        sets: &[&Arc<DescriptorSet>],
+        &mut self, pipeline_bind_point: PipelineBindPoint,
+        layout: &PipelineLayout, first_set: u32, sets: &[&Arc<DescriptorSet>],
         dynamic_offsets: &[u32],
     ) -> Result<()> {
         // Max binding is already checked by the layout
@@ -324,11 +297,8 @@ impl<'a> RenderPassRecording<'a> {
     /// Returns [`Error::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
-        &mut self,
-        layout: &PipelineLayout,
-        stage_flags: ShaderStageFlags,
-        offset: u32,
-        data: &[u8],
+        &mut self, layout: &PipelineLayout, stage_flags: ShaderStageFlags,
+        offset: u32, data: &[u8],
     ) -> Result<()> {
         self.rec.push_constants(layout, stage_flags, offset, data)
     }
@@ -339,11 +309,8 @@ impl<'a> SecondaryCommandRecording<'a> {
     /// Returns [`Error::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
-        &mut self,
-        layout: &PipelineLayout,
-        stage_flags: ShaderStageFlags,
-        offset: u32,
-        data: &[u8],
+        &mut self, layout: &PipelineLayout, stage_flags: ShaderStageFlags,
+        offset: u32, data: &[u8],
     ) -> Result<()> {
         self.rec.push_constants(layout, stage_flags, offset, data)
     }
@@ -354,11 +321,8 @@ impl<'a> CommandRecording<'a> {
     /// Returns [`Error::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
-        &mut self,
-        layout: &PipelineLayout,
-        stage_flags: ShaderStageFlags,
-        offset: u32,
-        data: &[u8],
+        &mut self, layout: &PipelineLayout, stage_flags: ShaderStageFlags,
+        offset: u32, data: &[u8],
     ) -> Result<()> {
         if !layout.bounds_check_push_constants(
             stage_flags,

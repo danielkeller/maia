@@ -29,19 +29,13 @@ impl KHRXlibSurface {
     /// Creates an [`KHRXlibSurface`] extension object. Panics if the extension
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
-        Self {
-            fun: XlibSurfaceFn::new(instance),
-            instance: instance.clone(),
-        }
+        Self { fun: XlibSurfaceFn::new(instance), instance: instance.clone() }
     }
 
     #[doc = crate::man_link!(vkGetPhysicalDeviceXlibPresentationSupportKHR)]
     pub unsafe fn presentation_support(
-        &self,
-        phy: &PhysicalDevice,
-        queue_family_index: u32,
-        display: NonNull<c_void>,
-        visual_id: usize,
+        &self, phy: &PhysicalDevice, queue_family_index: u32,
+        display: NonNull<c_void>, visual_id: usize,
     ) -> bool {
         (self.fun.get_physical_device_xlib_presentation_support_khr)(
             phy.handle(),
@@ -53,8 +47,7 @@ impl KHRXlibSurface {
     }
     #[doc = crate::man_link!(vkCreateXlibSurfaceKHR)]
     pub unsafe fn create_xlib_surface_ext(
-        &self,
-        info: &XlibSurfaceCreateInfoKHR,
+        &self, info: &XlibSurfaceCreateInfoKHR,
     ) -> Result<SurfaceKHR> {
         let mut handle = None;
         (self.fun.create_xlib_surface_khr)(

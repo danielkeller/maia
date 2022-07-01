@@ -58,8 +58,7 @@ impl Device {
     /// the order requested in `info.queue_create_infos`.
     #[doc = crate::man_link!(vkCreateDevice)]
     pub fn new(
-        phy: &PhysicalDevice,
-        info: &DeviceCreateInfo<'_>,
+        phy: &PhysicalDevice, info: &DeviceCreateInfo<'_>,
     ) -> Result<(Arc<Self>, Vec<Vec<Queue>>)> {
         let props = phy.queue_family_properties();
         let mut queues = vec![0; props.len()];

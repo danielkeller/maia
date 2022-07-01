@@ -61,8 +61,7 @@ impl std::hash::Hash for Image {
 impl ImageWithoutMemory {
     #[doc = crate::man_link!(vkCreateImage)]
     pub fn new(
-        device: &Arc<Device>,
-        info: &ImageCreateInfo<'_>,
+        device: &Arc<Device>, info: &ImageCreateInfo<'_>,
     ) -> Result<Self> {
         let max_dim =
             info.extent.width.max(info.extent.height).max(info.extent.depth);
@@ -103,9 +102,7 @@ impl ImageWithoutMemory {
 impl Image {
     #[doc = crate::man_link!(vkBindImageMemory)]
     pub fn new(
-        image: ImageWithoutMemory,
-        memory: &DeviceMemory,
-        offset: u64,
+        image: ImageWithoutMemory, memory: &DeviceMemory, offset: u64,
     ) -> ResultAndSelf<Arc<Self>, ImageWithoutMemory> {
         assert_eq!(memory.device(), &image.device);
         if !memory.check(offset, image.memory_requirements()) {
@@ -115,9 +112,7 @@ impl Image {
     }
 
     fn bind_image_impl(
-        mut inner: ImageWithoutMemory,
-        memory: &DeviceMemory,
-        offset: u64,
+        mut inner: ImageWithoutMemory, memory: &DeviceMemory, offset: u64,
     ) -> ResultAndSelf<Arc<Self>, ImageWithoutMemory> {
         if let Err(err) = unsafe {
             (memory.device().fun.bind_image_memory)(
@@ -166,8 +161,7 @@ impl ImageWithoutMemory {
     }
     /// Allocate a single piece of memory for the image and bind it.
     pub fn allocate_memory(
-        self,
-        memory_type_index: u32,
+        self, memory_type_index: u32,
     ) -> ResultAndSelf<Arc<Image>, Self> {
         let mem_req = self.memory_requirements();
         if (1 << memory_type_index) & mem_req.memory_type_bits == 0 {
@@ -188,11 +182,8 @@ impl ImageWithoutMemory {
 
 impl Image {
     pub(crate) fn new_from(
-        handle: Handle<VkImage>,
-        device: Arc<Device>,
-        res: Subobject<SwapchainImages>,
-        format: Format,
-        extent: Extent3D,
+        handle: Handle<VkImage>, device: Arc<Device>,
+        res: Subobject<SwapchainImages>, format: Format, extent: Extent3D,
         array_layers: u32,
     ) -> Self {
         Self {
@@ -232,9 +223,7 @@ impl Image {
     }
     /// Returns true if the given values are within the image's array layers.
     pub fn array_bounds_check(
-        &self,
-        base_array_layer: u32,
-        layer_count: u32,
+        &self, base_array_layer: u32, layer_count: u32,
     ) -> bool {
         self.inner.array_layers >= base_array_layer
             && self.inner.array_layers - base_array_layer >= layer_count
@@ -242,9 +231,7 @@ impl Image {
     /// Returns true if the given point is within the image at the given mip
     /// level.
     pub fn offset_bounds_check(
-        &self,
-        mip_level: u32,
-        offset: Offset3D,
+        &self, mip_level: u32, offset: Offset3D,
     ) -> bool {
         let ex = self.extent(mip_level);
         mip_level < self.inner.mip_levels
@@ -256,10 +243,7 @@ impl Image {
     /// Returns true if the given rectangle is within the image at the given mip
     /// level.
     pub fn bounds_check(
-        &self,
-        mip_level: u32,
-        offset: Offset3D,
-        extent: Extent3D,
+        &self, mip_level: u32, offset: Offset3D, extent: Extent3D,
     ) -> bool {
         let ex = self.extent(mip_level);
         self.offset_bounds_check(mip_level, offset)
@@ -304,8 +288,7 @@ pub struct ImageViewCreateInfo {
 impl ImageView {
     /// Create an image view of the image.
     pub fn new(
-        image: &Arc<Image>,
-        info: &ImageViewCreateInfo,
+        image: &Arc<Image>, info: &ImageViewCreateInfo,
     ) -> Result<Arc<Self>> {
         let vk_info = VkImageViewCreateInfo {
             stype: Default::default(),

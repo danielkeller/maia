@@ -239,8 +239,7 @@ impl CommandPool {
     }
 
     fn allocate_impl(
-        &mut self,
-        level: CommandBufferLevel,
+        &mut self, level: CommandBufferLevel,
     ) -> Result<Arc<CommandBufferLifetime>> {
         let mut handle = MaybeUninit::uninit();
         let res = &mut *self.res;
@@ -278,8 +277,7 @@ impl CommandPool {
     /// Return [`Error::SynchronizationError`] if `buffer` is pending.
     #[doc = crate::man_link!(vkFreeCommandBuffers)]
     pub fn free_secondary(
-        &mut self,
-        mut buffer: SecondaryCommandBuffer,
+        &mut self, mut buffer: SecondaryCommandBuffer,
     ) -> Result<()> {
         if !Owner::ptr_eq(&self.res, &buffer.buf.pool) {
             return Err(Error::InvalidArgument);
@@ -305,8 +303,7 @@ impl CommandPool {
     /// [`Error::SynchronizationError`] if the buffer is in the pending state.
     #[doc = crate::man_link!(vkBeginCommandBuffer)]
     pub fn begin(
-        &mut self,
-        buffer: CommandBuffer,
+        &mut self, buffer: CommandBuffer,
     ) -> ResultAndSelf<CommandRecording<'_>, CommandBuffer> {
         if !Owner::ptr_eq(&self.res, &buffer.0.pool)
             // In executable state
@@ -346,10 +343,8 @@ impl CommandPool {
     /// [`Error::SynchronizationError`] if the buffer is in the pending state.
     #[doc = crate::man_link!(vkBeginCommandBuffer)]
     pub fn begin_secondary<'a>(
-        &'a mut self,
-        buffer: SecondaryCommandBuffer,
-        render_pass: &Arc<RenderPass>,
-        subpass: u32,
+        &'a mut self, buffer: SecondaryCommandBuffer,
+        render_pass: &Arc<RenderPass>, subpass: u32,
     ) -> ResultAndSelf<SecondaryCommandRecording<'a>, SecondaryCommandBuffer>
     {
         if subpass >= render_pass.num_subpasses() {
@@ -511,10 +506,8 @@ impl<'a> CommandRecording<'a> {
     /// if `framebuffer` and `render_pass` are not compatible.
     #[doc = crate::man_link!(vkCmdBeginRenderPass)]
     pub fn begin_render_pass(
-        mut self,
-        render_pass: &Arc<RenderPass>,
-        framebuffer: &Arc<Framebuffer>,
-        render_area: &Rect2D,
+        mut self, render_pass: &Arc<RenderPass>,
+        framebuffer: &Arc<Framebuffer>, render_area: &Rect2D,
         clear_values: &[ClearValue],
     ) -> Result<RenderPassRecording<'a>> {
         self.begin_render_pass_impl(
@@ -535,10 +528,8 @@ impl<'a> CommandRecording<'a> {
     /// compatible.
     #[doc = crate::man_link!(vkCmdBeginRenderPass)]
     pub fn begin_render_pass_secondary(
-        mut self,
-        render_pass: &Arc<RenderPass>,
-        framebuffer: &Arc<Framebuffer>,
-        render_area: &Rect2D,
+        mut self, render_pass: &Arc<RenderPass>,
+        framebuffer: &Arc<Framebuffer>, render_area: &Rect2D,
         clear_values: &[ClearValue],
     ) -> Result<ExternalRenderPassRecording<'a>> {
         if !framebuffer.is_compatible_with(render_pass) {
@@ -558,12 +549,9 @@ impl<'a> CommandRecording<'a> {
         })
     }
     fn begin_render_pass_impl(
-        &mut self,
-        render_pass: &Arc<RenderPass>,
-        framebuffer: &Arc<Framebuffer>,
-        render_area: &Rect2D,
-        clear_values: &[ClearValue],
-        subpass_contents: SubpassContents,
+        &mut self, render_pass: &Arc<RenderPass>,
+        framebuffer: &Arc<Framebuffer>, render_area: &Rect2D,
+        clear_values: &[ClearValue], subpass_contents: SubpassContents,
     ) -> Result<()> {
         if !framebuffer.is_compatible_with(render_pass) {
             return Err(Error::InvalidArgument);

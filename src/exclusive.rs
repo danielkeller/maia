@@ -21,8 +21,7 @@ impl<T> std::panic::RefUnwindSafe for Exclusive<T> {}
 
 impl<T> std::fmt::Debug for Exclusive<T> {
     fn fmt(
-        &self,
-        f: &mut std::fmt::Formatter<'_>,
+        &self, f: &mut std::fmt::Formatter<'_>,
     ) -> Result<(), std::fmt::Error> {
         f.debug_struct("Exclusive").finish_non_exhaustive()
     }

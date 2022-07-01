@@ -45,9 +45,7 @@ pub struct Queue {
 
 impl Device {
     pub(crate) fn queue(
-        self: &Arc<Self>,
-        family_index: u32,
-        queue_index: u32,
+        self: &Arc<Self>, family_index: u32, queue_index: u32,
     ) -> Queue {
         let mut handle = None;
         unsafe {
@@ -104,9 +102,7 @@ impl Queue {
     /// or if any command buffer is not in the executable state.
     #[doc = crate::man_link!(vkQueueSubmit)]
     pub fn submit_with_fence(
-        &mut self,
-        infos: &mut [SubmitInfo<'_>],
-        mut fence: Fence,
+        &mut self, infos: &mut [SubmitInfo<'_>], mut fence: Fence,
     ) -> Result<PendingFence> {
         self.submit_impl(infos, Some(fence.mut_handle()))?;
         Ok(fence.into_pending(self.resources.new_cleanup()))
@@ -121,9 +117,7 @@ impl Queue {
     }
 
     fn submit_impl(
-        &mut self,
-        infos: &mut [SubmitInfo<'_>],
-        fence: Option<Mut<VkFence>>,
+        &mut self, infos: &mut [SubmitInfo<'_>], fence: Option<Mut<VkFence>>,
     ) -> Result<()> {
         for info in infos.iter() {
             for (sem, _) in info.wait.iter() {

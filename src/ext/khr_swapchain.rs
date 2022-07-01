@@ -91,8 +91,7 @@ impl SwapchainKHR {
     ///
     #[doc = crate::man_link!(vkCreateSwapchainKHR)]
     pub fn new(
-        device: &Arc<Device>,
-        create_from: CreateSwapchainFrom,
+        device: &Arc<Device>, create_from: CreateSwapchainFrom,
         info: SwapchainCreateInfoKHR,
     ) -> Result<Self> {
         let (mut surface, fun, mut old_swapchain) = match create_from {
@@ -228,9 +227,7 @@ impl SwapchainKHR {
     ///
     #[doc = crate::man_link!(vkAcquireNextImageKHR)]
     pub fn acquire_next_image(
-        &mut self,
-        signal: &mut Semaphore,
-        timeout: u64,
+        &mut self, signal: &mut Semaphore, timeout: u64,
     ) -> Result<(Arc<Image>, ImageOptimality)> {
         let mut index = 0;
         let res = &mut *self.res;
@@ -262,10 +259,7 @@ impl SwapchainKHR {
     /// signal operation pending, or if the image did not come from this
     /// swapchain. The lifetime of the swapchain is also extended by the queue.
     pub fn present(
-        &mut self,
-        queue: &mut Queue,
-        image: &Image,
-        wait: &mut Semaphore,
+        &mut self, queue: &mut Queue, image: &Image, wait: &mut Semaphore,
     ) -> Result<ImageOptimality> {
         let index = self
             .images

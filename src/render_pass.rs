@@ -23,8 +23,7 @@ pub struct RenderPass {
 impl RenderPass {
     #[doc = crate::man_link!(vkCreateRenderPass)]
     pub fn new(
-        device: &Arc<Device>,
-        info: &RenderPassCreateInfo,
+        device: &Arc<Device>, info: &RenderPassCreateInfo,
     ) -> Result<Arc<Self>> {
         for subpass in info.subpasses {
             if subpass.color_attachments.len()
@@ -106,8 +105,7 @@ fn flatten_ref<T>(opt: Option<&Option<T>>) -> Option<&T> {
 }
 
 fn att_ref_array_compat(
-    a: &[Option<AttachmentRefCompat>],
-    b: &[Option<AttachmentRefCompat>],
+    a: &[Option<AttachmentRefCompat>], b: &[Option<AttachmentRefCompat>],
 ) -> bool {
     for i in 0..a.len().max(b.len()) {
         if flatten_ref(a.get(i)) != flatten_ref(b.get(i)) {

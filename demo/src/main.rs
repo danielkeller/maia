@@ -86,8 +86,7 @@ fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
 }
 
 fn pick_queue_family(
-    phy: &vk::PhysicalDevice,
-    surf: &vk::ext::SurfaceKHR,
+    phy: &vk::PhysicalDevice, surf: &vk::ext::SurfaceKHR,
     window: &winit::window::Window,
 ) -> anyhow::Result<u32> {
     for (num, props) in phy.queue_family_properties().iter().enumerate() {
@@ -113,8 +112,7 @@ fn required_device_extensions(
 }
 
 fn memory_type(
-    phy: &vk::PhysicalDevice,
-    desired: vk::MemoryPropertyFlags,
+    phy: &vk::PhysicalDevice, desired: vk::MemoryPropertyFlags,
 ) -> u32 {
     let mem_props = phy.memory_properties();
     for (num, props) in mem_props.memory_types.iter().enumerate() {
@@ -126,13 +124,9 @@ fn memory_type(
 }
 
 fn upload_data(
-    device: &Arc<vk::Device>,
-    queue: &mut vk::Queue,
-    cmd_pool: &mut vk::CommandPool,
-    src: &[u8],
-    dst: &Arc<vk::Buffer>,
-    dst_stage_mask: vk::PipelineStageFlags,
-    dst_access_mask: vk::AccessFlags,
+    device: &Arc<vk::Device>, queue: &mut vk::Queue,
+    cmd_pool: &mut vk::CommandPool, src: &[u8], dst: &Arc<vk::Buffer>,
+    dst_stage_mask: vk::PipelineStageFlags, dst_access_mask: vk::AccessFlags,
 ) -> anyhow::Result<()> {
     let staging_buffer = vk::BufferWithoutMemory::new(
         &device,
@@ -180,9 +174,7 @@ fn upload_data(
 }
 
 fn upload_image(
-    device: &Arc<vk::Device>,
-    queue: &mut vk::Queue,
-    image: &Arc<vk::Image>,
+    device: &Arc<vk::Device>, queue: &mut vk::Queue, image: &Arc<vk::Image>,
     cmd_pool: &mut vk::CommandPool,
 ) -> anyhow::Result<()> {
     let image_file = std::fs::File::open("assets/texture.jpg")?;
@@ -305,10 +297,8 @@ fn main() -> anyhow::Result<()> {
     let mut fence = Some(vk::Fence::new(&device)?);
 
     let window_size = window.inner_size();
-    let mut swapchain_size = vk::Extent2D {
-        width: window_size.width,
-        height: window_size.height,
-    };
+    let mut swapchain_size =
+        vk::Extent2D { width: window_size.width, height: window_size.height };
     let mut swapchain = Some(vk::ext::SwapchainKHR::new(
         &device,
         vk::CreateSwapchainFrom::Surface(surf),

@@ -50,10 +50,7 @@ impl std::panic::RefUnwindSafe for QueueEntry {}
 
 impl Default for QueueEntry {
     fn default() -> Self {
-        Self {
-            guard: AtomicU64::new(u64::MAX),
-            value: Cell::new(None),
-        }
+        Self { guard: AtomicU64::new(u64::MAX), value: Cell::new(None) }
     }
 }
 
@@ -65,11 +62,7 @@ impl CleanupQueue {
     }
 
     pub fn new(capacity: usize) -> Self {
-        Self {
-            cursor: 0,
-            level: 0,
-            array: Self::new_array(capacity),
-        }
+        Self { cursor: 0, level: 0, array: Self::new_array(capacity) }
     }
     pub fn push(&mut self, value: Arc<dyn Send + Sync>) {
         let entry = &self.array[self.cursor];
@@ -97,11 +90,8 @@ impl CleanupQueue {
         } else {
             self.cursor - 1
         };
-        let result = Cleanup {
-            cursor,
-            level: self.level,
-            array: self.array.clone(),
-        };
+        let result =
+            Cleanup { cursor, level: self.level, array: self.array.clone() };
         self.level += 1;
         result
     }

@@ -72,10 +72,8 @@ impl<'a> ImageMemoryBarrier<'a> {
 impl<'a> RenderPassRecording<'a> {
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn pipeline_barrier(
-        &mut self,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        dependency_flags: DependencyFlags,
+        &mut self, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, dependency_flags: DependencyFlags,
         memory_barriers: &[MemoryBarrier],
         buffer_memory_barriers: &[BufferMemoryBarrier],
         image_memory_barriers: &[ImageMemoryBarrier],
@@ -92,10 +90,8 @@ impl<'a> RenderPassRecording<'a> {
     /// A shortcut for simple memory barriers
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn memory_barrier(
-        &mut self,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        src_access_mask: AccessFlags,
+        &mut self, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, src_access_mask: AccessFlags,
         dst_access_mask: AccessFlags,
     ) {
         self.rec.memory_barrier(
@@ -108,13 +104,9 @@ impl<'a> RenderPassRecording<'a> {
     /// A shortcut for simple image barriers
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn image_barrier(
-        &mut self,
-        image: &Arc<Image>,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        src_access_mask: AccessFlags,
-        dst_access_mask: AccessFlags,
-        old_layout: ImageLayout,
+        &mut self, image: &Arc<Image>, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags, old_layout: ImageLayout,
         new_layout: ImageLayout,
     ) {
         self.rec.image_barrier(
@@ -132,10 +124,8 @@ impl<'a> RenderPassRecording<'a> {
 impl<'a> SecondaryCommandRecording<'a> {
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn pipeline_barrier(
-        &mut self,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        dependency_flags: DependencyFlags,
+        &mut self, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, dependency_flags: DependencyFlags,
         memory_barriers: &[MemoryBarrier],
         buffer_memory_barriers: &[BufferMemoryBarrier],
         image_memory_barriers: &[ImageMemoryBarrier],
@@ -152,10 +142,8 @@ impl<'a> SecondaryCommandRecording<'a> {
     /// A shortcut for simple memory barriers.
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn memory_barrier(
-        &mut self,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        src_access_mask: AccessFlags,
+        &mut self, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, src_access_mask: AccessFlags,
         dst_access_mask: AccessFlags,
     ) {
         self.rec.memory_barrier(
@@ -168,13 +156,9 @@ impl<'a> SecondaryCommandRecording<'a> {
     /// A shortcut for simple image barriers.
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn image_barrier(
-        &mut self,
-        image: &Arc<Image>,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        src_access_mask: AccessFlags,
-        dst_access_mask: AccessFlags,
-        old_layout: ImageLayout,
+        &mut self, image: &Arc<Image>, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags, old_layout: ImageLayout,
         new_layout: ImageLayout,
     ) {
         self.rec.image_barrier(
@@ -192,10 +176,8 @@ impl<'a> SecondaryCommandRecording<'a> {
 impl<'a> CommandRecording<'a> {
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn pipeline_barrier(
-        &mut self,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        dependency_flags: DependencyFlags,
+        &mut self, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, dependency_flags: DependencyFlags,
         memory_barriers: &[MemoryBarrier],
         buffer_memory_barriers: &[BufferMemoryBarrier],
         image_memory_barriers: &[ImageMemoryBarrier],
@@ -232,10 +214,8 @@ impl<'a> CommandRecording<'a> {
     /// A shortcut for simple memory barriers.
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn memory_barrier(
-        &mut self,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        src_access_mask: AccessFlags,
+        &mut self, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, src_access_mask: AccessFlags,
         dst_access_mask: AccessFlags,
     ) {
         unsafe {
@@ -261,13 +241,9 @@ impl<'a> CommandRecording<'a> {
     /// A shortcut for simple image barriers.
     #[doc = crate::man_link!(vkCmdPipelineBarrier)]
     pub fn image_barrier(
-        &mut self,
-        image: &Arc<Image>,
-        src_stage_mask: PipelineStageFlags,
-        dst_stage_mask: PipelineStageFlags,
-        src_access_mask: AccessFlags,
-        dst_access_mask: AccessFlags,
-        old_layout: ImageLayout,
+        &mut self, image: &Arc<Image>, src_stage_mask: PipelineStageFlags,
+        dst_stage_mask: PipelineStageFlags, src_access_mask: AccessFlags,
+        dst_access_mask: AccessFlags, old_layout: ImageLayout,
         new_layout: ImageLayout,
     ) {
         self.add_resource(image.clone());

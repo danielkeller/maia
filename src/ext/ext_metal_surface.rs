@@ -25,18 +25,14 @@ impl EXTMetalSurface {
     /// Creates an [`EXTMetalSurface`] extension object. Panics if the extension
     /// functions can't be loaded.
     pub fn new(instance: &Arc<Instance>) -> Self {
-        Self {
-            fun: MetalSurfaceFn::new(instance),
-            instance: instance.clone(),
-        }
+        Self { fun: MetalSurfaceFn::new(instance), instance: instance.clone() }
     }
 
     /// Creates a metal surface. The `layer` member of
     /// [`MetalSurfaceCreateInfoEXT`] must refer to a valid Metal layer.
     #[doc = crate::man_link!(vkCreateMetalSurfaceEXT)]
     pub unsafe fn create_metal_surface_ext(
-        &self,
-        info: &MetalSurfaceCreateInfoEXT,
+        &self, info: &MetalSurfaceCreateInfoEXT,
     ) -> Result<SurfaceKHR> {
         let mut handle = None;
         (self.fun.create_metal_surface_ext)(

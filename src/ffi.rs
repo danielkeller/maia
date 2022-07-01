@@ -74,10 +74,7 @@ impl Default for Str<'_> {
 impl<'a> From<&'a CStr> for Str<'a> {
     fn from(cstring: &'a CStr) -> Self {
         // Safety: CStr::as_ptr is always non-null.
-        Str {
-            _ptr: unsafe { (&*cstring.as_ptr()).into() },
-            _lt: PhantomData,
-        }
+        Str { _ptr: unsafe { (&*cstring.as_ptr()).into() }, _lt: PhantomData }
     }
 }
 
@@ -210,11 +207,7 @@ impl<'a, T: Debug> Debug for Slice<'a, T> {
 
 impl<'a, T> Slice<'a, T> {
     fn from_slice(arr: &'a [T]) -> Self {
-        Slice {
-            count: arr.len() as u32,
-            ptr: arr.as_ptr(),
-            _lt: PhantomData,
-        }
+        Slice { count: arr.len() as u32, ptr: arr.as_ptr(), _lt: PhantomData }
     }
     pub fn len(&self) -> u32 {
         self.count
@@ -257,11 +250,7 @@ impl<'a, T> From<&'a Vec<T>> for Slice<'a, T> {
 
 impl<'a, T, const N: usize> From<&'a [T; N]> for Slice<'a, T> {
     fn from(ts: &'a [T; N]) -> Self {
-        Self {
-            count: N as u32,
-            ptr: ts.as_ptr(),
-            _lt: PhantomData,
-        }
+        Self { count: N as u32, ptr: ts.as_ptr(), _lt: PhantomData }
     }
 }
 
@@ -363,11 +352,7 @@ impl<'a, T> From<&'a Vec<T>> for Slice_<'a, T> {
 
 impl<'a, T, const N: usize> From<&'a [T; N]> for Slice_<'a, T> {
     fn from(ts: &'a [T; N]) -> Self {
-        Self {
-            count: N as u32,
-            ptr: SlicePtr(ts.as_ptr()),
-            _lt: PhantomData,
-        }
+        Self { count: N as u32, ptr: SlicePtr(ts.as_ptr()), _lt: PhantomData }
     }
 }
 
@@ -425,11 +410,7 @@ impl<'a> Clone for Bytes<'a> {
 
 impl<'a> Bytes<'a> {
     pub fn from_slice(slice: &'a [u8]) -> Self {
-        Self {
-            len: slice.len(),
-            ptr: slice.as_ptr(),
-            _lt: PhantomData,
-        }
+        Self { len: slice.len(), ptr: slice.as_ptr(), _lt: PhantomData }
     }
     pub fn len(&self) -> usize {
         self.len

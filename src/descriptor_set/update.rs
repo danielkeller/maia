@@ -153,8 +153,7 @@ pub struct DescriptorSetUpdate<'a> {
 impl<'a> DescriptorSetUpdates<'a> {
     /// Add updates to the given set to the builder.
     pub fn dst_set(
-        self,
-        set: &'a mut DescriptorSet,
+        self, set: &'a mut DescriptorSet,
     ) -> DescriptorSetUpdate<'a> {
         assert_eq!(&*set.layout.device, self.device);
         DescriptorSetUpdate { updates: self, set }
@@ -200,19 +199,15 @@ impl<'a> DescriptorSetUpdate<'a> {
 
     /// Add updates to the given set to the builder.
     pub fn dst_set(
-        mut self,
-        set: &'a mut DescriptorSet,
+        mut self, set: &'a mut DescriptorSet,
     ) -> DescriptorSetUpdate<'a> {
         self.updates.dst_sets.push(self.set);
         self.updates.dst_set(set)
     }
 
     pub(crate) fn buffers_impl(
-        mut self,
-        dst_binding: u32,
-        dst_array_element: u32,
-        buffers: &'_ [DescriptorBufferInfo<'a>],
-        max_range: u32,
+        mut self, dst_binding: u32, dst_array_element: u32,
+        buffers: &'_ [DescriptorBufferInfo<'a>], max_range: u32,
         descriptor_type: DescriptorType,
     ) -> Result<Self> {
         let iter = BindingIter::new(
@@ -262,9 +257,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// are not enough bindings, and [Error::InvalidArgument] if some of the
     /// bindings in the destination range are of a different type.
     pub fn uniform_buffers(
-        self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        self, dst_binding: u32, dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
     ) -> Result<Self> {
         let max_range = self.updates.device.limits().max_uniform_buffer_range;
@@ -280,9 +273,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// are not enough bindings, and [Error::InvalidArgument] if some of the
     /// bindings in the destination range are of a different type.
     pub fn storage_buffers(
-        self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        self, dst_binding: u32, dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
     ) -> Result<Self> {
         let max_range = self.updates.device.limits().max_storage_buffer_range;
@@ -298,9 +289,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// there are not enough bindings, and [Error::InvalidArgument] if some of
     /// the bindings in the destination range are of a different type.
     pub fn uniform_buffers_dynamic(
-        self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        self, dst_binding: u32, dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
     ) -> Result<Self> {
         let max_range = self.updates.device.limits().max_uniform_buffer_range;
@@ -316,9 +305,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// there are not enough bindings, and [Error::InvalidArgument] if some of
     /// the bindings in the destination range are of a different type.
     pub fn storage_buffers_dynamic(
-        self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        self, dst_binding: u32, dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
     ) -> Result<Self> {
         let max_range = self.updates.device.limits().max_storage_buffer_range;
@@ -336,9 +323,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// the bindings in the destination range are of a different type or already
     /// have immutable samplers.
     pub fn samplers(
-        mut self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        mut self, dst_binding: u32, dst_array_element: u32,
         samplers: &[&'a Arc<Sampler>],
     ) -> Result<Self> {
         let iter = BindingIter::new(
@@ -385,9 +370,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     }
 
     pub(crate) fn images_impl(
-        mut self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        mut self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],
         descriptor_type: DescriptorType,
     ) -> Result<Self> {
@@ -433,9 +416,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// there are not enough bindings, and [Error::InvalidArgument] if some of
     /// the bindings in the destination range are of a different type.
     pub fn sampled_images(
-        self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],
     ) -> Result<Self> {
         self.images_impl(
@@ -449,9 +430,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// there are not enough bindings, and [Error::InvalidArgument] if some of
     /// the bindings in the destination range are of a different type.
     pub fn storage_images(
-        self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],
     ) -> Result<Self> {
         self.images_impl(
@@ -465,9 +444,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// there are not enough bindings, and [Error::InvalidArgument] if some of
     /// the bindings in the destination range are of a different type.
     pub fn input_attachments(
-        self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],
     ) -> Result<Self> {
         self.images_impl(
@@ -482,9 +459,7 @@ impl<'a> DescriptorSetUpdate<'a> {
     /// there are not enough bindings, and [Error::InvalidArgument] if some of
     /// the bindings in the destination range are of a different type.
     pub fn combined_image_samplers(
-        mut self,
-        dst_binding: u32,
-        dst_array_element: u32,
+        mut self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],
     ) -> Result<Self> {
         let iter = BindingIter::new(
@@ -538,10 +513,8 @@ struct BindingIter<'a> {
 
 impl<'a> BindingIter<'a> {
     fn new(
-        bindings: &'a [DescriptorSetLayoutBinding],
-        binding: usize,
-        element: u32,
-        descriptor_type: DescriptorType,
+        bindings: &'a [DescriptorSetLayoutBinding], binding: usize,
+        element: u32, descriptor_type: DescriptorType,
     ) -> Self {
         Self { bindings, binding, element, descriptor_type }
     }

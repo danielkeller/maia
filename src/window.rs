@@ -65,8 +65,7 @@ pub fn required_instance_extensions(
 /// Returns true if the physical device and queue family index can present to
 /// the window.
 pub fn presentation_support(
-    phy: &PhysicalDevice,
-    queue_family_index: u32,
+    phy: &PhysicalDevice, queue_family_index: u32,
     window: &impl HasRawWindowHandle,
 ) -> bool {
     match window.raw_window_handle() {
@@ -97,8 +96,7 @@ pub fn presentation_support(
 /// Create a surface for `window` with the appropriate extension for the current
 /// platform.
 pub fn create_surface(
-    instance: &Arc<Instance>,
-    window: &impl HasRawWindowHandle,
+    instance: &Arc<Instance>, window: &impl HasRawWindowHandle,
 ) -> Result<SurfaceKHR> {
     match window.raw_window_handle() {
         #[cfg(any(target_os = "macos"))]

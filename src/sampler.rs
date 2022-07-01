@@ -21,8 +21,7 @@ pub struct Sampler {
 impl Sampler {
     #[doc = crate::man_link!(vkCreateSampler)]
     pub fn new(
-        device: &Arc<Device>,
-        info: &SamplerCreateInfo,
+        device: &Arc<Device>, info: &SamplerCreateInfo,
     ) -> Result<Arc<Self>> {
         device.increment_sampler_alloc_count()?;
         let mut handle = None;

@@ -58,10 +58,8 @@ fn main() -> vk::Result<()> {
 
     // Create the swapchain
     let window_size = window.inner_size();
-    let window_extent = vk::Extent2D {
-        width: window_size.width,
-        height: window_size.height,
-    };
+    let window_extent =
+        vk::Extent2D { width: window_size.width, height: window_size.height };
     let mut swapchain = vk::ext::SwapchainKHR::new(
         &device,
         vk::CreateSwapchainFrom::Surface(surf),
@@ -354,8 +352,7 @@ fn pick_physical_device(phys: &[vk::PhysicalDevice]) -> vk::PhysicalDevice {
 
 // Pick an appropriate queue family
 fn pick_queue_family(
-    phy: &vk::PhysicalDevice,
-    surf: &vk::ext::SurfaceKHR,
+    phy: &vk::PhysicalDevice, surf: &vk::ext::SurfaceKHR,
     window: &winit::window::Window,
 ) -> vk::Result<u32> {
     for (num, props) in phy.queue_family_properties().iter().enumerate() {
