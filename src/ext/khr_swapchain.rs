@@ -65,7 +65,7 @@ impl<'a> Default for SwapchainCreateInfoKHR<'a> {
 }
 
 /// A
-#[doc = crate::spec_link!("swapchain", "_wsi_swapchain")]
+#[doc = crate::spec_link!("swapchain", "33", "_wsi_swapchain")]
 #[derive(Debug)]
 pub struct SwapchainKHR {
     images: Vec<(Arc<Image>, bool)>,

@@ -11,7 +11,7 @@ use crate::error::{Error, Result};
 use crate::types::*;
 
 /// A
-#[doc = crate::spec_link!("shader module", "shaders")]
+#[doc = crate::spec_link!("shader module", "9", "shaders")]
 pub struct ShaderModule {
     handle: Handle<VkShaderModule>,
     device: Arc<Device>,

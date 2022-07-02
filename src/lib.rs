@@ -54,10 +54,18 @@ macro_rules! man_link{
     }
 }
 pub(crate) use man_link;
-macro_rules! spec_link{
-    ($text:literal, $hash:literal) => {
-        concat!("[", $text, "](https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#", $hash, ")")
-    }
+macro_rules! spec_link {
+    ($text:literal, $chapter:literal, $hash:literal) => {
+        concat!(
+            "[",
+            $text,
+            "](https://renderdoc.org/vkspec_chunked/chap",
+            $chapter,
+            ".html#",
+            $hash,
+            ")"
+        )
+    };
 }
 pub(crate) use spec_link;
 

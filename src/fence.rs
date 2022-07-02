@@ -12,7 +12,7 @@ use crate::error::Result;
 use crate::types::*;
 
 /// A
-#[doc = concat!(crate::spec_link!("fence", "synchronization-fences"), ".")]
+#[doc = concat!(crate::spec_link!("fence", "7", "synchronization-fences"), ".")]
 /// When submitted to a [`Queue`](crate::vk::Queue), becomes a [`PendingFence`].
 #[derive(Debug)]
 pub struct Fence {
@@ -21,7 +21,7 @@ pub struct Fence {
 }
 
 /// A
-#[doc = crate::spec_link!("fence", "synchronization-fences")]
+#[doc = crate::spec_link!("fence", "7", "synchronization-fences")]
 /// with a signal operation pending.
 #[derive(Debug)]
 #[must_use = "Dropping a pending fence leaks it."]

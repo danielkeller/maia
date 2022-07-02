@@ -12,7 +12,7 @@ use crate::error::{Error, Result};
 use crate::types::*;
 
 /// A
-#[doc = crate::spec_link!("render pass", "renderpass")]
+#[doc = crate::spec_link!("render pass", "8", "renderpass")]
 #[derive(Debug)]
 pub struct RenderPass {
     handle: Handle<VkRenderPass>,

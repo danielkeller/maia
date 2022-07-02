@@ -20,7 +20,7 @@ use crate::render_pass::RenderPass;
 use crate::types::*;
 
 /// A
-#[doc = crate::spec_link!("pipeline layout", "descriptorsets-pipelinelayout")]
+#[doc = crate::spec_link!("pipeline layout", "14", "descriptorsets-pipelinelayout")]
 #[derive(Debug)]
 pub struct PipelineLayout {
     handle: Handle<VkPipelineLayout>,
@@ -216,7 +216,7 @@ impl PipelineLayout {
 }
 
 /// A
-#[doc = crate::spec_link!("pipeline", "pipelines")]
+#[doc = crate::spec_link!("pipeline", "10", "pipelines")]
 #[derive(Debug)]
 pub struct Pipeline {
     handle: Handle<VkPipeline>,
@@ -424,7 +424,7 @@ fn check_specialization_constants<T>(
 }
 
 /// A
-#[doc = crate::spec_link!("pipeline cache", "pipelines-cache")]
+#[doc = crate::spec_link!("pipeline cache", "10", "pipelines-cache")]
 pub struct PipelineCache {
     handle: Handle<VkPipelineCache>,
     device: Arc<Device>,

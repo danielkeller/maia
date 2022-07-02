@@ -11,7 +11,7 @@ use crate::error::Result;
 use crate::types::*;
 
 /// A
-#[doc = crate::spec_link!("sampler", "samplers")]
+#[doc = crate::spec_link!("sampler", "13", "samplers")]
 #[derive(Debug, Eq)]
 pub struct Sampler {
     handle: Handle<VkSampler>,

@@ -22,7 +22,7 @@ pub struct BufferWithoutMemory {
 }
 
 /// A
-#[doc = crate::spec_link!("buffer", "resources-buffers")]
+#[doc = crate::spec_link!("buffer", "12", "resources-buffers")]
 /// with memory attached to it.
 #[derive(Debug)]
 pub struct Buffer {

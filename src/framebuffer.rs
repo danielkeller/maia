@@ -13,7 +13,7 @@ use crate::render_pass::RenderPass;
 use crate::types::*;
 
 /// A
-#[doc = crate::spec_link!("framebuffer", "_framebuffers")]
+#[doc = crate::spec_link!("framebuffer", "8", "_framebuffers")]
 #[derive(Debug)]
 pub struct Framebuffer {
     handle: Handle<VkFramebuffer>,

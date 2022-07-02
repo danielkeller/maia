@@ -18,7 +18,7 @@ pub struct MemoryLifetime {
 }
 
 /// A piece of
-#[doc = crate::spec_link!("device memory", "memory-device")]
+#[doc = crate::spec_link!("device memory", "11", "memory-device")]
 #[derive(Debug)]
 pub struct DeviceMemory {
     inner: Owner<MemoryLifetime>,

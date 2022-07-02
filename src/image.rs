@@ -30,7 +30,7 @@ pub struct ImageWithoutMemory {
 }
 
 /// An
-#[doc = crate::spec_link!("image", "resources-images")]
+#[doc = crate::spec_link!("image", "12", "resources-images")]
 /// with memory attached to it.
 #[derive(Debug)]
 pub struct Image {
@@ -254,7 +254,7 @@ impl Image {
 }
 
 /// An
-#[doc = crate::spec_link!("image view", "resources-image-views")]
+#[doc = crate::spec_link!("image view", "12", "resources-image-views")]
 #[derive(Debug)]
 pub struct ImageView {
     handle: Handle<VkImageView>,

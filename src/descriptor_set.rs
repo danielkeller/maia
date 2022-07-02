@@ -20,7 +20,7 @@ use crate::types::*;
 pub mod update;
 
 /// A
-#[doc = crate::spec_link!("descriptor set layout", "descriptorsets-setlayout")]
+#[doc = crate::spec_link!("descriptor set layout", "14", "descriptorsets-setlayout")]
 #[derive(Debug, Eq)]
 pub struct DescriptorSetLayout {
     handle: Handle<VkDescriptorSetLayout>,
@@ -158,7 +158,7 @@ struct DescriptorPoolLifetime {
 struct AllocatedSets;
 
 /// A
-#[doc = crate::spec_link!("descriptor pool", "descriptorsets-allocation")]
+#[doc = crate::spec_link!("descriptor pool", "14", "descriptorsets-allocation")]
 pub struct DescriptorPool {
     res: Owner<DescriptorPoolLifetime>,
     allocated: Arc<AllocatedSets>,
@@ -223,7 +223,7 @@ impl DescriptorPool {
 }
 
 /// A
-#[doc = concat!(crate::spec_link!("descriptor set", "descriptorsets-sets"), ".")]
+#[doc = concat!(crate::spec_link!("descriptor set", "14", "descriptorsets-sets"), ".")]
 ///
 /// The descriptor set may be written to by creating a
 /// [`DescriptorSetUpdateBuilder`](crate::vk::DescriptorSetUpdateBuilder).
