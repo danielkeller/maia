@@ -6,6 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+//! Wrappers that integrate with [raw_window_handle](https://docs.rs/raw-window-handle/) and the platform's
+#![doc = crate::spec_link!("wsi", "wsi")]
+//! extensions. This module is disabled by default because it requires
+//! additional dependencies.
+
 use std::ptr::NonNull;
 use std::sync::Arc;
 

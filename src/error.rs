@@ -87,6 +87,7 @@ impl From<VkError> for Error {
     }
 }
 
+/// An error either from Vulkan or Maia.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// For functions that take an argument by value and need to return it in case

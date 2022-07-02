@@ -41,11 +41,11 @@ unsafe impl<'a> Sync for Str<'a> {}
 
 impl<'a> Str<'a> {
     /// Fails if not null terminated
-    pub fn new(s: &'a str) -> Result<Self, <Self as TryFrom<&str>>::Error> {
+    pub fn new(s: &'a str) -> Result<Self, std::ffi::FromBytesWithNulError> {
         s.try_into()
     }
     /// # Safety
-    /// The slice must be nul terminated and not contain nul bytes
+    /// The slice must be null terminated and not contain null bytes
     pub const unsafe fn new_unchecked(b: &'a [u8]) -> Self {
         Str {
             _ptr: NonNull::new_unchecked(
@@ -54,6 +54,7 @@ impl<'a> Str<'a> {
             _lt: PhantomData,
         }
     }
+    /// Returns the string as a regular Rust str
     pub fn as_str(self) -> &'a str {
         unsafe {
             std::str::from_utf8_unchecked(
@@ -93,6 +94,7 @@ impl<'a> TryFrom<&'a str> for Str<'a> {
 pub struct CharArray<const N: usize>([u8; N]);
 
 impl<const N: usize> CharArray<N> {
+    /// Borrows the string as a regular Rust str
     pub fn as_str(&self) -> &str {
         unsafe {
             let len = self.0.iter().position(|&c| c == 0).unwrap_unchecked();
@@ -133,13 +135,15 @@ pub struct InlineSlice<T, const N: usize> {
 }
 
 impl<T, const N: usize> InlineSlice<T, N> {
+    /// The length of the slice
     pub fn len(&self) -> u32 {
         self.count
     }
+    /// Whether the slice is empty
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
-    /// Convert back into a normal rust slice
+    /// Borrows the contents as a normal rust slice
     #[inline]
     pub fn as_slice(&self) -> &[T] {
         unsafe {
@@ -149,6 +153,7 @@ impl<T, const N: usize> InlineSlice<T, N> {
             )
         }
     }
+    /// Iterate over the slice
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         self.as_slice().iter()
@@ -173,6 +178,7 @@ impl<T, const N: usize> Default for InlineSlice<T, N> {
     }
 }
 
+/// A UUID stored inline
 #[repr(transparent)]
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct UUID(pub [u8; 16]);
@@ -206,12 +212,14 @@ impl<'a, T: Debug> Debug for Slice<'a, T> {
 }
 
 impl<'a, T> Slice<'a, T> {
-    fn from_slice(arr: &'a [T]) -> Self {
+    fn new(arr: &'a [T]) -> Self {
         Slice { count: arr.len() as u32, ptr: arr.as_ptr(), _lt: PhantomData }
     }
+    /// The length of the slice
     pub fn len(&self) -> u32 {
         self.count
     }
+    /// Whether the slice is empty
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
@@ -232,19 +240,19 @@ impl<'a, T> Default for Slice<'a, T> {
 
 impl<'a, T> From<&'a [T]> for Slice<'a, T> {
     fn from(arr: &'a [T]) -> Self {
-        Self::from_slice(arr)
+        Self::new(arr)
     }
 }
 
 impl<'a, T> From<&'a mut [T]> for Slice<'a, T> {
     fn from(arr: &'a mut [T]) -> Self {
-        Self::from_slice(arr)
+        Self::new(arr)
     }
 }
 
 impl<'a, T> From<&'a Vec<T>> for Slice<'a, T> {
     fn from(arr: &'a Vec<T>) -> Self {
-        Self::from_slice(arr)
+        Self::new(arr)
     }
 }
 
@@ -309,16 +317,18 @@ impl<'a, T> Default for Slice_<'a, T> {
 }
 
 impl<'a, T> Slice_<'a, T> {
-    fn from_slice(arr: &'a [T]) -> Self {
+    fn new(arr: &'a [T]) -> Self {
         Self {
             count: arr.len() as u32,
             ptr: SlicePtr(arr.as_ptr()),
             _lt: PhantomData,
         }
     }
+    /// The length of the slice
     pub fn len(&self) -> u32 {
         self.count
     }
+    /// Whether the slice is empty
     pub fn is_empty(&self) -> bool {
         self.count == 0
     }
@@ -334,19 +344,19 @@ impl<'a, T> Slice_<'a, T> {
 
 impl<'a, T> From<&'a [T]> for Slice_<'a, T> {
     fn from(arr: &'a [T]) -> Self {
-        Self::from_slice(arr)
+        Self::new(arr)
     }
 }
 
 impl<'a, T> From<&'a mut [T]> for Slice_<'a, T> {
     fn from(arr: &'a mut [T]) -> Self {
-        Self::from_slice(arr)
+        Self::new(arr)
     }
 }
 
 impl<'a, T> From<&'a Vec<T>> for Slice_<'a, T> {
     fn from(arr: &'a Vec<T>) -> Self {
-        Self::from_slice(arr)
+        Self::new(arr)
     }
 }
 
@@ -374,16 +384,17 @@ pub fn slice<'a, T, S: IsSlice<'a, T>>(value: &'a [T]) -> S {
 /// A convenience trate for creating either a [`struct@Slice`] or
 /// [`struct@Slice_`]. Call with [`vk::slice`](crate::vk::slice).
 pub trait IsSlice<'a, T> {
+    /// See [`slice()`].
     fn to_slice_impl(value: &'a [T]) -> Self;
 }
 impl<'a, T> IsSlice<'a, T> for Slice<'a, T> {
     fn to_slice_impl(value: &'a [T]) -> Self {
-        Self::from_slice(value)
+        Self::new(value)
     }
 }
 impl<'a, T> IsSlice<'a, T> for Slice_<'a, T> {
     fn to_slice_impl(value: &'a [T]) -> Self {
-        Self::from_slice(value)
+        Self::new(value)
     }
 }
 
@@ -409,12 +420,15 @@ impl<'a> Clone for Bytes<'a> {
 }
 
 impl<'a> Bytes<'a> {
-    pub fn from_slice(slice: &'a [u8]) -> Self {
+    /// Create from a byte slice
+    pub fn new(slice: &'a [u8]) -> Self {
         Self { len: slice.len(), ptr: slice.as_ptr(), _lt: PhantomData }
     }
+    /// The number of bytes
     pub fn len(&self) -> usize {
         self.len
     }
+    /// Whether the value is emty
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
@@ -426,13 +440,13 @@ impl<'a> Bytes<'a> {
 
 impl<'a> Default for Bytes<'a> {
     fn default() -> Self {
-        Self::from_slice(&[])
+        Self::new(&[])
     }
 }
 
 impl<'a> From<&'a [u8]> for Bytes<'a> {
     fn from(slice: &'a [u8]) -> Self {
-        Self::from_slice(slice)
+        Self::new(slice)
     }
 }
 
@@ -448,7 +462,7 @@ impl<'a> From<&'a [u32]> for Bytes<'a> {
 
 impl<'a> From<&'a Vec<u8>> for Bytes<'a> {
     fn from(vec: &'a Vec<u8>) -> Self {
-        Self::from_slice(vec)
+        Self::new(vec)
     }
 }
 
@@ -483,6 +497,7 @@ impl<'a, T, const N: usize> From<&'a [T; N]> for Array<'a, T> {
 }
 
 impl<'a, T> Array<'a, T> {
+    /// Convert from a slice. Returns [`None`] if `slice` is empty.
     pub fn from_slice(slice: &'a [T]) -> Option<Array<'a, T>> {
         if slice.is_empty() {
             None
@@ -527,6 +542,7 @@ impl<'a, T, const N: usize> From<&'a mut [T; N]> for ArrayMut<'a, T> {
 }
 
 impl<'a, T> ArrayMut<'a, T> {
+    /// Convert from a slice. Returns [`None`] if `slice` is empty.
     pub fn from_slice(slice: &'a mut [T]) -> Option<ArrayMut<'a, T>> {
         if slice.is_empty() {
             None

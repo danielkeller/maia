@@ -287,6 +287,7 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> CommandRecording<'a> {
+    #[doc = crate::man_link!(vkCmdDispatch)]
     pub fn dispatch(
         &mut self, group_count_x: u32, group_count_y: u32, group_count_z: u32,
     ) -> Result<()> {
@@ -301,6 +302,7 @@ impl<'a> CommandRecording<'a> {
         }
         Ok(())
     }
+    #[doc = crate::man_link!(vkCmdDispatchIndirect)]
     pub fn dispatch_indirect(
         &mut self, buffer: &Arc<Buffer>, offset: u64,
     ) -> Result<()> {

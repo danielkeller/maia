@@ -95,6 +95,9 @@ pub(crate) fn test_device() -> Result<(Arc<device::Device>, queue::Queue)> {
     Ok((dev, qs.remove(0).remove(0)))
 }
 
+/// Vulkan core functionality.
+///
+/// This module is intended to be imported qualified; ie `use maia::vk;`
 pub mod vk {
     pub use crate::buffer::{Buffer, BufferWithoutMemory};
     pub use crate::command_buffer::barrier::{

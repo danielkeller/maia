@@ -66,9 +66,11 @@ impl Device {
 }
 
 impl Queue {
+    /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkQueue> {
         self.handle.borrow()
     }
+    /// Mutably borrows the inner Vulkan handle.
     pub fn mut_handle(&mut self) -> Mut<VkQueue> {
         self.handle.borrow_mut()
     }
@@ -89,6 +91,7 @@ impl Drop for Queue {
     }
 }
 
+#[doc = crate::man_link!(VkSubmitInfo)]
 #[derive(Default)]
 pub struct SubmitInfo<'a> {
     pub wait: &'a mut [(&'a mut Semaphore, PipelineStageFlags)],

@@ -41,12 +41,14 @@ const _: () = assert!(matches!(
     _EXPECTED
 ));
 
+#[doc = crate::man_link!(VK_DEFINE_HANDLE)]
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct NonNullDispatchableHandle(NonNull<c_void>);
+pub struct NonNullDispatchableHandle(NonNull<c_void>);
+#[doc = crate::man_link!(VK_DEFINE_NON_DISPATCHABLE_HANDLE)]
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
+pub struct NonNullNonDispatchableHandle(std::num::NonZeroU64);
 
 impl Debug for NonNullDispatchableHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -81,18 +83,22 @@ impl<T: Debug> Debug for Handle<T> {
     }
 }
 impl<T: Copy> Handle<T> {
+    /// Borrow the object
     pub fn borrow(&self) -> Ref<'_, T> {
         Ref { _value: self._value, _lt: PhantomData }
     }
+    /// Mutably borrow the object
     pub fn borrow_mut(&mut self) -> Mut<'_, T> {
         Mut { _value: self._value, _lt: PhantomData }
     }
+    /// Make a copy of the handle
     /// # Safety
     /// The caller must ensure that uses of the result are externally
     /// synchronized as defined by Vulkan.
     pub unsafe fn clone(&self) -> Self {
         Self { ..*self }
     }
+    /// Mutably borrow the object from a shared reference
     /// # Safety
     /// The caller must ensure that uses of the result are externally
     /// synchronized as defined by Vulkan.
@@ -128,14 +134,17 @@ impl<T: Debug> Debug for Mut<'_, T> {
     }
 }
 impl<'a, T: Copy> Mut<'a, T> {
+    /// Reborrow as a shared reference
     // Note that this cannot be used to extend 'a, since &'b Self<'a>
     // requires 'a: 'b
     pub fn reborrow(&self) -> Ref<'_, T> {
         Ref { _value: self._value, _lt: PhantomData }
     }
+    /// Reborrow as a mutable reference
     pub fn reborrow_mut(&mut self) -> Mut<'_, T> {
         Self { ..*self }
     }
+    /// Reborrow as a mutable reference with a new lifetime.
     /// # Safety
     /// The caller must ensure that uses of the result are externally
     /// synchronized as defined by Vulkan. Note that this is more unsafe than
