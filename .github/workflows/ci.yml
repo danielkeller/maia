@@ -10,7 +10,7 @@ env:
 
 jobs:
   test:
-    name: Rust ${{matrix.rust}}
+    name: Rust ${{matrix.rust}} test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -21,25 +21,17 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{matrix.rust}}
-          components: rust-src
       - run: sudo apt install -y libvulkan-dev mesa-vulkan-drivers
       - run: cargo test
 
-  build:
-    name: Rust ${{matrix.rust}}
+  loom:
+    name: Loom
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        rust: [1.60.0]
     steps:
       - uses: actions/checkout@v3
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{matrix.rust}}
-          components: rust-src
+      - uses: dtolnay/rust-toolchain@stable
       - run: sudo apt install -y libvulkan-dev
-      - run: cargo check
+      - run: RUSTFLAGS="--cfg loom" cargo test test_cleanup_queue --release
 
   windows:
     name: Windows
@@ -47,6 +39,4 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rust-src
       - run: cargo check

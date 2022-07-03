@@ -179,7 +179,7 @@ impl Queue {
         drop(vk_infos);
 
         // Everything fallible is done, mark resources as in use
-        for (info, recs) in infos.into_iter().zip(recordings.into_iter()) {
+        for (info, recs) in infos.iter_mut().zip(recordings.into_iter()) {
             for (sem, _) in info.wait.iter_mut() {
                 self.resources.push(sem.take_signaller());
                 self.resources.push(sem.inner.clone());

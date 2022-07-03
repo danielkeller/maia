@@ -6,11 +6,23 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#![allow(clippy::redundant_allocation)]
-
-use std::cell::Cell;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
+#[cfg(loom)]
+use loom::{
+    cell::Cell,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
+use std::sync::Arc as StdArc;
+#[cfg(not(loom))]
+use std::{
+    cell::Cell,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc,
+    },
+};
 
 #[derive(Debug)]
 pub struct CleanupQueue {
@@ -54,6 +66,14 @@ impl Default for QueueEntry {
     }
 }
 
+impl<T: Send + Sync + 'static> std::iter::Extend<StdArc<T>> for CleanupQueue {
+    fn extend<I: IntoIterator<Item = StdArc<T>>>(&mut self, iter: I) {
+        for elem in iter {
+            self.push(elem)
+        }
+    }
+}
+
 impl CleanupQueue {
     fn new_array(capacity: usize) -> Arc<Vec<QueueEntry>> {
         let mut vec = Vec::new();
@@ -64,7 +84,10 @@ impl CleanupQueue {
     pub fn new(capacity: usize) -> Self {
         Self { cursor: 0, level: 0, array: Self::new_array(capacity) }
     }
-    pub fn push(&mut self, value: Arc<dyn Send + Sync>) {
+    pub fn push(&mut self, value: StdArc<dyn Send + Sync>) {
+        self.push_impl(from_std_arc(value))
+    }
+    fn push_impl(&mut self, value: Arc<dyn Send + Sync>) {
         let entry = &self.array[self.cursor];
         // No need to RMW, we're the only writer
         let guard = entry.guard.load(Ordering::Acquire);
@@ -79,8 +102,8 @@ impl CleanupQueue {
             std::mem::swap(&mut array, &mut self.array);
             self.cursor = 0;
             self.level = 0;
-            self.push(array);
-            self.push(value);
+            self.push_impl(erase_arc(array));
+            self.push_impl(value);
         }
     }
     /// Create a new object which can clean up everything previously pushed.
@@ -100,14 +123,6 @@ impl CleanupQueue {
     /// corresponding resources.
     pub fn leak(&self) {
         std::mem::forget(self.array.clone())
-    }
-}
-
-impl<T: Send + Sync + 'static> std::iter::Extend<Arc<T>> for CleanupQueue {
-    fn extend<I: IntoIterator<Item = Arc<T>>>(&mut self, iter: I) {
-        for elem in iter {
-            self.push(elem)
-        }
     }
 }
 
@@ -155,21 +170,48 @@ impl Drop for CleanupRAII {
     }
 }
 
-#[cfg(test)]
+#[cfg(loom)]
+fn from_std_arc(arc: StdArc<dyn Send + Sync>) -> Arc<dyn Send + Sync> {
+    Arc::from_std(arc)
+}
+#[cfg(not(loom))]
+fn from_std_arc(arc: StdArc<dyn Send + Sync>) -> Arc<dyn Send + Sync> {
+    arc
+}
+#[cfg(loom)]
+fn erase_arc(arc: Arc<impl Send + Sync + 'static>) -> Arc<dyn Send + Sync> {
+    unsafe { Arc::from_raw(Arc::into_raw(arc) as *const _) }
+}
+#[cfg(not(loom))]
+fn erase_arc(arc: Arc<impl Send + Sync + 'static>) -> Arc<dyn Send + Sync> {
+    arc
+}
+
+#[cfg(all(test, loom))]
 mod tests {
     use super::*;
+
     #[test]
     fn test_cleanup_queue() {
-        let mut queue = CleanupQueue::new(10);
-        for _ in 0..10_000 {
-            for _ in 1..100 {
-                queue.push(Arc::new(42));
-            }
-            let cleanup = queue.new_cleanup();
-            std::thread::spawn(move || cleanup.cleanup());
-            if rand::random::<u32>() % 1_000u32 == 0 {
-                std::thread::sleep(std::time::Duration::from_millis(500));
-            }
-        }
+        loom::model(|| {
+            let mut queue = CleanupQueue::new(4);
+            let arcs = || std::iter::from_fn(|| Some(StdArc::new(42))).take(3);
+            queue.extend(arcs());
+            let cleanup1 = queue.new_cleanup();
+            queue.extend(arcs());
+            let cleanup2 = queue.new_cleanup();
+            loom::thread::spawn(move || {
+                cleanup1.cleanup();
+                cleanup2.cleanup();
+            });
+            queue.extend(arcs());
+            let cleanup3 = queue.new_cleanup();
+            queue.extend(arcs());
+            let cleanup4 = queue.new_cleanup();
+            loom::thread::spawn(move || {
+                cleanup4.cleanup();
+                cleanup3.cleanup();
+            });
+        })
     }
 }
