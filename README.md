@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/maia)](https://crates.io/crates/maia) [![docs.rs](https://img.shields.io/docsrs/maia)](https://docs.rs/maia/) [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/danielkeller/maia/CI)](https://github.com/danielkeller/maia/actions/workflows/ci.yml)
 
-Safe, low-level Vulkan bindings. The general properties of this library are
+Safe, low-level [Vulkan](https://en.wikipedia.org/wiki/Vulkan) bindings. The general properties of this library are
 
 1. Memory safe on the CPU side. No safe operation can cause memory corruption or data races in host<sup>1</sup> memory.
 2. Lock-free (and wait-free). Thread safety is handled with `&mut` at compile time rather than with mutexes, to avoid performance surprises.
