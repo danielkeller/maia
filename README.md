@@ -17,7 +17,7 @@ Maia dynamically links to the system's Vulkan loader, so one must be installed. 
 
 To begin using the API, create an instance object with [`vk::Instance::new`](crate::vk::Instance::new()).
 
-To enable validation layers for debugging, set the environment variable `VK_INSTANCE_LAYERS="VK_LAYER_KHRONOS_validation"`.
+To enable validation layers for debugging, set the environment variable `VK_INSTANCE_LAYERS="VK_LAYER_KHRONOS_validation"` or use the [Configurator](https://vulkan.lunarg.com/doc/view/latest/windows/vkconfig.html) GUI.
 
 #### On Linux
 
