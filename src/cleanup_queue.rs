@@ -20,7 +20,7 @@ use std::{
     cell::Cell,
     sync::{
         atomic::{AtomicU64, Ordering},
-        Arc,
+        Arc, Weak,
     },
 };
 
@@ -35,7 +35,7 @@ pub struct CleanupQueue {
 pub struct Cleanup {
     cursor: usize,
     level: u64,
-    array: Arc<Vec<QueueEntry>>,
+    array: Weak<Vec<QueueEntry>>,
 }
 
 /// Cleans up on drop
@@ -113,8 +113,11 @@ impl CleanupQueue {
         } else {
             self.cursor - 1
         };
-        let result =
-            Cleanup { cursor, level: self.level, array: self.array.clone() };
+        let result = Cleanup {
+            cursor,
+            level: self.level,
+            array: downgrade(&self.array),
+        };
         self.level += 1;
         result
     }
@@ -129,8 +132,12 @@ impl CleanupQueue {
 impl Cleanup {
     pub fn cleanup(&self) {
         let mut cursor = self.cursor;
+        let array = match self.array.upgrade() {
+            None => return, // Someone else got there first
+            Some(array) => array,
+        };
         loop {
-            let entry = &self.array[cursor];
+            let entry = &array[cursor];
             let guard = entry.guard.load(Ordering::Relaxed);
             if guard > self.level {
                 return; //Done
@@ -154,8 +161,7 @@ impl Cleanup {
             drop(entry.value.replace(None));
             entry.guard.store(u64::MAX, Ordering::Release);
 
-            cursor =
-                if cursor == 0 { self.array.len() - 1 } else { cursor - 1 };
+            cursor = if cursor == 0 { array.len() - 1 } else { cursor - 1 };
         }
     }
 
@@ -186,11 +192,43 @@ fn erase_arc(arc: Arc<impl Send + Sync + 'static>) -> Arc<dyn Send + Sync> {
 fn erase_arc(arc: Arc<impl Send + Sync + 'static>) -> Arc<dyn Send + Sync> {
     arc
 }
+#[cfg(loom)]
+#[derive(Clone, Debug)]
+struct Weak<T>(Arc<T>);
+#[cfg(loom)]
+impl<T> Weak<T> {
+    fn upgrade(&self) -> Option<Arc<T>> {
+        Some(self.0.clone())
+    }
+}
+#[cfg(loom)]
+fn downgrade<T>(arc: &Arc<T>) -> Weak<T> {
+    Weak(arc.clone())
+}
+#[cfg(not(loom))]
+fn downgrade<T>(arc: &Arc<T>) -> Weak<T> {
+    Arc::downgrade(arc)
+}
 
-#[cfg(all(test, loom))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
+    #[cfg(not(loom))]
+    #[test]
+    fn test_reordered_cleanup() {
+        let mut queue = CleanupQueue::new(1);
+        let mut arc = Arc::new(42);
+        queue.push(arc.clone());
+        let _cleanup1 = queue.new_cleanup(); // Points to old array
+        queue.push(Arc::new(43));
+        let cleanup2 = queue.new_cleanup(); // Points to new array
+        assert!(Arc::get_mut(&mut arc).is_none());
+        cleanup2.cleanup();
+        assert!(Arc::get_mut(&mut arc).is_some());
+    }
+
+    #[cfg(loom)]
     #[test]
     fn test_cleanup_queue() {
         loom::model(|| {
