@@ -120,7 +120,7 @@ fn memory_type(
             return num as u32;
         }
     }
-    panic!("No host visible memory!")
+    panic!("Desired memory type not found")
 }
 
 fn upload_data(
