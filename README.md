@@ -38,3 +38,7 @@ A Vulkan-compatible graphics driver is sufficient to build and run. You will pro
 #### To run the demos
 
 To compile shaders in the demos, either CMake or the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) must be installed. (CMake appears to be the easier approach on Linux, and the Vulkan SDK on other systems.)
+
+## Using Vulkan
+
+This documentation assumes that you already know how Vulkan works. If you're just getting started, I can recommend the [Vulkan Guide](https://vkguide.dev/docs/chapter_1), the [Vulkan Tutorial](https://vulkan-tutorial.com/), or the older, but more detailed [API without Secrets](https://www.intel.com/content/www/us/en/developer/articles/training/api-without-secrets-introduction-to-vulkan-part-1.html). The code that they walk you through will look very similar to the [`demo`](https://github.com/danielkeller/maia/tree/main/demo) and [`hello-triangle`](https://github.com/danielkeller/maia/tree/main/hello-triangle) examples in this repo, so you can look at those alongside the walkthroughs to see what the corresponding Rust functions are called.
