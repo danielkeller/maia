@@ -7,7 +7,7 @@ Safe, low-level [Vulkan](https://en.wikipedia.org/wiki/Vulkan) bindings. The gen
 1. Memory safe on the CPU. No safe operation can cause memory corruption or data races in host<sup>1</sup> memory.
 2. Lock-free. Thread safety is handled at compile time with `&mut` rather than with mutexes, to avoid performance surprises.
 3. Low-level. Close to 1-1 correspondance with Vulkan API calls. Calls which don't allocate in Vulkan also don't allocate in Maia.
-4. Selective. Maia intentionally omits Vulkan features that are not performant, not useful, or are rarely supported.
+4. Selective. Maia intentionally omits Vulkan features that are not performant, not useful, or are rarely supported. However, APIs are provided to allow extension in downstream crates.
 5. As ergonomic as possible. In particular, nearly everything is [`Send`](https://doc.rust-lang.org/std/marker/trait.Send.html) and [`Sync`](https://doc.rust-lang.org/std/marker/trait.Sync.html).
 
 <sup>1</sup> Maia does not try to protect the _contents_ of your buffers, images, and shader variables. This is because doing so is both impractical (when using [index buffers](https://renderdoc.org/vkspec_chunked/chap21.html#vkCmdDrawIndexed) for example) and not neccesary, since these values don't have invalid bit patterns and in particular don't contain pointers. It also allows the implementation to be significantly more efficient, since doing optimal synchronization automatically is very tricky.
