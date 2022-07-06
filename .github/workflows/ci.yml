@@ -21,7 +21,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{matrix.rust}}
-      - run: sudo apt install -y libvulkan-dev
+      - run: sudo apt install -y libvulkan-dev mesa-vulkan-drivers
       - run: cargo test
 
   loom:
