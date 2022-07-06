@@ -6,6 +6,7 @@ on:
   schedule: [cron: "40 1 * * *"]
 
 env:
+  CARGO_INCREMENTAL: 0
   RUSTFLAGS: -Dwarnings
 
 jobs:
