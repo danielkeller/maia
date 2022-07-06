@@ -20,11 +20,8 @@ raw-window-metal = { version = "0.2", optional = true }
 window = ["dep:raw-window-handle", "dep:raw-window-metal"]
 
 [dev-dependencies]
-# For doctests. See hello-triangle/Cargo.toml
-maia = { path = ".", features = [ "window" ] }
-winit = "0.26"
-bytemuck = { version = "1.0", features = [ "derive" ] }
-inline-spirv = "0.1"
+# For doctests
+maia = { path = "." }
 
 [target.'cfg(loom)'.dependencies]
 loom = "0.5"
