@@ -6,24 +6,6 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[cfg(loom)]
-use loom::{
-    cell::Cell,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
-};
-use std::sync::Arc as StdArc;
-#[cfg(not(loom))]
-use std::{
-    cell::Cell,
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc, Weak,
-    },
-};
-
 #[derive(Debug)]
 pub struct CleanupQueue {
     cursor: usize,
@@ -84,8 +66,13 @@ impl CleanupQueue {
     pub fn new(capacity: usize) -> Self {
         Self { cursor: 0, level: 0, array: Self::new_array(capacity) }
     }
+    #[cfg(loom)]
     pub fn push(&mut self, value: StdArc<dyn Send + Sync>) {
-        self.push_impl(from_std_arc(value))
+        self.push_impl(Arc::from_std(value))
+    }
+    #[cfg(not(loom))]
+    pub fn push(&mut self, value: Arc<dyn Send + Sync>) {
+        self.push_impl(value)
     }
     fn push_impl(&mut self, value: Arc<dyn Send + Sync>) {
         let entry = &self.array[self.cursor];
@@ -177,38 +164,50 @@ impl Drop for CleanupRAII {
 }
 
 #[cfg(loom)]
-fn from_std_arc(arc: StdArc<dyn Send + Sync>) -> Arc<dyn Send + Sync> {
-    Arc::from_std(arc)
-}
-#[cfg(not(loom))]
-fn from_std_arc(arc: StdArc<dyn Send + Sync>) -> Arc<dyn Send + Sync> {
-    arc
-}
-#[cfg(loom)]
-fn erase_arc(arc: Arc<impl Send + Sync + 'static>) -> Arc<dyn Send + Sync> {
-    unsafe { Arc::from_raw(Arc::into_raw(arc) as *const _) }
-}
-#[cfg(not(loom))]
-fn erase_arc(arc: Arc<impl Send + Sync + 'static>) -> Arc<dyn Send + Sync> {
-    arc
-}
-#[cfg(loom)]
-#[derive(Clone, Debug)]
-struct Weak<T>(Arc<T>);
-#[cfg(loom)]
-impl<T> Weak<T> {
-    fn upgrade(&self) -> Option<Arc<T>> {
-        Some(self.0.clone())
+mod sync {
+    pub use loom::{
+        cell::Cell,
+        sync::{
+            atomic::{AtomicU64, Ordering},
+            Arc,
+        },
+    };
+    #[derive(Clone, Debug)]
+    pub struct Weak<T>(Arc<T>);
+    impl<T> Weak<T> {
+        pub fn upgrade(&self) -> Option<Arc<T>> {
+            Some(self.0.clone())
+        }
+    }
+    pub fn downgrade<T>(arc: &Arc<T>) -> Weak<T> {
+        Weak(arc.clone())
+    }
+    pub fn erase_arc(
+        arc: Arc<impl Send + Sync + 'static>,
+    ) -> Arc<dyn Send + Sync> {
+        unsafe { Arc::from_raw(Arc::into_raw(arc) as *const _) }
     }
 }
-#[cfg(loom)]
-fn downgrade<T>(arc: &Arc<T>) -> Weak<T> {
-    Weak(arc.clone())
-}
 #[cfg(not(loom))]
-fn downgrade<T>(arc: &Arc<T>) -> Weak<T> {
-    Arc::downgrade(arc)
+mod sync {
+    pub use std::{
+        cell::Cell,
+        sync::{
+            atomic::{AtomicU64, Ordering},
+            Arc, Weak,
+        },
+    };
+    pub fn erase_arc(
+        arc: Arc<impl Send + Sync + 'static>,
+    ) -> Arc<dyn Send + Sync> {
+        arc
+    }
+    pub fn downgrade<T>(arc: &Arc<T>) -> Weak<T> {
+        Arc::downgrade(arc)
+    }
 }
+use std::sync::Arc as StdArc;
+use sync::*;
 
 #[cfg(test)]
 mod tests {
