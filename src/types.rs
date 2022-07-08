@@ -435,6 +435,18 @@ pub struct MemoryRequirements {
     pub memory_type_bits: u32,
 }
 
+impl MemoryRequirements {
+    pub(crate) fn clear_host_visible_types(
+        &mut self, props: &PhysicalDeviceMemoryProperties,
+    ) {
+        for (i, ty) in props.memory_types.iter().enumerate() {
+            if ty.property_flags.contains(MemoryPropertyFlags::HOST_VISIBLE) {
+                self.memory_type_bits &= !(1 << i);
+            }
+        }
+    }
+}
+
 #[repr(C)]
 #[derive(Debug, Default)]
 #[doc = crate::man_link!(VkBufferCopy)]
@@ -673,7 +685,7 @@ pub struct DeviceQueueCreateInfo<'a, Next = Null> {
 structure_type!(DeviceQueueCreateInfoType, 2);
 
 #[repr(C)]
-#[derive(Default, Debug)]
+#[derive(Clone, Default, Debug)]
 #[doc = crate::man_link!(VkPhysicalDeviceFeatures)]
 pub struct PhysicalDeviceFeatures {
     pub robust_buffer_access: Bool,

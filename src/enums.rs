@@ -38,6 +38,11 @@ impl From<bool> for Bool {
         }
     }
 }
+impl Bool {
+    pub fn as_bool(self) -> bool {
+        self == Self::True
+    }
+}
 
 bitflags! {
     #[repr(transparent)]
@@ -275,6 +280,13 @@ bitflags! {
     }
 }
 
+impl BufferUsageFlags {
+    /// Does the usage support arbitrary shader writes?
+    pub fn is_storage(self) -> bool {
+        self.intersects(Self::STORAGE_TEXEL_BUFFER | Self::STORAGE_BUFFER)
+    }
+}
+
 bitflags! {
     #[repr(transparent)]
     #[derive(Default)]
@@ -485,6 +497,13 @@ bitflags! {
         const DEPTH_STENCIL_ATTACHMENT = 0x20;
         const TRANSIENT_ATTACHMENT = 0x40;
         const INPUT_ATTACHMENT = 0x80;
+    }
+}
+
+impl ImageUsageFlags {
+    /// Does the usage support arbitrary shader writes?
+    pub fn is_storage(self) -> bool {
+        self.intersects(Self::STORAGE)
     }
 }
 
@@ -1575,6 +1594,33 @@ impl DescriptorType {
 impl Default for DescriptorType {
     fn default() -> Self {
         Self::UNIFORM_BUFFER
+    }
+}
+
+impl DescriptorType {
+    pub fn supports_buffer_usage(self, usage: BufferUsageFlags) -> bool {
+        use BufferUsageFlags as Buf;
+        let bit = match self {
+            Self::UNIFORM_TEXEL_BUFFER => Buf::UNIFORM_TEXEL_BUFFER,
+            Self::STORAGE_TEXEL_BUFFER => Buf::STORAGE_TEXEL_BUFFER,
+            Self::UNIFORM_BUFFER => Buf::UNIFORM_BUFFER,
+            Self::STORAGE_BUFFER => Buf::STORAGE_BUFFER,
+            Self::UNIFORM_BUFFER_DYNAMIC => Buf::UNIFORM_BUFFER,
+            Self::STORAGE_BUFFER_DYNAMIC => Buf::STORAGE_BUFFER,
+            _ => Buf::empty(),
+        };
+        usage.intersects(bit)
+    }
+    pub fn supports_image_usage(self, usage: ImageUsageFlags) -> bool {
+        use ImageUsageFlags as Img;
+        let bit = match self {
+            Self::COMBINED_IMAGE_SAMPLER => Img::SAMPLED,
+            Self::SAMPLED_IMAGE => Img::SAMPLED,
+            Self::STORAGE_IMAGE => Img::STORAGE,
+            Self::INPUT_ATTACHMENT => Img::INPUT_ATTACHMENT,
+            _ => Img::empty(),
+        };
+        usage.intersects(bit)
     }
 }
 

@@ -174,6 +174,7 @@ impl SwapchainKHR {
                         info.image_format,
                         info.image_extent.into(),
                         info.image_array_layers,
+                        info.image_usage,
                     )),
                     false,
                 )

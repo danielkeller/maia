@@ -21,6 +21,7 @@ pub struct Device {
     pub(crate) fun: DeviceFn,
     physical_device: PhysicalDevice,
     limits: PhysicalDeviceLimits,
+    enabled: PhysicalDeviceFeatures,
     memory_allocation_count: AtomicU32,
     sampler_allocation_count: AtomicU32,
     queues: Vec<u32>,
@@ -88,6 +89,7 @@ impl Device {
             fun,
             physical_device: phy.clone(),
             limits: phy.properties().limits,
+            enabled: info.enabled_features.cloned().unwrap_or_default(),
             memory_allocation_count: AtomicU32::new(0),
             sampler_allocation_count: AtomicU32::new(0),
             queues,
@@ -113,6 +115,10 @@ impl Device {
     /// Returns the limits of the device.
     pub fn limits(&self) -> &PhysicalDeviceLimits {
         &self.limits
+    }
+    /// Returns the enabled features.
+    pub fn enabled(&self) -> &PhysicalDeviceFeatures {
+        &self.enabled
     }
     /// Returns the associated phyical device.
     pub fn physical_device(&self) -> &PhysicalDevice {

@@ -182,6 +182,24 @@ pub struct DescriptorBufferInfo<'a> {
     pub range: Option<u64>,
 }
 
+macro_rules! buffer_checks {
+    () => {
+        "Returns [`Error::OutOfBounds`] if there are not enough bindings, and
+        [`Error::InvalidArgument`] if some of the bindings in the destination
+        range are of a different type, or some of the buffers don't have the
+        required [`BufferUsageFlags`][crate::vk::BufferUsageFlags] set."
+    };
+}
+
+macro_rules! image_checks {
+    () => {
+        "Returns [`Error::OutOfBounds`] if there are not enough bindings, and
+        [`Error::InvalidArgument`] if some of the bindings in the destination
+        range are of a different type, or some of the images don't have the
+        required [`ImageUsageFlags`][crate::vk::ImageUsageFlags] set."
+    };
+}
+
 impl<'a> DescriptorSetUpdate<'a> {
     /// Finish the builder and call vkUpdateDescriptorSets.
     #[doc = crate::man_link!(vkUpdateDescriptorSets)]
@@ -221,6 +239,9 @@ impl<'a> DescriptorSetUpdate<'a> {
             if b.range.map_or(false, |r| r > max_range as u64) {
                 return Err(Error::LimitExceeded);
             }
+            if !descriptor_type.supports_buffer_usage(b.buffer.usage()) {
+                return Err(Error::InvalidArgument);
+            }
             assert!(std::ptr::eq(&**b.buffer.device(), self.updates.device));
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
@@ -253,9 +274,8 @@ impl<'a> DescriptorSetUpdate<'a> {
         });
         Ok(self)
     }
-    /// Update uniform buffer bindings. Returns [Error::OutOfBounds] if there
-    /// are not enough bindings, and [Error::InvalidArgument] if some of the
-    /// bindings in the destination range are of a different type.
+    /// Update uniform buffer bindings.
+    #[doc = buffer_checks!()]
     pub fn uniform_buffers(
         self, dst_binding: u32, dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
@@ -269,9 +289,8 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::UNIFORM_BUFFER,
         )
     }
-    /// Update storage buffer bindings. Returns [Error::OutOfBounds] if there
-    /// are not enough bindings, and [Error::InvalidArgument] if some of the
-    /// bindings in the destination range are of a different type.
+    /// Update storage buffer bindings.
+    #[doc = buffer_checks!()]
     pub fn storage_buffers(
         self, dst_binding: u32, dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
@@ -285,9 +304,8 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::STORAGE_BUFFER,
         )
     }
-    /// Update dynamic uniform buffer bindings. Returns [Error::OutOfBounds] if
-    /// there are not enough bindings, and [Error::InvalidArgument] if some of
-    /// the bindings in the destination range are of a different type.
+    /// Update dynamic uniform buffer bindings.
+    #[doc = buffer_checks!()]
     pub fn uniform_buffers_dynamic(
         self, dst_binding: u32, dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
@@ -301,9 +319,8 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::UNIFORM_BUFFER_DYNAMIC,
         )
     }
-    /// Update dynamic storage buffer bindings. Returns [Error::OutOfBounds] if
-    /// there are not enough bindings, and [Error::InvalidArgument] if some of
-    /// the bindings in the destination range are of a different type.
+    /// Update dynamic storage buffer bindings.
+    #[doc = buffer_checks!()]
     pub fn storage_buffers_dynamic(
         self, dst_binding: u32, dst_array_element: u32,
         buffers: &'_ [DescriptorBufferInfo<'a>],
@@ -382,6 +399,9 @@ impl<'a> DescriptorSetUpdate<'a> {
         );
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
+            if !descriptor_type.supports_image_usage(i.image().usage()) {
+                return Err(Error::InvalidArgument);
+            }
             assert!(std::ptr::eq(&**i.device(), self.updates.device));
             self.updates.resources.push(Resource {
                 set: self.updates.dst_sets.len(),
@@ -412,9 +432,8 @@ impl<'a> DescriptorSetUpdate<'a> {
         });
         Ok(self)
     }
-    /// Update sampled image bindings. Returns [Error::OutOfBounds] if
-    /// there are not enough bindings, and [Error::InvalidArgument] if some of
-    /// the bindings in the destination range are of a different type.
+    /// Update sampled image bindings.
+    #[doc = image_checks!()]
     pub fn sampled_images(
         self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],
@@ -426,9 +445,8 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::SAMPLED_IMAGE,
         )
     }
-    /// Update storage image bindings. Returns [Error::OutOfBounds] if
-    /// there are not enough bindings, and [Error::InvalidArgument] if some of
-    /// the bindings in the destination range are of a different type.
+    /// Update storage image bindings.
+    #[doc = image_checks!()]
     pub fn storage_images(
         self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],
@@ -440,9 +458,8 @@ impl<'a> DescriptorSetUpdate<'a> {
             DescriptorType::STORAGE_IMAGE,
         )
     }
-    /// Update input attachment bindings. Returns [Error::OutOfBounds] if
-    /// there are not enough bindings, and [Error::InvalidArgument] if some of
-    /// the bindings in the destination range are of a different type.
+    /// Update input attachment bindings.
+    #[doc = image_checks!()]
     pub fn input_attachments(
         self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],
@@ -455,9 +472,8 @@ impl<'a> DescriptorSetUpdate<'a> {
         )
     }
 
-    /// Update combined image-sampler bindings. Returns [Error::OutOfBounds] if
-    /// there are not enough bindings, and [Error::InvalidArgument] if some of
-    /// the bindings in the destination range are of a different type.
+    /// Update combined image-sampler bindings.
+    #[doc = image_checks!()]
     pub fn combined_image_samplers(
         mut self, dst_binding: u32, dst_array_element: u32,
         images: &[(&'a Arc<ImageView>, ImageLayout)],

@@ -6,6 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::enums::*;
 use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
 use crate::memory::{DeviceMemory, MemoryLifetime};
 use crate::subobject::Subobject;
@@ -18,6 +19,7 @@ use crate::vk::Device;
 pub struct BufferWithoutMemory {
     handle: Handle<VkBuffer>,
     len: u64,
+    usage: BufferUsageFlags,
     device: Arc<Device>,
 }
 
@@ -47,12 +49,15 @@ impl BufferWithoutMemory {
         Ok(BufferWithoutMemory {
             handle: handle.unwrap(),
             len: info.size,
+            usage: info.usage,
             device: device.clone(),
         })
     }
 }
 impl Buffer {
     // TODO: Bulk bind
+    /// Note that it is an error to bind a storage buffer to host-visible memory
+    /// when robust buffer access is not enabled.
     #[doc = crate::man_link!(vkBindBufferMemory)]
     pub fn new(
         buffer: BufferWithoutMemory, memory: &DeviceMemory, offset: u64,
@@ -111,6 +116,10 @@ impl Buffer {
     pub fn bounds_check(&self, offset: u64, len: u64) -> bool {
         self.len() >= offset && self.len() - offset >= len
     }
+    /// Returns the allowed buffer usages
+    pub fn usage(&self) -> BufferUsageFlags {
+        self.inner.usage
+    }
 }
 
 impl BufferWithoutMemory {
@@ -118,6 +127,12 @@ impl BufferWithoutMemory {
     pub fn borrow_mut(&mut self) -> Mut<VkBuffer> {
         self.handle.borrow_mut()
     }
+    /// If [`BufferCreateInfo::usage`] includes a storage buffer usage type and
+    /// the robust buffer access feature was not enabled at device creation, any
+    /// host-visible memory types will be removed from the output. Note that on
+    /// some physical devices (eg software rasterizers), *all* memory types are
+    /// host-visible.
+    ///
     #[doc = crate::man_link!(vkGetBufferMemoryRequirements)]
     pub fn memory_requirements(&self) -> MemoryRequirements {
         let mut result = Default::default();
@@ -128,9 +143,18 @@ impl BufferWithoutMemory {
                 &mut result,
             );
         }
+        if !self.device.enabled().robust_buffer_access.as_bool()
+            && self.usage.is_storage()
+        {
+            result.clear_host_visible_types(
+                &self.device.physical_device().memory_properties(),
+            );
+        }
         result
     }
-    /// Allocate a single piece of memory for the buffer and bind it.
+    /// Allocate a single piece of memory for the buffer and bind it. Note that
+    /// it is an error to bind a storage buffer to host-visible memory when
+    /// robust buffer access is not enabled.
     pub fn allocate_memory(
         self, memory_type_index: u32,
     ) -> ResultAndSelf<Arc<Buffer>, Self> {
@@ -164,5 +188,29 @@ mod test {
         )
         .unwrap();
         assert!(buf.allocate_memory(31).is_err());
+    }
+    #[test]
+    fn require_robust() {
+        let (dev, _) = crate::test_device().unwrap();
+        let buf = vk::BufferWithoutMemory::new(
+            &dev,
+            &BufferCreateInfo {
+                size: 256,
+                usage: vk::BufferUsageFlags::STORAGE_BUFFER,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let host_mem = dev
+            .physical_device()
+            .memory_properties()
+            .memory_types
+            .iter()
+            .position(|ty| {
+                ty.property_flags
+                    .contains(vk::MemoryPropertyFlags::HOST_VISIBLE)
+            })
+            .unwrap();
+        assert!(buf.allocate_memory(host_mem as u32).is_err());
     }
 }

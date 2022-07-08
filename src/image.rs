@@ -25,6 +25,7 @@ pub struct ImageWithoutMemory {
     extent: Extent3D,
     mip_levels: u32,
     array_layers: u32,
+    usage: ImageUsageFlags,
     res: ImageOwner,
     device: Arc<Device>,
 }
@@ -94,6 +95,7 @@ impl ImageWithoutMemory {
             format: info.format,
             mip_levels: info.mip_levels,
             array_layers: info.array_layers,
+            usage: info.usage,
             res: ImageOwner::Application,
             device: device.clone(),
         })
@@ -147,6 +149,12 @@ impl ImageWithoutMemory {
     pub fn mut_handle(&mut self) -> Mut<VkImage> {
         self.handle.borrow_mut()
     }
+    /// If [`ImageCreateInfo::usage`] includes a storage image usage type and
+    /// the robust buffer access feature was not enabled at device creation, any
+    /// host-visible memory types will be removed from the output. Note that on
+    /// some physical devices (eg software rasterizers), *all* memory types are
+    /// host-visible.
+    ///
     #[doc = crate::man_link!(vkGetImageMemoryRequirements)]
     pub fn memory_requirements(&self) -> MemoryRequirements {
         let mut result = Default::default();
@@ -155,6 +163,13 @@ impl ImageWithoutMemory {
                 self.device.handle(),
                 self.handle.borrow(),
                 &mut result,
+            );
+        }
+        if !self.device.enabled().robust_buffer_access.as_bool()
+            && self.usage.is_storage()
+        {
+            result.clear_host_visible_types(
+                &self.device.physical_device().memory_properties(),
             );
         }
         result
@@ -184,17 +199,18 @@ impl Image {
     pub(crate) fn new_from(
         handle: Handle<VkImage>, device: Arc<Device>,
         res: Subobject<SwapchainImages>, format: Format, extent: Extent3D,
-        array_layers: u32,
+        array_layers: u32, usage: ImageUsageFlags,
     ) -> Self {
         Self {
             inner: ImageWithoutMemory {
                 handle,
+                device,
+                res: ImageOwner::Swapchain(res),
+                format,
                 extent,
                 array_layers,
+                usage,
                 mip_levels: 1,
-                res: ImageOwner::Swapchain(res),
-                device,
-                format,
             },
             _memory: None,
         }
@@ -207,6 +223,10 @@ impl Image {
     /// Returns the associated device.
     pub fn device(&self) -> &Arc<Device> {
         &self.inner.device
+    }
+    /// Returns the allowed image usages
+    pub fn usage(&self) -> ImageUsageFlags {
+        self.inner.usage
     }
     /// Returns the format of the image.
     pub fn format(&self) -> Format {
@@ -333,5 +353,52 @@ impl ImageView {
     /// Returns the associated device.
     pub fn device(&self) -> &Arc<Device> {
         self.image.device()
+    }
+    /// Returns the underlying image
+    pub fn image(&self) -> &Arc<Image> {
+        &self.image
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::vk;
+    #[test]
+    fn wrong_mem() {
+        let (dev, _) = crate::test_device().unwrap();
+        let buf = vk::ImageWithoutMemory::new(
+            &dev,
+            &ImageCreateInfo {
+                extent: Extent3D { width: 64, height: 64, depth: 1 },
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert!(buf.allocate_memory(31).is_err());
+    }
+    #[test]
+    fn require_robust() {
+        let (dev, _) = crate::test_device().unwrap();
+        let buf = vk::ImageWithoutMemory::new(
+            &dev,
+            &ImageCreateInfo {
+                extent: Extent3D { width: 64, height: 64, depth: 1 },
+                usage: vk::ImageUsageFlags::STORAGE,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        let host_mem = dev
+            .physical_device()
+            .memory_properties()
+            .memory_types
+            .iter()
+            .position(|ty| {
+                ty.property_flags
+                    .contains(vk::MemoryPropertyFlags::HOST_VISIBLE)
+            })
+            .unwrap();
+        assert!(buf.allocate_memory(host_mem as u32).is_err());
     }
 }
