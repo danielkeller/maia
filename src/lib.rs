@@ -137,7 +137,9 @@ pub mod vk {
     };
     pub use crate::instance::Instance;
     pub use crate::instance_extension_properties;
-    pub use crate::memory::{DeviceMemory, MappedMemory};
+    pub use crate::memory::{
+        DeviceMemory, MappedMemory, MemoryRead, MemoryWrite,
+    };
     pub use crate::physical_device::PhysicalDevice;
     pub use crate::pipeline::{
         GraphicsPipelineCreateInfo, Pipeline, PipelineCache, PipelineLayout,

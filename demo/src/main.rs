@@ -7,6 +7,7 @@
 // except according to those terms.
 
 use std::collections::HashMap;
+use std::io::Write;
 use std::mem::size_of;
 use std::sync::Arc;
 use std::time::Instant;
@@ -145,7 +146,7 @@ fn upload_data(
     let memory = vk::DeviceMemory::new(&device, mem_size, host_mem)?;
     let staging_buffer = vk::Buffer::new(staging_buffer, &memory, 0)?;
     let mut memory = memory.map(0, src.len())?;
-    memory.slice_mut().copy_from_slice(src);
+    memory.write_at(0).write_all(src)?;
 
     let transfer = cmd_pool.allocate()?;
     let mut rec = cmd_pool.begin(transfer)?;
@@ -199,10 +200,10 @@ fn upload_image(
     let memory = vk::DeviceMemory::new(&device, mem_size, host_mem)?;
     let staging_buffer = vk::Buffer::new(staging_buffer, &memory, 0)?;
     let mut memory = memory.map(0, mem_size as usize)?;
-    for (dst, src) in
-        memory.slice_mut().chunks_exact_mut(4).zip(image_data.chunks_exact(3))
-    {
-        dst[..3].copy_from_slice(src)
+    let mut writer = memory.write_at(0);
+    for src in image_data.chunks_exact(3) {
+        writer.write_all(src)?;
+        writer.write_all(&[255])?;
     }
     memory.unmap();
 
@@ -606,7 +607,7 @@ fn main() -> anyhow::Result<()> {
 
         let time = Instant::now().duration_since(begin);
 
-        *bytemuck::from_bytes_mut(mapped.slice_mut()) = MVP {
+        mapped.write_at(0).write_all(bytemuck::bytes_of(&MVP {
             model: Mat4::from_rotation_y(time.as_secs_f32() * 2.0),
             view: Mat4::look_at(
                 Vec3::new(1., 1., 1.),
@@ -618,7 +619,7 @@ fn main() -> anyhow::Result<()> {
                 draw_size.width as f32 / draw_size.height as f32,
                 0.1,
             ),
-        };
+        }))?;
 
         let subpass = cmd_pool.allocate_secondary()?;
         let mut subpass = cmd_pool.begin_secondary(subpass, &render_pass, 0)?;

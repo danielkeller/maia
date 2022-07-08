@@ -7,6 +7,7 @@
 // except according to those terms.
 
 use maia::vk;
+use std::io::Write;
 
 fn main() -> vk::Result<()> {
     let event_loop = winit::event_loop::EventLoop::new();
@@ -203,7 +204,7 @@ fn main() -> vk::Result<()> {
     )?;
     let vertex_buffer = vk::Buffer::new(vertex_buffer, &memory, 0)?;
     let mut mapped = memory.map(0, std::mem::size_of_val(&VERTEX_DATA))?;
-    mapped.slice_mut().copy_from_slice(bytemuck::bytes_of(&VERTEX_DATA));
+    mapped.write_at(0).write_all(bytemuck::bytes_of(&VERTEX_DATA)).unwrap();
 
     // Create the remaining required objects
     let mut cmd_pool = vk::CommandPool::new(&device, queue_family)?;
