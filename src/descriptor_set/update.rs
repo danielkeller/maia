@@ -63,6 +63,7 @@ use bumpalo::collections::Vec as BumpVec;
 /// let mut desc_set2 = vk::DescriptorSet::new(&mut pool, &layout)?;
 /// # let buffer = vk::BufferWithoutMemory::new(&device, &vk::BufferCreateInfo {
 /// #         size: 256,
+/// #         usage: vk::BufferUsageFlags::UNIFORM_BUFFER,
 /// #         ..Default::default()
 /// #     })?.allocate_memory(0)?;
 /// # let sampler = vk::Sampler::new(&device, &Default::default())?;

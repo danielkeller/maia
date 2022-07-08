@@ -520,7 +520,11 @@ mod test {
 
         let buf = vk::BufferWithoutMemory::new(
             &dev,
-            &vk::BufferCreateInfo { size: 1024, ..Default::default() },
+            &vk::BufferCreateInfo {
+                size: 1024,
+                usage: vk::BufferUsageFlags::UNIFORM_BUFFER,
+                ..Default::default()
+            },
         )?
         .allocate_memory(0)?;
         let img = vk::ImageWithoutMemory::new(
@@ -528,7 +532,8 @@ mod test {
             &vk::ImageCreateInfo {
                 extent: vk::Extent3D { width: 512, height: 512, depth: 1 },
                 format: vk::Format::R8G8B8A8_SRGB,
-                mip_levels: 10,
+                mip_levels: 8,
+                usage: vk::ImageUsageFlags::SAMPLED,
                 ..Default::default()
             },
         )?
