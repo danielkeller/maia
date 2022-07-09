@@ -64,5 +64,37 @@
 //! The actual path of the Vulkan dylib can be found using the linker with the "trace" (`-t`) option, and the preferred search path found using `objdump`. Since that file is just a symbolic link to the real dylib, the real one must be included as well. The MoltenVK dylib can be found using the linker in the same way. So a complete shell script to build an .app bundle looks like the following (with the variables at the top modified appropriately for your package):
 //!
 //! ```shell
-#![doc = include_str!("../demo/bundle")]
+//! #!/bin/sh
+//! TARGET=../target
+//! BINARY=$TARGET/release/demo
+//! OUT=$TARGET/release/Demo.app
+//!
+//! cargo build --release || exit 1
+//!
+//! which_lib() {
+//!     ld -t -dylib -o /dev/null -arch x86_64 -macosx_version_min 10.//! 12.0 -l$1
+//! }
+//! soname() {
+//!     objdump -p $1 | sed -nr 's/^.*name @rpath\/(.*) \(.*$/\1/p'
+//! }
+//!
+//! # Find the vulkan dylib
+//! LINKED="$(which_lib vulkan)"
+//! LIBDIR="$(dirname $LINKED)"
+//! VK_SONAME="$LIBDIR/$(soname $LINKED)"
+//! VK_REALNAME="$LIBDIR/$(readlink $VK_SONAME)"
+//! MOLTENVK="$(which_lib MoltenVK)"
+//!
+//! rm -Rf $OUT
+//! mkdir -p $OUT/Contents/MacOS
+//! mkdir -p $OUT/Contents/Frameworks
+//! mkdir -p $OUT/Contents/Resources/vulkan/icd.d
+//!
+//! cp macos/Info.plist $OUT/Contents/
+//! cp $BINARY $OUT/Contents/MacOS
+//! cp -R assets $OUT/Contents/Resources/
+//! cp macos/MoltenVK_icd.json $OUT/Contents/Resources/vulkan/icd.d
+//! cp $VK_SONAME $OUT/Contents/Frameworks
+//! cp $VK_REALNAME $OUT/Contents/Frameworks
+//! cp $MOLTENVK $OUT/Contents/Frameworks
 //! ```
