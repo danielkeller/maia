@@ -154,8 +154,8 @@ impl BufferWithoutMemory {
         result
     }
     /// Allocate a single piece of memory for the buffer and bind it. Note that
-    /// it is an error to bind a storage buffer to host-visible memory when
-    /// robust buffer access is not enabled.
+    /// it is an error to bind a uniform, storage, or vertex buffer to
+    /// host-visible memory when robust buffer access is not enabled.
     pub fn allocate_memory(
         self, memory_type_index: u32,
     ) -> ResultAndSelf<Arc<Buffer>, Self> {
