@@ -97,6 +97,10 @@ pub(crate) fn test_device() -> Result<(Arc<device::Device>, queue::Queue)> {
                 queue_priorities: vk::slice(&[1.0]),
                 ..Default::default()
             }]),
+            enabled_features: Some(&vk::PhysicalDeviceFeatures {
+                robust_buffer_access: vk::True,
+                ..Default::default()
+            }),
             ..Default::default()
         },
     )?;

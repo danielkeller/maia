@@ -192,7 +192,18 @@ mod test {
     }
     #[test]
     fn require_robust() {
-        let (dev, _) = crate::test_device().unwrap();
+        let inst = vk::Instance::new(&Default::default()).unwrap();
+        let (dev, _) = vk::Device::new(
+            &inst.enumerate_physical_devices().unwrap()[0],
+            &vk::DeviceCreateInfo {
+                queue_create_infos: vk::slice(&[vk::DeviceQueueCreateInfo {
+                    queue_priorities: vk::slice(&[1.0]),
+                    ..Default::default()
+                }]),
+                ..Default::default()
+            },
+        )
+        .unwrap();
         let buf = vk::BufferWithoutMemory::new(
             &dev,
             &BufferCreateInfo {
