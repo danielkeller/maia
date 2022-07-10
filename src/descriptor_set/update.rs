@@ -29,9 +29,17 @@ use bumpalo::collections::Vec as BumpVec;
 ///
 /// ```rust
 /// # use maia::vk;
-/// # let instance = vk::Instance::new(&Default::default())?;
+/// # let inst = vk::Instance::new(&Default::default())?;
 /// # let (device, _) = vk::Device::new(
-/// #     &instance.enumerate_physical_devices()?[0], &Default::default())?;
+/// #     &inst.enumerate_physical_devices()?[0],
+/// #     &vk::DeviceCreateInfo {
+/// #         enabled_features: Some(&vk::PhysicalDeviceFeatures {
+/// #             robust_buffer_access: vk::True,
+/// #             ..Default::default()
+/// #         }),
+/// #         ..Default::default()
+/// #     },
+/// # )?;
 /// # let layout = vk::DescriptorSetLayout::new(
 /// #     &device,
 /// #     vec![vk::DescriptorSetLayoutBinding {
