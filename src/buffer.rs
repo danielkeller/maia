@@ -127,9 +127,10 @@ impl BufferWithoutMemory {
     pub fn borrow_mut(&mut self) -> Mut<VkBuffer> {
         self.handle.borrow_mut()
     }
-    /// If [`BufferCreateInfo::usage`] includes a storage buffer usage type and
-    /// the robust buffer access feature was not enabled at device creation, any
-    /// host-visible memory types will be removed from the output. Note that on
+    /// If [`BufferCreateInfo::usage`] includes an abritrarily indexable buffer
+    /// usage type (uniform, storage, or vertex) and the robust buffer access
+    /// feature was not enabled at device creation, any host-visible memory
+    /// types will be removed from the output. Note that on
     /// some physical devices (eg software rasterizers), *all* memory types are
     /// host-visible.
     ///
@@ -144,7 +145,7 @@ impl BufferWithoutMemory {
             );
         }
         if !self.device.enabled().robust_buffer_access.as_bool()
-            && self.usage.is_storage()
+            && self.usage.indexable()
         {
             result.clear_host_visible_types(
                 &self.device.physical_device().memory_properties(),

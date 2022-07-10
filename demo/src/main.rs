@@ -289,6 +289,11 @@ fn main() -> anyhow::Result<()> {
                 ..Default::default()
             }]),
             enabled_extension_names: device_extensions.into(),
+            enabled_features: Some(&vk::PhysicalDeviceFeatures {
+                // Allow the use of in-RAM vertex buffers
+                robust_buffer_access: vk::True,
+                ..Default::default()
+            }),
             ..Default::default()
         },
     )?;

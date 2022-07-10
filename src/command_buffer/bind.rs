@@ -64,7 +64,8 @@ impl<'a> CommandRecording<'a> {
 
 impl<'a> RenderPassRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty or the buffer
+    /// usage flags don't include `VERTEX_BUFFER`.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self, first_binding: u32, buffers_offsets: &[(&Arc<Buffer>, u64)],
@@ -82,7 +83,8 @@ impl<'a> RenderPassRecording<'a> {
 }
 impl<'a> SecondaryCommandRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty or the buffer
+    /// usage flags don't include `VERTEX_BUFFER`.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self, first_binding: u32, buffers_offsets: &[(&Arc<Buffer>, u64)],
@@ -100,11 +102,17 @@ impl<'a> SecondaryCommandRecording<'a> {
 }
 impl<'a> CommandRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
+    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty or the buffer
+    /// usage flags don't include `VERTEX_BUFFER`.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self, first_binding: u32, buffers_offsets: &[(&Arc<Buffer>, u64)],
     ) -> Result<()> {
+        for &(buffer, _) in buffers_offsets {
+            if !buffer.usage().contains(BufferUsageFlags::VERTEX_BUFFER) {
+                return Err(Error::InvalidArgument);
+            }
+        }
         for &(buffer, _) in buffers_offsets {
             self.add_resource(buffer.clone());
         }

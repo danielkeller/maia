@@ -123,6 +123,7 @@ pub mod vk {
         DescriptorSetLayoutBinding,
     };
     pub use crate::device::Device;
+    pub use crate::enums::Bool::{False, True};
     pub use crate::enums::*;
     pub use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
     pub use crate::ext;

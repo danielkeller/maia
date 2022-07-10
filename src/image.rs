@@ -166,7 +166,7 @@ impl ImageWithoutMemory {
             );
         }
         if !self.device.enabled().robust_buffer_access.as_bool()
-            && self.usage.is_storage()
+            && self.usage.indexable()
         {
             result.clear_host_visible_types(
                 &self.device.physical_device().memory_properties(),

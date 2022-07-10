@@ -53,6 +53,11 @@ fn main() -> vk::Result<()> {
                 ..Default::default()
             }]),
             enabled_extension_names: vk::slice(device_extensions),
+            enabled_features: Some(&vk::PhysicalDeviceFeatures {
+                // Allow the use of in-RAM vertex buffers
+                robust_buffer_access: vk::True,
+                ..Default::default()
+            }),
             ..Default::default()
         },
     )?;

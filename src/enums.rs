@@ -281,9 +281,15 @@ bitflags! {
 }
 
 impl BufferUsageFlags {
-    /// Does the usage support arbitrary shader writes?
-    pub fn is_storage(self) -> bool {
-        self.intersects(Self::STORAGE_TEXEL_BUFFER | Self::STORAGE_BUFFER)
+    /// Does the usage support arbitrary indexing?
+    pub fn indexable(self) -> bool {
+        self.intersects(
+            Self::STORAGE_TEXEL_BUFFER
+                | Self::STORAGE_BUFFER
+                | Self::UNIFORM_TEXEL_BUFFER
+                | Self::UNIFORM_BUFFER
+                | Self::VERTEX_BUFFER,
+        )
     }
 }
 
@@ -501,8 +507,8 @@ bitflags! {
 }
 
 impl ImageUsageFlags {
-    /// Does the usage support arbitrary shader writes?
-    pub fn is_storage(self) -> bool {
+    /// Does the usage support arbitrary shader access?
+    pub fn indexable(self) -> bool {
         self.intersects(Self::STORAGE)
     }
 }
