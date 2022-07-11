@@ -12,6 +12,7 @@ use crate::ffi::Array;
 use crate::render_pass::RenderPass;
 use crate::subobject::Owner;
 use crate::types::*;
+use crate::vk::BufferUsageFlags;
 
 use super::{
     Bindings, CommandRecording, ExternalRenderPassRecording,
@@ -216,6 +217,24 @@ impl<'a> SecondaryCommandRecording<'a> {
         self.rec.draw_indexed_indirect(buffer, offset, draw_count, stride)
     }
 }
+
+fn bounds_check_n(
+    count: u32, size: u32, mut stride: u32, buf: &Arc<Buffer>, offset: u64,
+) -> Result<()> {
+    if count < 2 {
+        stride = size;
+    }
+    if stride < size || offset & 3 != 0 {
+        return Err(Error::InvalidArgument);
+    }
+    let len =
+        (count as u64).checked_mul(stride as u64).ok_or(Error::OutOfBounds)?;
+    if !buf.bounds_check(offset, len) {
+        return Err(Error::OutOfBounds);
+    }
+    Ok(())
+}
+
 impl<'a> CommandRecording<'a> {
     fn draw(
         &mut self, vertex_count: u32, instance_count: u32, first_vertex: u32,
@@ -237,6 +256,10 @@ impl<'a> CommandRecording<'a> {
         &mut self, buffer: &Arc<Buffer>, offset: u64, draw_count: u32,
         stride: u32,
     ) -> Result<()> {
+        if !buffer.usage().contains(BufferUsageFlags::INDIRECT_BUFFER) {
+            return Err(Error::InvalidArgument);
+        }
+        bounds_check_n(draw_count, 16, stride, buffer, offset)?;
         self.graphics.check()?;
         self.add_resource(buffer.clone());
         unsafe {
@@ -271,6 +294,10 @@ impl<'a> CommandRecording<'a> {
         &mut self, buffer: &Arc<Buffer>, offset: u64, draw_count: u32,
         stride: u32,
     ) -> Result<()> {
+        bounds_check_n(draw_count, 20, stride, buffer, offset)?;
+        if !buffer.usage().contains(BufferUsageFlags::INDIRECT_BUFFER) {
+            return Err(Error::InvalidArgument);
+        }
         self.graphics.check()?;
         self.add_resource(buffer.clone());
         unsafe {

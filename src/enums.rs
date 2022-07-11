@@ -283,13 +283,9 @@ bitflags! {
 impl BufferUsageFlags {
     /// Does the usage support arbitrary indexing?
     pub fn indexable(self) -> bool {
-        self.intersects(
-            Self::STORAGE_TEXEL_BUFFER
-                | Self::STORAGE_BUFFER
-                | Self::UNIFORM_TEXEL_BUFFER
-                | Self::UNIFORM_BUFFER
-                | Self::VERTEX_BUFFER,
-        )
+        let allowed =
+            Self::TRANSFER_SRC | Self::TRANSFER_DST | Self::INDIRECT_BUFFER;
+        !allowed.contains(self)
     }
 }
 

@@ -73,11 +73,12 @@ impl<'a> RenderPassRecording<'a> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
     /// Reference count of `buffer` is incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
+    /// [`Error::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
+    /// usage flag.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self, buffer: &Arc<Buffer>, offset: u64, index_type: IndexType,
-    ) {
+    ) -> Result<()> {
         self.rec.bind_index_buffer(buffer, offset, index_type)
     }
 }
@@ -92,11 +93,12 @@ impl<'a> SecondaryCommandRecording<'a> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
     /// Reference count of `buffer` is incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
+    /// [`Error::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
+    /// usage flag.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self, buffer: &Arc<Buffer>, offset: u64, index_type: IndexType,
-    ) {
+    ) -> Result<()> {
         self.rec.bind_index_buffer(buffer, offset, index_type)
     }
 }
@@ -112,9 +114,6 @@ impl<'a> CommandRecording<'a> {
             if !buffer.usage().contains(BufferUsageFlags::VERTEX_BUFFER) {
                 return Err(Error::InvalidArgument);
             }
-        }
-        for &(buffer, _) in buffers_offsets {
-            self.add_resource(buffer.clone());
         }
         let buffers = self.scratch.alloc_slice_fill_iter(
             buffers_offsets.iter().map(|&(b, _)| b.handle()),
@@ -132,14 +131,21 @@ impl<'a> CommandRecording<'a> {
                 Array::from_slice(offsets).ok_or(Error::InvalidArgument)?,
             )
         }
+        for &(buffer, _) in buffers_offsets {
+            self.add_resource(buffer.clone());
+        }
         Ok(())
     }
     /// Reference count of `buffer` is incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty.
+    /// [`Error::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
+    /// usage flag.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self, buffer: &Arc<Buffer>, offset: u64, index_type: IndexType,
-    ) {
+    ) -> Result<()> {
+        if !buffer.usage().contains(BufferUsageFlags::INDEX_BUFFER) {
+            return Err(Error::InvalidArgument);
+        }
         self.add_resource(buffer.clone());
         unsafe {
             (self.pool.device.fun.cmd_bind_index_buffer)(
@@ -149,6 +155,7 @@ impl<'a> CommandRecording<'a> {
                 index_type,
             )
         }
+        Ok(())
     }
 }
 

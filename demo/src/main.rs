@@ -638,7 +638,7 @@ fn main() -> anyhow::Result<()> {
         });
         subpass.bind_pipeline(&pipeline);
         subpass.bind_vertex_buffers(0, &[(&vertex_buffer, 0)])?;
-        subpass.bind_index_buffer(&index_buffer, 0, vk::IndexType::UINT16);
+        subpass.bind_index_buffer(&index_buffer, 0, vk::IndexType::UINT16)?;
         subpass.bind_descriptor_sets(
             vk::PipelineBindPoint::GRAPHICS,
             &pipeline_layout,

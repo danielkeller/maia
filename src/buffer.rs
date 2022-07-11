@@ -56,8 +56,8 @@ impl BufferWithoutMemory {
 }
 impl Buffer {
     // TODO: Bulk bind
-    /// Note that it is an error to bind a storage buffer to host-visible memory
-    /// when robust buffer access is not enabled.
+    /// Note that it is an error to bind a storage, uniform, vertex, or index
+    /// buffer to host-visible memory when robust buffer access is not enabled.
     #[doc = crate::man_link!(vkBindBufferMemory)]
     pub fn new(
         buffer: BufferWithoutMemory, memory: &DeviceMemory, offset: u64,
@@ -128,9 +128,9 @@ impl BufferWithoutMemory {
         self.handle.borrow_mut()
     }
     /// If [`BufferCreateInfo::usage`] includes an abritrarily indexable buffer
-    /// usage type (uniform, storage, or vertex) and the robust buffer access
-    /// feature was not enabled at device creation, any host-visible memory
-    /// types will be removed from the output. Note that on
+    /// usage type (uniform, storage, vertex, or index) and the robust buffer
+    /// access feature was not enabled at device creation, any host-visible
+    /// memory types will be removed from the output. Note that on
     /// some physical devices (eg software rasterizers), *all* memory types are
     /// host-visible.
     ///
@@ -154,7 +154,7 @@ impl BufferWithoutMemory {
         result
     }
     /// Allocate a single piece of memory for the buffer and bind it. Note that
-    /// it is an error to bind a uniform, storage, or vertex buffer to
+    /// it is an error to bind a uniform, storage, vertex, or index buffer to
     /// host-visible memory when robust buffer access is not enabled.
     pub fn allocate_memory(
         self, memory_type_index: u32,

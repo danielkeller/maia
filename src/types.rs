@@ -1464,6 +1464,8 @@ pub struct AttachmentReference {
 
 #[repr(C)]
 #[derive(Debug)]
+/// Create with
+/// [`vk::SubpassDescription::try_into`](SubpassDescription).
 #[doc = crate::man_link!(VkSubpassDescription)]
 pub struct VkSubpassDescription<'a> {
     flags: SubpassDescriptionFlags,

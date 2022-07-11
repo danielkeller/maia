@@ -102,6 +102,8 @@ impl ImageWithoutMemory {
     }
 }
 impl Image {
+    /// Note that it is an error to bind a storage image to
+    /// host-visible memory when robust buffer access is not enabled.
     #[doc = crate::man_link!(vkBindImageMemory)]
     pub fn new(
         image: ImageWithoutMemory, memory: &DeviceMemory, offset: u64,
