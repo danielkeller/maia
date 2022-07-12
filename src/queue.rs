@@ -11,7 +11,7 @@ use std::fmt::Debug;
 use crate::cleanup_queue::CleanupQueue;
 use crate::command_buffer::CommandBuffer;
 use crate::device::Device;
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::exclusive::Exclusive;
 use crate::fence::{Fence, PendingFence};
 use crate::ffi::Array;
@@ -100,7 +100,7 @@ pub struct SubmitInfo<'a> {
 }
 
 impl Queue {
-    /// Returns [`Error::InvalidArgument`] if any semaphore in `signal` already
+    /// Returns [`ErrorKind::InvalidArgument`] if any semaphore in `signal` already
     /// has a signal operation pending, or if any semaphore in `wait` does not,
     /// or if any command buffer is not in the executable state.
     #[doc = crate::man_link!(vkQueueSubmit)]
@@ -111,7 +111,7 @@ impl Queue {
         Ok(fence.into_pending(self.resources.new_cleanup()))
     }
 
-    /// Returns [`Error::InvalidArgument`] if any semaphore in `signal` already
+    /// Returns [`ErrorKind::InvalidArgument`] if any semaphore in `signal` already
     /// has a signal operation pending, or if any semaphore in `wait` does not,
     /// or if any command buffer is not in the executable state.
     #[doc = crate::man_link!(vkQueueSubmit)]
@@ -125,12 +125,12 @@ impl Queue {
         for info in infos.iter() {
             for (sem, _) in info.wait.iter() {
                 if sem.signaller.is_none() {
-                    return Err(Error::InvalidArgument);
+                    return Err(ErrorKind::InvalidArgument);
                 }
             }
             for sem in info.signal.iter() {
                 if sem.signaller.is_some() {
-                    return Err(Error::InvalidArgument);
+                    return Err(ErrorKind::InvalidArgument);
                 }
             }
         }
@@ -145,8 +145,9 @@ impl Queue {
             let mut commands = bumpalo::vec![in scratch];
             let mut info_recordings = bumpalo::vec![in scratch];
             for c in info.commands.iter_mut() {
-                info_recordings
-                    .push(c.lock_resources().ok_or(Error::InvalidArgument)?);
+                info_recordings.push(
+                    c.lock_resources().ok_or(ErrorKind::InvalidArgument)?,
+                );
                 commands.push(c.mut_handle()?);
             }
             recordings.push(info_recordings);

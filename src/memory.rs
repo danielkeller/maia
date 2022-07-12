@@ -9,7 +9,7 @@
 use std::marker::PhantomData;
 use std::ptr::NonNull;
 
-use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
+use crate::error::{Error, Result, ResultAnd};
 use crate::subobject::{Owner, Subobject};
 use crate::types::*;
 use crate::vk::Device;
@@ -30,7 +30,7 @@ pub struct DeviceMemory {
 }
 
 impl DeviceMemory {
-    /// Returns [`Error::OutOfBounds`] if no memory type exists with the given
+    /// Returns [`ErrorKind::OutOfBounds`] if no memory type exists with the given
     /// index.
     #[doc = crate::man_link!(vkAllocateMemory)]
     pub fn new(
@@ -38,7 +38,14 @@ impl DeviceMemory {
     ) -> Result<Self> {
         let mem_types = device.physical_device().memory_properties();
         if memory_type_index >= mem_types.memory_types.len() {
-            return Err(Error::OutOfBounds);
+            Err(Error::out_of_bounds(format!(
+                "Memory type {memory_type_index} does not exist"
+            )))?
+        }
+        if allocation_size > isize::MAX as u64 {
+            Err(Error::out_of_bounds(format!(
+                "{allocation_size} overflows isize::MAX"
+            )))?
         }
         device.increment_memory_alloc_count()?;
         let mut handle = None;
@@ -54,6 +61,7 @@ impl DeviceMemory {
                 None,
                 &mut handle,
             )
+            .context("vkAllocateMemory")
         };
         if result.is_err() {
             device.decrement_memory_alloc_count();
@@ -85,13 +93,29 @@ impl DeviceMemory {
     pub(crate) fn resource(&self) -> Subobject<MemoryLifetime> {
         Subobject::new(&self.inner)
     }
+    pub(crate) fn bounds_check(&self, offset: u64, size: u64) -> Result<()> {
+        if self.allocation_size < offset || self.allocation_size - offset < size
+        {
+            Err(Error::invalid_argument(format!(
+                "Size {size} and offset {offset} overflows memory size {}",
+                self.allocation_size
+            )))?
+        }
+        Ok(())
+    }
     /// Check if the memory meets `requirements` at the given offset.
-    pub fn check(&self, offset: u64, requirements: MemoryRequirements) -> bool {
-        let (end, overflow) = offset.overflowing_add(requirements.size);
-        (1 << self.memory_type_index) & requirements.memory_type_bits != 0
-            && offset & (requirements.alignment - 1) == 0
-            && !overflow
-            && end <= self.allocation_size
+    pub fn check(
+        &self, offset: u64, requirements: MemoryRequirements,
+    ) -> Result<()> {
+        self.bounds_check(offset, requirements.size)?;
+        requirements.check_type(self.memory_type_index)?;
+        if offset & (requirements.alignment - 1) != 0 {
+            Err(Error::invalid_argument(format!(
+                "Offset {:x} not aligned to {} bytes",
+                offset, requirements.alignment
+            )))?
+        }
+        Ok(())
     }
 }
 
@@ -132,15 +156,13 @@ pub struct MemoryWrite<'a> {
 
 #[allow(clippy::len_without_is_empty)]
 impl DeviceMemory {
-    /// Map the memory so it can be written to. Returns [`Error::OutOfBounds`] if
+    /// Map the memory so it can be written to. Returns [`ErrorKind::OutOfBounds`] if
     /// `offset` and `size` are out of bounds.
     pub fn map(
         mut self, offset: u64, size: usize,
-    ) -> ResultAndSelf<MappedMemory, Self> {
-        let (end, overflow) = offset.overflowing_add(size as u64);
-        if overflow || end > self.allocation_size || size > isize::MAX as usize
-        {
-            return Err(ErrorAndSelf(Error::OutOfBounds, self));
+    ) -> ResultAnd<MappedMemory, Self> {
+        if let Err(err) = self.bounds_check(offset, size as u64) {
+            Err(err.and(self))?
         }
         let inner = &mut *self.inner;
         let mut ptr = std::ptr::null_mut();
@@ -152,8 +174,10 @@ impl DeviceMemory {
                 size as u64,
                 Default::default(),
                 &mut ptr,
-            ) {
-                return Err(ErrorAndSelf(err.into(), self));
+            )
+            .context("vkMapMemory")
+            {
+                Err(err.and(self))?
             }
         }
         Ok(MappedMemory { memory: self, size, ptr: NonNull::new(ptr).unwrap() })

@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use crate::enums::*;
-use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
+use crate::error::{ErrorAnd, ErrorKind, Result, ResultAnd};
 use crate::ext::khr_swapchain::SwapchainImages;
 use crate::memory::{DeviceMemory, MemoryLifetime};
 use crate::subobject::Subobject;
@@ -78,7 +78,7 @@ impl ImageWithoutMemory {
                 && max_dim > device.limits().max_image_dimension_3d)
             || (info.array_layers > device.limits().max_image_array_layers)
         {
-            return Err(Error::LimitExceeded);
+            return Err(ErrorKind::LimitExceeded);
         }
         let mut handle = None;
         unsafe {
@@ -107,17 +107,17 @@ impl Image {
     #[doc = crate::man_link!(vkBindImageMemory)]
     pub fn new(
         image: ImageWithoutMemory, memory: &DeviceMemory, offset: u64,
-    ) -> ResultAndSelf<Arc<Self>, ImageWithoutMemory> {
+    ) -> ResultAnd<Arc<Self>, ImageWithoutMemory> {
         assert_eq!(memory.device(), &image.device);
         if !memory.check(offset, image.memory_requirements()) {
-            return Err(ErrorAndSelf(Error::InvalidArgument, image));
+            return Err(ErrorAnd(ErrorKind::InvalidArgument, image));
         }
         Self::bind_image_impl(image, memory, offset)
     }
 
     fn bind_image_impl(
         mut inner: ImageWithoutMemory, memory: &DeviceMemory, offset: u64,
-    ) -> ResultAndSelf<Arc<Self>, ImageWithoutMemory> {
+    ) -> ResultAnd<Arc<Self>, ImageWithoutMemory> {
         if let Err(err) = unsafe {
             (memory.device().fun.bind_image_memory)(
                 memory.device().handle(),
@@ -126,7 +126,7 @@ impl Image {
                 offset,
             )
         } {
-            return Err(ErrorAndSelf(err.into(), inner));
+            return Err(ErrorAnd(err.into(), inner));
         }
         Ok(Arc::new(Self { inner, _memory: Some(memory.resource()) }))
     }
@@ -179,10 +179,10 @@ impl ImageWithoutMemory {
     /// Allocate a single piece of memory for the image and bind it.
     pub fn allocate_memory(
         self, memory_type_index: u32,
-    ) -> ResultAndSelf<Arc<Image>, Self> {
+    ) -> ResultAnd<Arc<Image>, Self> {
         let mem_req = self.memory_requirements();
         if (1 << memory_type_index) & mem_req.memory_type_bits == 0 {
-            return Err(ErrorAndSelf(Error::InvalidArgument, self));
+            return Err(ErrorAnd(ErrorKind::InvalidArgument, self));
         }
         let memory = match DeviceMemory::new(
             &self.device,
@@ -190,7 +190,7 @@ impl ImageWithoutMemory {
             memory_type_index,
         ) {
             Ok(memory) => memory,
-            Err(err) => return Err(ErrorAndSelf(err, self)),
+            Err(err) => return Err(ErrorAnd(err, self)),
         };
         // Don't need to check requirements
         Image::bind_image_impl(self, &memory, 0)

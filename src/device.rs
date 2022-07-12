@@ -8,7 +8,7 @@
 
 use std::sync::atomic::AtomicU32;
 
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::instance::Instance;
 use crate::load::DeviceFn;
 use crate::physical_device::PhysicalDevice;
@@ -68,7 +68,7 @@ impl Device {
             if i >= props.len()
                 || q.queue_priorities.len() > props[i].queue_count
             {
-                return Err(Error::OutOfBounds);
+                return Err(ErrorKind::OutOfBounds);
             }
             queues[i] = q.queue_priorities.len();
         }
@@ -140,7 +140,7 @@ impl Device {
         let val = self.memory_allocation_count.fetch_add(1, Ordering::Relaxed);
         if val >= self.limits.max_memory_allocation_count {
             self.memory_allocation_count.fetch_sub(1, Ordering::Relaxed);
-            Err(Error::LimitExceeded)
+            Err(ErrorKind::LimitExceeded)
         } else {
             Ok(())
         }
@@ -156,7 +156,7 @@ impl Device {
         let val = self.sampler_allocation_count.fetch_add(1, Ordering::Relaxed);
         if val >= self.limits.max_sampler_allocation_count {
             self.sampler_allocation_count.fetch_sub(1, Ordering::Relaxed);
-            Err(Error::LimitExceeded)
+            Err(ErrorKind::LimitExceeded)
         } else {
             Ok(())
         }

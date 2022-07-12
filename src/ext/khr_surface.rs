@@ -10,7 +10,7 @@ use std::intrinsics::transmute;
 use std::mem::MaybeUninit;
 
 use crate::enums::*;
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::ffi::ArrayMut;
 use crate::instance::Instance;
 use crate::physical_device::PhysicalDevice;
@@ -76,7 +76,7 @@ impl SurfaceKHR {
     }
 
     /// Returns true if the surface supports `phy` on `queue_family`. Returns
-    /// [`Error::OutOfBounds`] if `queue_family` is out of bounds.
+    /// [`ErrorKind::OutOfBounds`] if `queue_family` is out of bounds.
     #[doc = crate::man_link!(vkGetPhysicalDeviceSurfaceSupportKHR)]
     pub fn support(
         &self, phy: &PhysicalDevice, queue_family: u32,
@@ -84,7 +84,7 @@ impl SurfaceKHR {
         let mut result = Bool::False;
         assert!(Arc::ptr_eq(&self.inner.instance, phy.instance()));
         if (queue_family as usize) >= phy.queue_family_properties().len() {
-            return Err(Error::OutOfBounds);
+            return Err(ErrorKind::OutOfBounds);
         }
         unsafe {
             (self.inner.fun.get_physical_device_surface_support_khr)(

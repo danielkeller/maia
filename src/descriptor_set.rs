@@ -11,7 +11,7 @@ use std::mem::MaybeUninit;
 
 use crate::device::Device;
 use crate::enums::{DescriptorType, ShaderStageFlags};
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::ffi::Array;
 use crate::sampler::Sampler;
 use crate::subobject::{Owner, Subobject};
@@ -54,12 +54,12 @@ impl DescriptorSetLayout {
             if !b.immutable_samplers.is_empty()
                 && b.immutable_samplers.len() as u32 != b.descriptor_count
             {
-                return Err(Error::InvalidArgument);
+                return Err(ErrorKind::InvalidArgument);
             }
             if b.descriptor_type == DescriptorType::COMBINED_IMAGE_SAMPLER
                 && b.immutable_samplers.is_empty()
             {
-                return Err(Error::InvalidArgument);
+                return Err(ErrorKind::InvalidArgument);
             }
         }
         let vk_samplers = bindings
@@ -205,10 +205,10 @@ impl Drop for DescriptorPoolLifetime {
 
 impl DescriptorPool {
     /// If all descriptor sets allocated from the pool have not been dropped,
-    /// returns [`Error::SynchronizationError`].
+    /// returns [`ErrorKind::SynchronizationError`].
     pub fn reset(&mut self) -> Result<()> {
         if Arc::get_mut(&mut self.allocated).is_none() {
-            return Err(Error::SynchronizationError);
+            return Err(ErrorKind::SynchronizationError);
         }
         let res = &mut *self.res;
         unsafe {

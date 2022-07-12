@@ -6,13 +6,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::types::VkError;
+use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 #[non_exhaustive]
 /// An error either from Vulkan or Maia.
 #[doc = crate::man_link!(VkResult)]
-pub enum Error {
+pub enum ErrorKind {
     /// Unknown Vulkan error.
     Other,
     /// The arguments provided to the function were incorrect.
@@ -57,60 +57,157 @@ pub enum Error {
     FullScreenExclusiveModeLostEXT,
 }
 
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(self, f)
-    }
+#[derive(Debug, Clone)]
+struct ErrorInner {
+    kind: ErrorKind,
+    message: String,
 }
-impl std::error::Error for Error {}
 
-impl From<VkError> for Error {
-    fn from(err: VkError) -> Self {
-        match err.0.get() {
-            1 => Self::NotReady,
-            2 => Self::Timeout,
-            5 => Self::Incomplete,
-            -1 => Self::OutOfHostMemory,
-            -2 => Self::OutOfDeviceMemory,
-            -3 => Self::InitializationFailed,
-            -4 => Self::DeviceLost,
-            -7 => Self::ExtensionNotPresent,
-            -8 => Self::FeatureNotPresent,
-            -9 => Self::IncompatibleDriver,
-            -1000000000 => Self::SurfaceLostKHR,
-            -1000069000 => Self::OutOfPoolMemory,
-            1000001003 => Self::SuboptimalHKR,
-            -1000001004 => Self::OutOfDateKHR,
-            -1000255000 => Self::FullScreenExclusiveModeLostEXT,
-            _ => Self::Other,
-        }
-    }
-}
+#[derive(Debug, Clone)]
+#[repr(transparent)]
+pub struct Error(Box<ErrorInner>);
 
 /// An error either from Vulkan or Maia.
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// For functions that take an argument by value and need to return it in case
-/// of an error.
-pub struct ErrorAndSelf<T>(pub Error, pub T);
-
-impl<T> std::fmt::Debug for ErrorAndSelf<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(&self.0, f)
-    }
-}
-impl<T> std::fmt::Display for ErrorAndSelf<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(&self.0, f)
-    }
-}
-impl<T> From<ErrorAndSelf<T>> for Error {
-    fn from(ErrorAndSelf(err, _): ErrorAndSelf<T>) -> Self {
-        err
-    }
+#[derive(Debug, Clone)]
+struct ErrorAndInner<S> {
+    error: Box<ErrorInner>,
+    value: S,
 }
 
-impl<T> std::error::Error for ErrorAndSelf<T> {}
 /// For functions that take an argument by value and need to return it in case
 /// of an error.
-pub type ResultAndSelf<T, S> = std::result::Result<T, ErrorAndSelf<S>>;
+#[derive(Clone)]
+#[repr(transparent)]
+pub struct ErrorAnd<S>(Box<ErrorAndInner<S>>);
+
+/// For functions that take an argument by value and need to return it in case
+/// of an error.
+pub type ResultAnd<T, S> = std::result::Result<T, ErrorAnd<S>>;
+
+impl Error {
+    pub fn new(kind: ErrorKind, message: impl Into<String>) -> Self {
+        Self(Box::new(ErrorInner { kind, message: message.into() }))
+    }
+    pub fn invalid_argument(message: impl Into<String>) -> Self {
+        Self::new(ErrorKind::InvalidArgument, message)
+    }
+    pub fn invalid_state(message: impl Into<String>) -> Self {
+        Self::new(ErrorKind::InvalidState, message)
+    }
+    pub fn out_of_bounds(message: impl Into<String>) -> Self {
+        Self::new(ErrorKind::OutOfBounds, message)
+    }
+    pub fn synchronization(message: impl Into<String>) -> Self {
+        Self::new(ErrorKind::SynchronizationError, message)
+    }
+    pub fn limit_exceeded(message: impl Into<String>) -> Self {
+        Self::new(ErrorKind::LimitExceeded, message)
+    }
+    pub fn and<S>(self, value: S) -> ErrorAnd<S> {
+        ErrorAnd(Box::new(ErrorAndInner { error: self.0, value }))
+    }
+    pub fn kind(&self) -> ErrorKind {
+        self.0.kind
+    }
+}
+
+impl<S> ErrorAnd<S> {
+    pub fn new(kind: ErrorKind, message: impl Into<String>, value: S) -> Self {
+        Self(Box::new(ErrorAndInner {
+            error: Box::new(ErrorInner { kind, message: message.into() }),
+            value,
+        }))
+    }
+    pub fn invalid_argument(message: impl Into<String>, value: S) -> Self {
+        Self::new(ErrorKind::InvalidArgument, message, value)
+    }
+    pub fn invalid_state(message: impl Into<String>, value: S) -> Self {
+        Self::new(ErrorKind::InvalidState, message, value)
+    }
+    pub fn out_of_bounds(message: impl Into<String>, value: S) -> Self {
+        Self::new(ErrorKind::OutOfBounds, message, value)
+    }
+    pub fn synchronization(message: impl Into<String>, value: S) -> Self {
+        Self::new(ErrorKind::SynchronizationError, message, value)
+    }
+    pub fn limit_exceeded(message: impl Into<String>, value: S) -> Self {
+        Self::new(ErrorKind::LimitExceeded, message, value)
+    }
+    pub fn kind(&self) -> ErrorKind {
+        self.0.error.kind
+    }
+    pub fn into_parts(self) -> (Error, S) {
+        (Error(self.0.error), self.0.value)
+    }
+}
+
+impl<S> From<ErrorAnd<S>> for Error {
+    fn from(other: ErrorAnd<S>) -> Self {
+        other.into_parts().0
+    }
+}
+
+impl Display for ErrorInner {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_fmt(format_args!("{:?}: {}", self.kind, self.message))
+    }
+}
+impl Display for Error {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0, f)
+    }
+}
+impl<T> Display for ErrorAnd<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.0.error, f)
+    }
+}
+impl<T> Debug for ErrorAnd<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ErrorAnd")
+            .field("error", &self.0.error)
+            .finish_non_exhaustive()
+    }
+}
+
+impl<T> std::error::Error for ErrorAnd<T> {}
+
+#[doc = crate::man_link!(VkResult)]
+#[repr(transparent)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub struct VkResult(i32);
+
+impl ErrorKind {
+    fn from_vk(err: VkResult) -> Option<Self> {
+        match err.0 {
+            0 => None,
+            1 => Some(Self::NotReady),
+            2 => Some(Self::Timeout),
+            5 => Some(Self::Incomplete),
+            -1 => Some(Self::OutOfHostMemory),
+            -2 => Some(Self::OutOfDeviceMemory),
+            -3 => Some(Self::InitializationFailed),
+            -4 => Some(Self::DeviceLost),
+            -7 => Some(Self::ExtensionNotPresent),
+            -8 => Some(Self::FeatureNotPresent),
+            -9 => Some(Self::IncompatibleDriver),
+            -1000000000 => Some(Self::SurfaceLostKHR),
+            -1000069000 => Some(Self::OutOfPoolMemory),
+            1000001003 => Some(Self::SuboptimalHKR),
+            -1000001004 => Some(Self::OutOfDateKHR),
+            -1000255000 => Some(Self::FullScreenExclusiveModeLostEXT),
+            _ => Some(Self::Other),
+        }
+    }
+}
+
+impl VkResult {
+    pub fn context(self, func: &str) -> Result<()> {
+        match ErrorKind::from_vk(self) {
+            None => Ok(()),
+            Some(kind) => Err(Error::new(kind, format!("In call to {}", func))),
+        }
+    }
+}

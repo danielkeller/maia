@@ -11,7 +11,7 @@ use std::mem::MaybeUninit;
 
 use crate::device::Device;
 use crate::enums::*;
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::ffi::ArrayMut;
 use crate::image::Image;
 use crate::queue::Queue;
@@ -86,7 +86,7 @@ impl SwapchainKHR {
     /// If `create_from` is [`CreateSwapchainFrom::OldSwapchain`], images in
     /// that swapchain that aren't acquired by the application are deleted. If
     /// any references remain to those images, returns
-    /// [`Error::SynchronizationError`].
+    /// [`ErrorKind::SynchronizationError`].
     /// Panics if the extension functions can't be loaded.
     ///
     #[doc = crate::man_link!(vkCreateSwapchainKHR)]
@@ -98,7 +98,7 @@ impl SwapchainKHR {
             CreateSwapchainFrom::OldSwapchain(mut old) => {
                 for (img, acquired) in &mut old.images {
                     if !*acquired && Arc::get_mut(img).is_none() {
-                        return Err(Error::SynchronizationError);
+                        return Err(ErrorKind::SynchronizationError);
                     }
                 }
                 (old.surface, old.res.fun.clone(), Some(old.res))
@@ -220,7 +220,7 @@ impl SwapchainKHR {
         &self.surface
     }
 
-    /// Acquires the next swapchain image. [`Error::SuboptimalHKR`] is returned
+    /// Acquires the next swapchain image. [`ErrorKind::SuboptimalHKR`] is returned
     /// in the [`Ok`] variant.
     ///
     /// **Warning:** If `signal` is dropped without being waited on, it and the
@@ -245,7 +245,7 @@ impl SwapchainKHR {
         let is_optimal = match res {
             Ok(()) => ImageOptimality::Optimal,
             Err(e) => match e.into() {
-                Error::SuboptimalHKR => ImageOptimality::Suboptimal,
+                ErrorKind::SuboptimalHKR => ImageOptimality::Suboptimal,
                 other => return Err(other),
             },
         };
@@ -256,7 +256,7 @@ impl SwapchainKHR {
         Ok((image, is_optimal))
     }
 
-    /// Present the image. Returns [`Error::InvalidArgument`] if `wait` has no
+    /// Present the image. Returns [`ErrorKind::InvalidArgument`] if `wait` has no
     /// signal operation pending, or if the image did not come from this
     /// swapchain. The lifetime of the swapchain is also extended by the queue.
     pub fn present(
@@ -266,9 +266,9 @@ impl SwapchainKHR {
             .images
             .iter()
             .position(|h| h.0.handle() == image.handle())
-            .ok_or(Error::InvalidArgument)?;
+            .ok_or(ErrorKind::InvalidArgument)?;
         if wait.signaller.is_none() {
-            return Err(Error::InvalidArgument);
+            return Err(ErrorKind::InvalidArgument);
         }
 
         let res = unsafe {
@@ -287,7 +287,7 @@ impl SwapchainKHR {
         let is_optimal = match res {
             Ok(()) => ImageOptimality::Optimal,
             Err(e) => match e.into() {
-                Error::SuboptimalHKR => ImageOptimality::Suboptimal,
+                ErrorKind::SuboptimalHKR => ImageOptimality::Suboptimal,
                 other => return Err(other),
             },
         };

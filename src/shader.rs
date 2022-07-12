@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use crate::device::Device;
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::types::*;
 
 /// A
@@ -21,7 +21,7 @@ impl ShaderModule {
     #[doc = crate::man_link!(vkCreateShaderModule)]
     pub fn new(device: &Arc<Device>, code: &[u32]) -> Result<Self> {
         if code.is_empty() {
-            return Err(Error::InvalidArgument);
+            return Err(ErrorKind::InvalidArgument);
         }
         let mut handle = None;
         unsafe {

@@ -8,7 +8,7 @@
 
 use crate::device::Device;
 use crate::enums::*;
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::types::*;
 
 /// A
@@ -29,7 +29,7 @@ impl RenderPass {
             if subpass.color_attachments.len()
                 > device.limits().max_color_attachments
             {
-                return Err(Error::LimitExceeded);
+                return Err(ErrorKind::LimitExceeded);
             }
         }
         let compat = RenderPassCompat::new(info)?;
@@ -150,7 +150,7 @@ impl RenderPassCompat {
                     samples: desc.samples,
                 }))
             } else {
-                Err(Error::OutOfBounds)
+                Err(ErrorKind::OutOfBounds)
             }
         };
         let mut subpasses = vec![];
