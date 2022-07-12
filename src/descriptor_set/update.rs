@@ -13,7 +13,7 @@ use crate::buffer::Buffer;
 use crate::device::Device;
 use crate::enums::DescriptorType;
 use crate::enums::ImageLayout;
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::exclusive::Exclusive;
 use crate::ffi::Array;
 use crate::image::ImageView;
@@ -101,7 +101,7 @@ use bumpalo::collections::Vec as BumpVec;
 ///         )?
 ///         .samplers(1, 0, &[&sampler])?
 ///     .end();
-/// # Ok::<_, vk::Error>(())
+/// # Ok::<_, vk::ErrorKind>(())
 /// ```
 pub struct DescriptorSetUpdateBuilder {
     pub(crate) device: Arc<Device>,
@@ -193,8 +193,8 @@ pub struct DescriptorBufferInfo<'a> {
 
 macro_rules! buffer_checks {
     () => {
-        "Returns [`Error::OutOfBounds`] if there are not enough bindings, and
-        [`Error::InvalidArgument`] if some of the bindings in the destination
+        "Returns [`ErrorKind::OutOfBounds`] if there are not enough bindings, and
+        [`ErrorKind::InvalidArgument`] if some of the bindings in the destination
         range are of a different type, or some of the buffers don't have the
         required [`BufferUsageFlags`][crate::vk::BufferUsageFlags] set."
     };
@@ -202,8 +202,8 @@ macro_rules! buffer_checks {
 
 macro_rules! image_checks {
     () => {
-        "Returns [`Error::OutOfBounds`] if there are not enough bindings, and
-        [`Error::InvalidArgument`] if some of the bindings in the destination
+        "Returns [`ErrorKind::OutOfBounds`] if there are not enough bindings, and
+        [`ErrorKind::InvalidArgument`] if some of the bindings in the destination
         range are of a different type, or some of the images don't have the
         required [`ImageUsageFlags`][crate::vk::ImageUsageFlags] set."
     };
@@ -246,10 +246,10 @@ impl<'a> DescriptorSetUpdate<'a> {
         for (b, be) in buffers.iter().zip(iter) {
             let (binding, element) = be?;
             if b.range.map_or(false, |r| r > max_range as u64) {
-                return Err(Error::LimitExceeded);
+                return Err(ErrorKind::LimitExceeded);
             }
             if !descriptor_type.supports_buffer_usage(b.buffer.usage()) {
-                return Err(Error::InvalidArgument);
+                return Err(ErrorKind::InvalidArgument);
             }
             assert!(std::ptr::eq(&**b.buffer.device(), self.updates.device));
             self.updates.resources.push(Resource {
@@ -344,8 +344,8 @@ impl<'a> DescriptorSetUpdate<'a> {
         )
     }
 
-    /// Update sampler bindings. Returns [Error::OutOfBounds] if
-    /// there are not enough bindings, and [Error::InvalidArgument] if some of
+    /// Update sampler bindings. Returns [ErrorKind::OutOfBounds] if
+    /// there are not enough bindings, and [ErrorKind::InvalidArgument] if some of
     /// the bindings in the destination range are of a different type or already
     /// have immutable samplers.
     pub fn samplers(
@@ -362,7 +362,7 @@ impl<'a> DescriptorSetUpdate<'a> {
             let (binding, element) = be?;
             if !self.set.layout.bindings[binding].immutable_samplers.is_empty()
             {
-                return Err(Error::InvalidArgument);
+                return Err(ErrorKind::InvalidArgument);
             }
             assert!(std::ptr::eq(&**s.device(), self.updates.device));
             self.updates.resources.push(Resource {
@@ -409,7 +409,7 @@ impl<'a> DescriptorSetUpdate<'a> {
         for (&(i, _), be) in images.iter().zip(iter) {
             let (binding, element) = be?;
             if !descriptor_type.supports_image_usage(i.image().usage()) {
-                return Err(Error::InvalidArgument);
+                return Err(ErrorKind::InvalidArgument);
             }
             assert!(std::ptr::eq(&**i.device(), self.updates.device));
             self.updates.resources.push(Resource {
@@ -549,17 +549,17 @@ impl<'a> Iterator for BindingIter<'a> {
     type Item = Result<(usize, usize)>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.binding >= self.bindings.len() {
-            return Some(Err(Error::OutOfBounds));
+            return Some(Err(ErrorKind::OutOfBounds));
         }
         while self.element >= self.bindings[self.binding].descriptor_count {
             self.element -= self.bindings[self.binding].descriptor_count;
             self.binding += 1;
             if self.binding >= self.bindings.len() {
-                return Some(Err(Error::OutOfBounds));
+                return Some(Err(ErrorKind::OutOfBounds));
             }
         }
         if self.bindings[self.binding].descriptor_type != self.descriptor_type {
-            return Some(Err(Error::InvalidArgument));
+            return Some(Err(ErrorKind::InvalidArgument));
         }
         self.element += 1;
 

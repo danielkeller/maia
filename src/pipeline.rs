@@ -14,7 +14,7 @@ use crate::descriptor_set::DescriptorSetLayout;
 use crate::device::Device;
 use crate::enums::*;
 use crate::enums::{PipelineLayoutCreateFlags, ShaderStageFlags};
-use crate::error::{Error, Result};
+use crate::error::{Error, ErrorKind, Result};
 use crate::ffi::*;
 use crate::render_pass::RenderPass;
 use crate::types::*;
@@ -39,7 +39,7 @@ impl PipelineLayout {
     ) -> Result<Arc<PipelineLayout>> {
         let lim = &device.limits();
         if set_layouts.len() > lim.max_bound_descriptor_sets as usize {
-            return Err(Error::LimitExceeded);
+            return Err(ErrorKind::LimitExceeded);
         }
         for stage in [
             ShaderStageFlags::COMPUTE,
@@ -73,7 +73,7 @@ impl PipelineLayout {
                     + (storage_dyn + input)
                     > lim.max_per_stage_resources
             {
-                return Err(Error::LimitExceeded);
+                return Err(ErrorKind::LimitExceeded);
             }
         }
         {
@@ -104,13 +104,13 @@ impl PipelineLayout {
                     > lim.max_descriptor_set_storage_images
                 || input > lim.max_descriptor_set_input_attachments
             {
-                return Err(Error::LimitExceeded);
+                return Err(ErrorKind::LimitExceeded);
             }
         }
         for range in &push_constant_ranges {
             let max = lim.max_push_constants_size;
             if max < range.offset || max - range.offset < range.size {
-                return Err(Error::LimitExceeded);
+                return Err(ErrorKind::LimitExceeded);
             }
         }
         let mut handle = None;
@@ -143,8 +143,10 @@ impl PipelineLayout {
 fn find_voids(ranges: &[PushConstantRange]) -> Result<Vec<Range<u32>>> {
     let mut result = vec![0..u32::MAX];
     for range in ranges {
-        let end =
-            range.offset.checked_add(range.size).ok_or(Error::OutOfBounds)?;
+        let end = range
+            .offset
+            .checked_add(range.size)
+            .ok_or(ErrorKind::OutOfBounds)?;
         let mut result1 = vec![];
         for void in result {
             if range.offset > void.start && end < void.end {
@@ -193,14 +195,17 @@ impl PipelineLayout {
     /// correct.
     pub(crate) fn bounds_check_push_constants(
         &self, stage_flags: ShaderStageFlags, offset: u32, size: u32,
-    ) -> bool {
+    ) -> Result<()> {
         let (end, overflow) = offset.overflowing_add(size);
         if overflow {
-            return false;
+            Err(Error::out_of_bounds("Push constant size overflows"))?;
         }
         for void in &self.push_constant_voids {
             if void.start < end && offset < void.end {
-                return false;
+                Err(Error::out_of_bounds(format!(
+                    "Push constant not defined at byte {}",
+                    void.start.max(offset)
+                )))?;
             }
         }
         for range in &self.push_constant_ranges {
@@ -208,10 +213,14 @@ impl PipelineLayout {
                 && offset < range.offset + range.size
                 && stage_flags & range.stage_flags != range.stage_flags
             {
-                return false;
+                Err(Error::invalid_argument(format!(
+                    "Stage flags {stage_flags:?} unexpected in {}..{}",
+                    range.offset,
+                    range.offset + range.size
+                )))?;
             }
         }
-        true
+        Ok(())
     }
 }
 
@@ -245,9 +254,9 @@ pub struct GraphicsPipelineCreateInfo<'a> {
 
 impl Pipeline {
     // TODO: Bulk create
-    /// Returns [`Error::OutOfBounds`] if `info.subpass` is out of bounds of
+    /// Returns [`ErrorKind::OutOfBounds`] if `info.subpass` is out of bounds of
     /// `info.render_pass`, or the specialization constants are out of bounds.
-    /// Returns [`Error::InvalidArgument`] if any vertex input binding number are
+    /// Returns [`ErrorKind::InvalidArgument`] if any vertex input binding number are
     /// repeated, any vertex attribute locations are repeated, or any vertex
     /// attributes refer to a nonexistent binding.
     #[doc = crate::man_link!(vkCreateGraphicsPipeline)]
@@ -256,17 +265,17 @@ impl Pipeline {
     ) -> Result<Arc<Self>> {
         let lim = info.render_pass.device.limits();
         if info.subpass >= info.render_pass.num_subpasses() {
-            return Err(Error::OutOfBounds);
+            return Err(ErrorKind::OutOfBounds);
         }
         let mut bindings = HashSet::new();
         for b in info.vertex_input_state.vertex_binding_descriptions {
             if b.binding > lim.max_vertex_input_bindings
                 || b.stride > lim.max_vertex_input_binding_stride
             {
-                return Err(Error::LimitExceeded);
+                return Err(ErrorKind::LimitExceeded);
             }
             if !bindings.insert(b.binding) {
-                return Err(Error::InvalidArgument);
+                return Err(ErrorKind::InvalidArgument);
             }
         }
         let mut locations = HashSet::new();
@@ -274,16 +283,16 @@ impl Pipeline {
             if att.location > lim.max_vertex_input_attributes
                 || att.offset > lim.max_vertex_input_attribute_offset
             {
-                return Err(Error::LimitExceeded);
+                return Err(ErrorKind::LimitExceeded);
             }
             if !locations.insert(att.location)
                 || !bindings.contains(&att.binding)
             {
-                return Err(Error::InvalidArgument);
+                return Err(ErrorKind::InvalidArgument);
             }
         }
         if info.viewport_state.viewports.len() > lim.max_viewports {
-            return Err(Error::LimitExceeded);
+            return Err(ErrorKind::LimitExceeded);
         }
         for viewport in info.viewport_state.viewports {
             if viewport.height as u32 > lim.max_viewport_dimensions[0]
@@ -293,7 +302,7 @@ impl Pipeline {
                 || viewport.x + viewport.width > lim.viewport_bounds_range[1]
                 || viewport.y + viewport.height > lim.viewport_bounds_range[1]
             {
-                return Err(Error::LimitExceeded);
+                return Err(ErrorKind::LimitExceeded);
             }
         }
         for stage in info.stages {
@@ -337,7 +346,7 @@ impl Pipeline {
             subpass: info.subpass,
         }))
     }
-    /// Returns [`Error::OutOfBounds`] if the specialization constants are out of
+    /// Returns [`ErrorKind::OutOfBounds`] if the specialization constants are out of
     /// bounds.
     #[doc = crate::man_link!(vkCreateComputePipeline)]
     pub fn new_compute(
@@ -416,7 +425,7 @@ fn check_specialization_constants<T>(
             if spec.data.len() < entry.offset as usize
                 || spec.data.len() - (entry.offset as usize) < entry.size
             {
-                return Err(Error::OutOfBounds);
+                return Err(ErrorKind::OutOfBounds);
             }
         }
     }
@@ -475,7 +484,7 @@ impl PipelineCache {
                     ArrayMut::from_slice(result.spare_capacity_mut()),
                 );
                 if let Err(err) = maybe_worked {
-                    if let Error::Incomplete = err.into() {
+                    if let ErrorKind::Incomplete = err.into() {
                         continue; // Racing pipeline creation
                     }
                 }

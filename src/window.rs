@@ -14,7 +14,7 @@
 use std::ptr::NonNull;
 use std::sync::Arc;
 
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::ext::{self, KHRXlibSurface};
 use crate::ext::{KHRWaylandSurface, KHRWin32Surface, SurfaceKHR};
 use crate::ffi::*;
@@ -63,7 +63,7 @@ pub fn required_instance_extensions(
                 [ext::SURFACE, ext::METAL_SURFACE];
             Ok(&IOS_EXTS)
         }
-        _ => Err(Error::ExtensionNotPresent),
+        _ => Err(ErrorKind::ExtensionNotPresent),
     }
 }
 
@@ -122,7 +122,7 @@ pub fn create_surface(
                             },
                         )
                     }
-                    Layer::None => Err(Error::Other), //TODO
+                    Layer::None => Err(ErrorKind::Other), //TODO
                 }
             }
         }
@@ -159,6 +159,6 @@ pub fn create_surface(
                 },
             )
         },
-        _ => Err(Error::ExtensionNotPresent),
+        _ => Err(ErrorKind::ExtensionNotPresent),
     }
 }
