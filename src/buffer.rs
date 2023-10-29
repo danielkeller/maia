@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use crate::enums::*;
-use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
+use crate::error::{Error, Result, ResultAnd};
 use crate::memory::{DeviceMemory, MemoryLifetime};
 use crate::subobject::Subobject;
 use crate::types::*;
@@ -44,7 +44,8 @@ impl BufferWithoutMemory {
                 info,
                 None,
                 &mut handle,
-            )?;
+            )
+            .context("vkCreateBuffer")?;
         }
         Ok(BufferWithoutMemory {
             handle: handle.unwrap(),
@@ -61,17 +62,17 @@ impl Buffer {
     #[doc = crate::man_link!(vkBindBufferMemory)]
     pub fn new(
         buffer: BufferWithoutMemory, memory: &DeviceMemory, offset: u64,
-    ) -> ResultAndSelf<Arc<Self>, BufferWithoutMemory> {
+    ) -> ResultAnd<Arc<Self>, BufferWithoutMemory> {
         assert_eq!(memory.device(), &buffer.device);
-        if !memory.check(offset, buffer.memory_requirements()) {
-            return Err(ErrorAndSelf(Error::InvalidArgument, buffer));
+        if let Err(err) = memory.check(offset, buffer.memory_requirements()) {
+            Err(err.and(buffer))?
         }
         Self::bind_buffer_impl(buffer, memory, offset)
     }
 
     fn bind_buffer_impl(
         mut inner: BufferWithoutMemory, memory: &DeviceMemory, offset: u64,
-    ) -> ResultAndSelf<Arc<Buffer>, BufferWithoutMemory> {
+    ) -> ResultAnd<Arc<Buffer>, BufferWithoutMemory> {
         if let Err(err) = unsafe {
             (memory.device().fun.bind_buffer_memory)(
                 memory.device().handle(),
@@ -79,8 +80,9 @@ impl Buffer {
                 memory.handle(),
                 offset,
             )
+            .context("vkBindBufferMemory")
         } {
-            return Err(ErrorAndSelf(err.into(), inner));
+            Err(err.and(inner))?
         }
         Ok(Arc::new(Buffer { inner, _memory: memory.resource() }))
     }
@@ -120,6 +122,15 @@ impl Buffer {
     pub fn usage(&self) -> BufferUsageFlags {
         self.inner.usage
     }
+    pub(crate) fn check_usage(&self, usage: BufferUsageFlags) -> Result<()> {
+        if !self.inner.usage.contains(usage) {
+            Err(Error::invalid_argument(format!(
+                "Buffer supports usages {:?}, but {:?} is required",
+                self.inner.usage, usage
+            )))?
+        }
+        Ok(())
+    }
 }
 
 impl BufferWithoutMemory {
@@ -158,21 +169,16 @@ impl BufferWithoutMemory {
     /// host-visible memory when robust buffer access is not enabled.
     pub fn allocate_memory(
         self, memory_type_index: u32,
-    ) -> ResultAndSelf<Arc<Buffer>, Self> {
+    ) -> ResultAnd<Arc<Buffer>, Self> {
         let mem_req = self.memory_requirements();
-        if (1 << memory_type_index) & mem_req.memory_type_bits == 0 {
-            return Err(ErrorAndSelf(Error::InvalidArgument, self));
+        if let Err(err) = mem_req.check_type(memory_type_index) {
+            Err(err.and(self))?
         }
-        let memory = match DeviceMemory::new(
-            &self.device,
-            mem_req.size,
-            memory_type_index,
-        ) {
-            Ok(memory) => memory,
-            Err(err) => return Err(ErrorAndSelf(err, self)),
-        };
-        // Don't need to check requirements
-        Buffer::bind_buffer_impl(self, &memory, 0)
+        match DeviceMemory::new(&self.device, mem_req.size, memory_type_index) {
+            // Don't need to check requirements
+            Ok(memory) => Buffer::bind_buffer_impl(self, &memory, 0),
+            Err(err) => Err(err.and(self))?,
+        }
     }
 }
 

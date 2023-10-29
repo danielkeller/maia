@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use crate::buffer::Buffer;
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::ffi::Array;
 use crate::render_pass::RenderPass;
 use crate::subobject::Owner;
@@ -82,7 +82,7 @@ impl<'a> Bindings<'a> {
                 return Ok(());
             }
         }
-        Err(Error::InvalidState)
+        Err(ErrorKind::InvalidState)
     }
     fn check_render_pass(&self, pass: &RenderPass, subpass: u32) -> Result<()> {
         if let Some(pipeline) = self.pipeline.as_ref() {
@@ -90,13 +90,13 @@ impl<'a> Bindings<'a> {
                 return Ok(());
             }
         }
-        Err(Error::InvalidState)
+        Err(ErrorKind::InvalidState)
     }
 }
 
 macro_rules! draw_state {
     () => {
-        "Returns [`Error::InvalidState`] if the bound pipeline is not compatible 
+        "Returns [`ErrorKind::InvalidState`] if the bound pipeline is not compatible 
         with the current render pass and subpass, if the bound descriptor sets 
         and bound graphics pipeline do not have a compatible layout, or if a 
         descriptor set mentioned in the pipeline's layout is not bound."
@@ -225,12 +225,13 @@ fn bounds_check_n(
         stride = size;
     }
     if stride < size || offset & 3 != 0 {
-        return Err(Error::InvalidArgument);
+        return Err(ErrorKind::InvalidArgument);
     }
-    let len =
-        (count as u64).checked_mul(stride as u64).ok_or(Error::OutOfBounds)?;
+    let len = (count as u64)
+        .checked_mul(stride as u64)
+        .ok_or(ErrorKind::OutOfBounds)?;
     if !buf.bounds_check(offset, len) {
-        return Err(Error::OutOfBounds);
+        return Err(ErrorKind::OutOfBounds);
     }
     Ok(())
 }
@@ -257,7 +258,7 @@ impl<'a> CommandRecording<'a> {
         stride: u32,
     ) -> Result<()> {
         if !buffer.usage().contains(BufferUsageFlags::INDIRECT_BUFFER) {
-            return Err(Error::InvalidArgument);
+            return Err(ErrorKind::InvalidArgument);
         }
         bounds_check_n(draw_count, 16, stride, buffer, offset)?;
         self.graphics.check()?;
@@ -296,7 +297,7 @@ impl<'a> CommandRecording<'a> {
     ) -> Result<()> {
         bounds_check_n(draw_count, 20, stride, buffer, offset)?;
         if !buffer.usage().contains(BufferUsageFlags::INDIRECT_BUFFER) {
-            return Err(Error::InvalidArgument);
+            return Err(ErrorKind::InvalidArgument);
         }
         self.graphics.check()?;
         self.add_resource(buffer.clone());
@@ -347,10 +348,10 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> ExternalRenderPassRecording<'a> {
-    /// Returns [Error::InvalidArgument] if 'commands' is empty, if a member of
+    /// Returns [ErrorKind::InvalidArgument] if 'commands' is empty, if a member of
     /// 'commands' is not in the executable state, or if a member of 'commands'
     /// is not compatible with the current pass and subpass. Returns
-    /// [Error::SynchronizationError] if a member of 'commands' is currently
+    /// [ErrorKind::SynchronizationError] if a member of 'commands' is currently
     /// recorded to another command buffer.
     ///
     /// If a command was recorded from another pool, increments the reference
@@ -370,10 +371,11 @@ impl<'a> ExternalRenderPassRecording<'a> {
             if !self.pass.compatible(command.pass.as_deref().unwrap())
                 || self.subpass != command.subpass
             {
-                return Err(Error::InvalidArgument);
+                return Err(ErrorKind::InvalidArgument);
             }
             // Check that the buffer is recorded.
-            let res = command.lock_resources().ok_or(Error::InvalidArgument)?;
+            let res =
+                command.lock_resources().ok_or(ErrorKind::InvalidArgument)?;
             // Require that this pool be reset before the other pool.
             if !Owner::ptr_eq(self.rec.pool, &command.buf.pool) {
                 resources.push(res as Arc<_>);
@@ -386,7 +388,8 @@ impl<'a> ExternalRenderPassRecording<'a> {
             (self.rec.pool.device.fun.cmd_execute_commands)(
                 self.rec.buffer.handle.borrow_mut(),
                 handles.len() as u32,
-                Array::from_slice(&handles).ok_or(Error::InvalidArgument)?,
+                Array::from_slice(&handles)
+                    .ok_or(ErrorKind::InvalidArgument)?,
             )
         }
 

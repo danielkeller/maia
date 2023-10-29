@@ -64,7 +64,7 @@ impl<'a> CommandRecording<'a> {
 
 impl<'a> RenderPassRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty or the buffer
+    /// [`ErrorKind::InvalidArgument`] if `buffers_offsets` is empty or the buffer
     /// usage flags don't include `VERTEX_BUFFER`.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
@@ -73,7 +73,7 @@ impl<'a> RenderPassRecording<'a> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
     /// Reference count of `buffer` is incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
+    /// [`ErrorKind::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
     /// usage flag.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
@@ -84,7 +84,7 @@ impl<'a> RenderPassRecording<'a> {
 }
 impl<'a> SecondaryCommandRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty or the buffer
+    /// [`ErrorKind::InvalidArgument`] if `buffers_offsets` is empty or the buffer
     /// usage flags don't include `VERTEX_BUFFER`.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
@@ -93,7 +93,7 @@ impl<'a> SecondaryCommandRecording<'a> {
         self.rec.bind_vertex_buffers(first_binding, buffers_offsets)
     }
     /// Reference count of `buffer` is incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
+    /// [`ErrorKind::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
     /// usage flag.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
@@ -104,16 +104,14 @@ impl<'a> SecondaryCommandRecording<'a> {
 }
 impl<'a> CommandRecording<'a> {
     /// Reference counts of buffers are incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffers_offsets` is empty or the buffer
+    /// [`ErrorKind::InvalidArgument`] if `buffers_offsets` is empty or the buffer
     /// usage flags don't include `VERTEX_BUFFER`.
     #[doc = crate::man_link!(vkCmdBindVertexBuffers)]
     pub fn bind_vertex_buffers(
         &mut self, first_binding: u32, buffers_offsets: &[(&Arc<Buffer>, u64)],
     ) -> Result<()> {
         for &(buffer, _) in buffers_offsets {
-            if !buffer.usage().contains(BufferUsageFlags::VERTEX_BUFFER) {
-                return Err(Error::InvalidArgument);
-            }
+            buffer.check_usage(BufferUsageFlags::VERTEX_BUFFER)?;
         }
         let buffers = self.scratch.alloc_slice_fill_iter(
             buffers_offsets.iter().map(|&(b, _)| b.handle()),
@@ -127,8 +125,10 @@ impl<'a> CommandRecording<'a> {
                 self.buffer.handle.borrow_mut(),
                 first_binding,
                 buffers.len() as u32,
-                Array::from_slice(buffers).ok_or(Error::InvalidArgument)?,
-                Array::from_slice(offsets).ok_or(Error::InvalidArgument)?,
+                Array::from_slice(buffers).ok_or_else(|| {
+                    Error::invalid_argument("buffers_offsets is empty")
+                })?,
+                Array::from_slice(offsets).unwrap(),
             )
         }
         for &(buffer, _) in buffers_offsets {
@@ -137,15 +137,13 @@ impl<'a> CommandRecording<'a> {
         Ok(())
     }
     /// Reference count of `buffer` is incremented. Returns
-    /// [`Error::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
+    /// [`ErrorKind::InvalidArgument`] if `buffer` does not have the `INDEX_BUFFER`
     /// usage flag.
     #[doc = crate::man_link!(vkCmdBindIndexBuffer)]
     pub fn bind_index_buffer(
         &mut self, buffer: &Arc<Buffer>, offset: u64, index_type: IndexType,
     ) -> Result<()> {
-        if !buffer.usage().contains(BufferUsageFlags::INDEX_BUFFER) {
-            return Err(Error::InvalidArgument);
-        }
+        buffer.check_usage(BufferUsageFlags::INDEX_BUFFER)?;
         self.add_resource(buffer.clone());
         unsafe {
             (self.pool.device.fun.cmd_bind_index_buffer)(
@@ -160,7 +158,7 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
-    /// Returns [`Error::InvalidArgument`] if a member of `sets` is not compatible
+    /// Returns [`ErrorKind::InvalidArgument`] if a member of `sets` is not compatible
     /// with the corresponding member of `layout`, if the length of
     /// `dynamic_offsets` is not correct for `layout`, or if any binding in any
     /// of `sets` is not initialized.
@@ -186,7 +184,7 @@ impl<'a> RenderPassRecording<'a> {
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
-    /// Returns [`Error::InvalidArgument`] if a member of `sets` is not compatible
+    /// Returns [`ErrorKind::InvalidArgument`] if a member of `sets` is not compatible
     /// with the corresponding member of `layout`, if the length of
     /// `dynamic_offsets` is not correct for `layout`, or if any binding in any
     /// of `sets` is not initialized.
@@ -239,7 +237,7 @@ impl<'a> Bindings<'a> {
 }
 
 impl<'a> CommandRecording<'a> {
-    /// Returns [`Error::InvalidArgument`] if a member of `sets` is not compatible
+    /// Returns [`ErrorKind::InvalidArgument`] if a member of `sets` is not compatible
     /// with the corresponding member of `layout`, if the length of
     /// `dynamic_offsets` is not correct for `layout`, or if any binding in any
     /// of `sets` is not [initialized](DescriptorSet::is_initialized).
@@ -261,14 +259,20 @@ impl<'a> CommandRecording<'a> {
             .iter()
             .skip(first_set as usize)
             .take(sets.len()))
-            || sets
-                .iter()
-                .map(|s| s.layout().num_dynamic_offsets())
-                .sum::<u32>()
-                != dynamic_offsets.len() as u32
-            || sets.iter().any(|s| !s.is_initialized())
         {
-            return Err(Error::InvalidArgument);
+            Err(Error::invalid_argument(
+                "`sets` are not compatible with `layout`",
+            ))?
+        }
+        if sets.iter().map(|s| s.layout().num_dynamic_offsets()).sum::<u32>()
+            != dynamic_offsets.len() as u32
+        {
+            Err(Error::invalid_argument(
+                "`sets` are not compatible with `dynamic_offsets`",
+            ))?
+        }
+        if let Some(n) = sets.iter().position(|s| !s.is_initialized()) {
+            Err(Error::invalid_argument(format!("Set {n} is not initialized")))?
         }
         if pipeline_bind_point == PipelineBindPoint::GRAPHICS {
             self.graphics.bind_descriptor_sets(
@@ -307,9 +311,9 @@ impl<'a> CommandRecording<'a> {
 }
 
 impl<'a> RenderPassRecording<'a> {
-    /// Sets push constants. Returns [`Error::OutOfBounds`] if the data is out of
+    /// Sets push constants. Returns [`ErrorKind::OutOfBounds`] if the data is out of
     /// bounds for push contants in `layout` or if `stage_flags` is incorrect.
-    /// Returns [`Error::InvalidArgument`] if `data` is empty.
+    /// Returns [`ErrorKind::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self, layout: &PipelineLayout, stage_flags: ShaderStageFlags,
@@ -319,9 +323,9 @@ impl<'a> RenderPassRecording<'a> {
     }
 }
 impl<'a> SecondaryCommandRecording<'a> {
-    /// Sets push constants. Returns [`Error::OutOfBounds`] if the data is out of
+    /// Sets push constants. Returns [`ErrorKind::OutOfBounds`] if the data is out of
     /// bounds for push contants in `layout` or if `stage_flags` is incorrect.
-    /// Returns [`Error::InvalidArgument`] if `data` is empty.
+    /// Returns [`ErrorKind::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self, layout: &PipelineLayout, stage_flags: ShaderStageFlags,
@@ -331,21 +335,19 @@ impl<'a> SecondaryCommandRecording<'a> {
     }
 }
 impl<'a> CommandRecording<'a> {
-    /// Sets push constants. Returns [`Error::OutOfBounds`] if the data is out of
+    /// Sets push constants. Returns [`ErrorKind::OutOfBounds`] if the data is out of
     /// bounds for push contants in `layout` or if `stage_flags` is incorrect.
-    /// Returns [`Error::InvalidArgument`] if `data` is empty.
+    /// Returns [`ErrorKind::InvalidArgument`] if `data` is empty.
     #[doc = crate::man_link!(vkCmdPushConstants)]
     pub fn push_constants(
         &mut self, layout: &PipelineLayout, stage_flags: ShaderStageFlags,
         offset: u32, data: &[u8],
     ) -> Result<()> {
-        if !layout.bounds_check_push_constants(
+        layout.bounds_check_push_constants(
             stage_flags,
             offset,
             data.len() as u32,
-        ) {
-            return Err(Error::OutOfBounds);
-        }
+        )?;
         unsafe {
             (self.pool.device.fun.cmd_push_constants)(
                 self.buffer.handle.borrow_mut(),
@@ -353,7 +355,9 @@ impl<'a> CommandRecording<'a> {
                 stage_flags,
                 offset,
                 data.len() as u32,
-                Array::from_slice(data).ok_or(Error::InvalidArgument)?,
+                Array::from_slice(data).ok_or_else(|| {
+                    Error::invalid_argument("Push constant data is empty")
+                })?,
             );
         }
         Ok(())

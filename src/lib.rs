@@ -129,7 +129,7 @@ pub mod vk {
     pub use crate::device::Device;
     pub use crate::enums::Bool::{False, True};
     pub use crate::enums::*;
-    pub use crate::error::{Error, ErrorAndSelf, Result, ResultAndSelf};
+    pub use crate::error::{ErrorAnd, ErrorKind, Result, ResultAnd};
     pub use crate::ext;
     pub use crate::ext::khr_swapchain::{
         CreateSwapchainFrom, SwapchainCreateInfoKHR,

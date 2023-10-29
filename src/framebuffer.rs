@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use crate::enums::*;
-use crate::error::{Error, Result};
+use crate::error::{ErrorKind, Result};
 use crate::image::ImageView;
 use crate::render_pass::RenderPass;
 use crate::types::*;
@@ -35,7 +35,7 @@ impl Framebuffer {
             || size.height > lim.max_framebuffer_height
             || size.depth > lim.max_framebuffer_layers
         {
-            return Err(Error::LimitExceeded);
+            return Err(ErrorKind::LimitExceeded);
         }
         let vk_attachments: Vec<_> =
             attachments.iter().map(|iv| iv.handle()).collect();

@@ -7,39 +7,10 @@
 // except according to those terms.
 
 use crate::enums::*;
-use crate::error::Error;
+use crate::error::{Error, Result, VkResult};
 use crate::ffi::*;
 use std::fmt::Debug;
 pub(crate) use std::sync::Arc;
-
-use std::num::NonZeroI32;
-
-#[repr(transparent)]
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
-/// A VkResult with a code other than VK_SUCCESS.
-pub struct VkError(pub NonZeroI32);
-
-impl std::fmt::Display for VkError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(self, f)
-    }
-}
-impl std::error::Error for VkError {}
-
-#[doc = crate::man_link!(VkResult)]
-pub type VkResult = std::result::Result<(), VkError>;
-
-// Check that VkResult corresponds to Vulkan's definition. This allows wrapper
-// functions to use '?'.
-const _: () = assert!(std::mem::size_of::<VkResult>() == 4);
-const _: () =
-    assert!(unsafe { std::mem::transmute::<i32, VkResult>(0).is_ok() });
-const _EXPECTED: VkResult =
-    Err(VkError(unsafe { NonZeroI32::new_unchecked(-1) }));
-const _: () = assert!(matches!(
-    unsafe { std::mem::transmute::<i32, VkResult>(-1) },
-    _EXPECTED
-));
 
 #[doc = crate::man_link!(VK_DEFINE_HANDLE)]
 #[repr(transparent)]
@@ -443,6 +414,14 @@ impl MemoryRequirements {
             if ty.property_flags.contains(MemoryPropertyFlags::HOST_VISIBLE) {
                 self.memory_type_bits &= !(1 << i);
             }
+        }
+    }
+    pub(crate) fn check_type(&self, mem_type: u32) -> Result<()> {
+        if (1 << mem_type) & self.memory_type_bits == 0 {
+            Error::invalid_argument(format!(
+                "Memory type {} not in set {:b}",
+                mem_type, self.memory_type_bits
+            ))?
         }
     }
 }
@@ -1499,17 +1478,25 @@ pub struct SubpassDescription<'a> {
 impl<'a> TryFrom<SubpassDescription<'a>> for VkSubpassDescription<'a> {
     type Error = Error;
     #[inline]
-    fn try_from(value: SubpassDescription<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: SubpassDescription<'a>) -> Result<Self> {
         if !value.resolve_attachments.is_empty()
             && value.resolve_attachments.len() != value.color_attachments.len()
         {
-            return Err(Error::InvalidArgument);
+            Error::invalid_argument(format!(
+                "{} resolve attachments and {} color attachments",
+                value.resolve_attachments.len(),
+                value.color_attachments.len()
+            ))?
         }
         if !value.depth_stencil_attachments.is_empty()
             && value.depth_stencil_attachments.len()
                 != value.color_attachments.len()
         {
-            return Err(Error::InvalidArgument);
+            Error::invalid_argument(format!(
+                "{} depth-stencil attachments and {} color attachments",
+                value.depth_stencil_attachments.len(),
+                value.color_attachments.len()
+            ))?
         }
         Ok(Self {
             flags: Default::default(),
