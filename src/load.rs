@@ -17,9 +17,10 @@ use std::ffi::c_void;
 use std::mem::transmute;
 use std::mem::MaybeUninit;
 
+// TODO: raw dylib
 #[link(name = "vulkan")]
-extern "system" {
-    fn vkGetInstanceProcAddr(
+unsafe extern "system" {
+    unsafe fn vkGetInstanceProcAddr(
         instance: Option<Ref<VkInstance>>, name: Str<'_>,
     ) -> Option<NonNull<c_void>>;
 }
@@ -139,11 +140,7 @@ pub struct DeviceFn {
         Mut<VkDevice>,
         Option<&'_ AllocationCallbacks>,
     ),
-    pub device_wait_idle: unsafe extern "system" fn(
-        // Technically not ext. sync. on the device, but on the queues. But
-        // this is safer because the queues borrow the device.
-        Mut<VkDevice>,
-    ) -> VkResult,
+    pub device_wait_idle: unsafe extern "system" fn(Ref<VkDevice>) -> VkResult,
     pub get_device_queue: unsafe extern "system" fn(
         Ref<VkDevice>,
         u32,
@@ -440,6 +437,8 @@ pub struct DeviceFn {
         u64,
         u32,
     ),
+    /// TODO: This lifetime is a lie, it should take ownerhship of the argument
+    /// so that you need to use an unsafe block to clone the handle.
     pub cmd_copy_buffer: unsafe extern "system" fn(
         Mut<VkCommandBuffer>,
         Ref<VkBuffer>,

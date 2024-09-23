@@ -21,20 +21,25 @@ pub struct BufferWithoutMemory {
     device: Device,
 }
 
+#[derive(Debug)]
+struct BufferInner {
+    inner: BufferWithoutMemory,
+    _memory: Arc<MemoryInner>,
+}
+
 /// A
 #[doc = crate::spec_link!("buffer", "12", "resources-buffers")]
 /// with memory attached to it.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Buffer {
-    inner: BufferWithoutMemory,
-    memory: Arc<MemoryInner>,
+    inner: Arc<BufferInner>,
 }
 
 impl std::ops::Deref for Buffer {
     type Target = BufferWithoutMemory;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.inner.inner
     }
 }
 
@@ -84,6 +89,7 @@ impl BufferWithoutMemory {
     pub fn usage(&self) -> BufferUsageFlags {
         self.usage
     }
+    // TODO: Maybe don't worry about robust if we only read the buffer?
     /// If [`BufferCreateInfo::usage`] includes an abritrarily indexable buffer
     /// usage type (uniform, storage, vertex, or index) and the robust buffer
     /// access feature was not enabled at device creation, any host-visible
@@ -146,7 +152,15 @@ impl Buffer {
             )
             .unwrap();
         }
-        Buffer { inner: buffer, memory: memory.inner() }
+        let inner =
+            Arc::new(BufferInner { inner: buffer, _memory: memory.inner() });
+        Buffer { inner }
+    }
+}
+
+impl Drop for Buffer {
+    fn drop(&mut self) {
+        self.device().dispose(self.inner.clone());
     }
 }
 

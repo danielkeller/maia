@@ -9,6 +9,7 @@
 use bumpalo::collections::Vec as BumpVec;
 use std::fmt::Debug;
 
+use crate::cleanup::Cleanup;
 use crate::cleanup_queue::CleanupQueue;
 use crate::command_buffer::CommandBuffer;
 use crate::device::Device;
@@ -38,19 +39,20 @@ use crate::types::*;
 #[derive(Debug)]
 pub struct Queue {
     handle: Handle<VkQueue>,
-    device: Device,
+    cleanup: Arc<Cleanup>,
     resources: CleanupQueue,
     scratch: Exclusive<bumpalo::Bump>,
 }
 
-impl Device {
-    pub(crate) fn queue(
-        self: &Self, family_index: u32, queue_index: u32,
+impl Queue {
+    pub(crate) fn new(
+        cleanup: &Arc<Cleanup>, family_index: u32, queue_index: u32,
     ) -> Queue {
+        let device = cleanup.device();
         let mut handle = None;
         unsafe {
-            (self.fun().get_device_queue)(
-                self.handle(),
+            (device.fun().get_device_queue)(
+                device.handle(),
                 family_index,
                 queue_index,
                 &mut handle,
@@ -58,14 +60,12 @@ impl Device {
         }
         Queue {
             handle: handle.unwrap(),
-            device: self.clone(),
+            cleanup: cleanup.clone(),
             resources: CleanupQueue::new(100),
             scratch: Exclusive::new(bumpalo::Bump::new()),
         }
     }
-}
 
-impl Queue {
     /// Borrows the inner Vulkan handle.
     pub fn handle(&self) -> Ref<VkQueue> {
         self.handle.borrow()
@@ -73,6 +73,11 @@ impl Queue {
     /// Mutably borrows the inner Vulkan handle.
     pub fn mut_handle(&mut self) -> Mut<VkQueue> {
         self.handle.borrow_mut()
+    }
+
+    /// Returns the associated device.
+    pub fn device(&self) -> &Device {
+        self.cleanup.device()
     }
 }
 
@@ -103,6 +108,7 @@ impl Drop for SubmitScope<'_> {
     }
 }
 
+#[cfg(any())]
 impl Queue {
     fn submit_scope(&mut self) -> SubmitScope<'_> {
         let scratch = self.scratch.get_mut();
@@ -155,9 +161,6 @@ impl Queue {
             }
         }
     }
-
-    // TODO: Async version of submit_loop that disables the device while it's
-    // not running.
 
     #[doc = crate::man_link!(vkQueueWaitIdle)]
     pub fn wait_idle(&mut self) {

@@ -1631,6 +1631,21 @@ impl DescriptorType {
 bitflags! {
     #[repr(transparent)]
     #[derive(Default)]
+    /// Reserved
+    pub struct DescriptorUpdateTemplateCreateFlags: u32 {}
+}
+
+#[repr(transparent)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
+#[doc = crate::man_link!(VkDescriptorUpdateTemplateType)]
+pub struct DescriptorUpdateTemplateType(u32);
+impl DescriptorUpdateTemplateType {
+    pub const DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET: Self = Self(0);
+}
+
+bitflags! {
+    #[repr(transparent)]
+    #[derive(Default)]
     #[doc = crate::man_link!(VkShaderStageFlagBits)]
     pub struct ShaderStageFlags: u32 {
         const VERTEX = 0x01;

@@ -46,7 +46,7 @@ pub(crate) struct ImageInner {
 /// An
 #[doc = crate::spec_link!("image", "12", "resources-images")]
 /// with memory attached to it.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Image {
     pub(crate) inner: Arc<ImageInner>,
 }
@@ -59,7 +59,7 @@ struct ImageViewInner {
 
 /// An
 #[doc = crate::spec_link!("image view", "12", "resources-image-views")]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ImageView {
     inner: Arc<ImageViewInner>,
     // Embed Ref<'static, VkImageView> here to allow deriving descriptor
@@ -279,11 +279,6 @@ impl Image {
         let inner = Arc::new(ImageInner { inner, _memory });
         Self { inner }
     }
-
-    // Not publicly cloneable for consistency.
-    fn clone(&self) -> Self {
-        Self { inner: self.inner.clone() }
-    }
 }
 
 #[doc = crate::man_link!(VkImageViewCreateInfo)]
@@ -347,10 +342,6 @@ impl ImageView {
 
     pub fn image(&self) -> &Image {
         self
-    }
-
-    pub(crate) fn clone(&self) -> ImageView {
-        Self { inner: self.inner.clone() }
     }
 }
 

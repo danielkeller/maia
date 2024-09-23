@@ -7,15 +7,15 @@
 // except according to those terms.
 
 use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Weak;
 
+use crate::cleanup::Cleanup;
 use crate::instance::Instance;
 use crate::load::DeviceFn;
-use crate::physical_device::PhysicalDevice;
+use crate::physical_device::{make_api_version, PhysicalDevice};
 use crate::queue::Queue;
 use crate::types::*;
 
-// TODO: According to the spec, other references generally are allowed to
-// dangle during destruction. Do we respect this?
 struct Impl {
     handle: Handle<VkDevice>,
     fun: DeviceFn,
@@ -25,6 +25,7 @@ struct Impl {
     memory_allocation_count: AtomicU32,
     sampler_allocation_count: AtomicU32,
     queues: Vec<u32>,
+    cleanup: Weak<Cleanup>,
     // Maybe include device_lost so we don't double panic all the time
 }
 
@@ -55,7 +56,6 @@ impl std::hash::Hash for Device {
 impl Drop for Impl {
     fn drop(&mut self) {
         unsafe {
-            (self.fun.device_wait_idle)(self.handle.borrow_mut()).unwrap();
             (self.fun.destroy_device)(self.handle.borrow_mut(), None);
         }
     }
@@ -63,11 +63,15 @@ impl Drop for Impl {
 
 impl Device {
     /// Create a logical device for this physical device. Queues are returned in
-    /// the order requested in `info.queue_create_infos`.
+    /// the order requested in `info.queue_create_infos`. The physical device
+    /// version must be >=1.1.
     #[doc = crate::man_link!(vkCreateDevice)]
     pub fn new(
         phy: &PhysicalDevice, info: &DeviceCreateInfo<'_>,
     ) -> (Self, Vec<Vec<Queue>>) {
+        let phy_properties = phy.properties();
+        assert!(phy_properties.api_version >= make_api_version(0, 1, 1, 0));
+        assert!(phy_properties.api_version < make_api_version(0, 2, 0, 0));
         let props = phy.queue_family_properties();
         let mut queues = vec![0; props.len()];
         for q in info.queue_create_infos {
@@ -97,24 +101,32 @@ impl Device {
         }
         let handle = handle.unwrap();
         let fun = DeviceFn::new(phy.instance(), handle.borrow());
-        let this = Device {
-            inner: Arc::new(Impl {
+
+        let cleanup = Arc::new_cyclic(|cleanup| {
+            let inner = Impl {
                 handle,
                 fun,
                 physical_device: phy.clone(),
-                limits: phy.properties().limits,
+                limits: phy_properties.limits,
                 enabled: info.enabled_features.cloned().unwrap_or_default(),
                 memory_allocation_count: 0.into(),
                 sampler_allocation_count: 0.into(),
                 queues,
-            }),
-        };
+                cleanup: cleanup.clone(),
+            };
+            let this = Device { inner: Arc::new(inner) };
+            Cleanup::new(&this)
+        });
+        let this = cleanup.device().clone();
+
         let queues = this
             .inner
             .queues
             .iter()
             .enumerate()
-            .map(|(i, &n)| (0..n).map(|n| this.queue(i as u32, n)).collect())
+            .map(|(i, &n)| {
+                (0..n).map(|n| Queue::new(&cleanup, i as u32, n)).collect()
+            })
             .collect();
         (this, queues)
     }
@@ -122,6 +134,19 @@ impl Device {
     /// Get the device functions.
     pub fn fun(&self) -> &DeviceFn {
         &self.inner.fun
+    }
+
+    /// Returns the cleanup object, if it still exists. If this function returns
+    /// None, the device is idle and any resource can be cleaned up immediately.
+    pub fn cleanup(&self) -> Option<Arc<Cleanup>> {
+        self.inner.cleanup.upgrade()
+    }
+
+    /// Dispose of the resource at the next safe time.
+    pub fn dispose(&self, resource: impl Send + Sync + 'static) {
+        if let Some(cleanup) = self.cleanup() {
+            cleanup.dispose(resource);
+        }
     }
 }
 

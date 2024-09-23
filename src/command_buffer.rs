@@ -23,7 +23,8 @@ pub mod barrier;
 mod bind;
 mod draw;
 
-// TODO: CommandPoolSet, with reset(&mut self) and record(&self) -> CommandPool
+// TODO: Sync CommandPoolSet, with reset(&mut self) and
+// record(&self) -> CommandPool
 
 #[derive(Debug)]
 pub struct CommandPoolInner {
@@ -34,13 +35,24 @@ pub struct CommandPoolInner {
 
 /// A
 #[doc = crate::spec_link!("command pool", "6", "commandbuffers-pools")]
-/// , which can be recorded on. It uses interior mutability, so it is not [Sync].
+/// , which can be recorded on. It uses interior mutability, so it is not
+/// [Sync]. The expected use of Pool objects is that they live on the stack,
+/// and structures that contain objects allocated from them contain a lifetime.
 #[derive(Debug)]
 pub struct CommandPool {
     inner: RefCell<CommandPoolInner>,
     scratch: bumpalo::Bump,
     device: Device,
 }
+
+// Each buffer holds open the epoch it started in. When submitting, the queue
+// hold open the earliest epoch of any buffer (this has to be still open)
+// A reference is returned in the fence and it lets the epoch close when it's
+// waited on, then tries to advance (maybe in a background thread).
+
+// If an object is disposed, and it was observed by a command buffer, it must
+// have been in a thread with the buffer so the disposal happens after the
+// buffer pinned the epoch.
 
 /// A primary command buffer.
 #[derive(Debug)]
@@ -184,7 +196,8 @@ impl CommandPool {
         self.scratch.reset();
     }
 
-    /// Begin a command buffer, allocating a new one if one is not available on the free list. Command buffers have ONE_TIME_SUBMIT set.
+    /// Begin a command buffer, allocating a new one if one is not available on
+    /// the free list. Command buffers have ONE_TIME_SUBMIT set.
     #[doc = crate::man_link!(vkAllocateCommandBuffers)]
     #[doc = crate::man_link!(vkBeginCommandBuffer)]
     pub fn begin<'rec, 'pool>(&'pool self) -> CommandRecording<'rec, 'pool> {

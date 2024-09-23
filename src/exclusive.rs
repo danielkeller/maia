@@ -39,3 +39,9 @@ impl<T> Exclusive<T> {
         &mut self.inner
     }
 }
+
+impl<T> From<T> for Exclusive<T> {
+    fn from(value: T) -> Self {
+        Self::new(value)
+    }
+}

@@ -99,7 +99,7 @@ impl SwapchainKHR {
     /// panic.
     ///
     #[doc = crate::man_link!(vkCreateSwapchainKHR)]
-    pub fn recreate(mut self, info: &SwapchainCreateInfoKHR) -> Self {
+    pub fn recreate(self, info: &SwapchainCreateInfoKHR) -> Self {
         Self::try_recreate(self, info).unwrap()
     }
 

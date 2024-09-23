@@ -37,6 +37,7 @@ mod render_pass;
 mod sampler;
 mod subobject;
 mod types;
+mod cleanup;
 #[cfg(any(feature = "window", doc))]
 #[cfg_attr(docsrs, doc(cfg(feature = "window")))]
 pub mod window;
@@ -67,128 +68,6 @@ macro_rules! spec_link {
     };
 }
 pub(crate) use spec_link;
-
-use core::marker::PhantomData as PD;
-
-struct Pool;
-struct RecSession<'pool>(&'pool mut Pool);
-
-impl Pool {
-    fn reset<'pool>(&'pool mut self) -> RecSession<'pool> {
-        RecSession(self)
-    }
-}
-impl<'pool> RecSession<'pool> {
-    fn begin<'rec>(&'rec mut self) -> CmdRecording<'rec, 'pool> {
-        CmdRecording(self)
-    }
-    fn record(&mut self) -> CmdBuf<'pool> {
-        CmdBuf(PD)
-    }
-}
-
-struct CmdBuf<'a>(PD<&'a ()>);
-struct CmdRecording<'rec, 'pool: 'rec>(&'rec mut RecSession<'pool>);
-
-impl<'rec, 'pool> CmdRecording<'rec, 'pool> {
-    fn record_thing(&mut self, _: &'pool Object) {}
-    fn record_secondary(&mut self, _: &'pool mut CmdBuf<'pool>) {}
-    fn end(self) -> CmdBuf<'pool> {
-        CmdBuf(PD)
-    }
-}
-impl CmdBuf<'_> {
-    fn submit(&mut self) {}
-}
-
-struct Object;
-
-struct PoolSet;
-
-impl PoolSet {
-    fn get_pool<'pool>(&'pool self) -> RecSession<'pool> {
-        RecSession(todo!())
-    }
-    fn reset(&mut self) {}
-}
-
-fn device<'a>() -> &'a vk::Device {
-    todo!()
-}
-
-fn foo() {
-    let mut pool = Pool;
-    let mut pool1 = Pool;
-    let mut pool1_contents = pool1.reset();
-    let mut pool_contents = pool.reset();
-
-    let mut b = None;
-    std::thread::scope(|s| {
-        s.spawn(|| {
-            let mut b_rec = pool_contents.begin();
-            b_rec.record_thing(&Object);
-            b = Some(b_rec.end());
-        });
-    });
-
-    let foo = 5;
-    std::thread::scope(|s| {
-        s.spawn(|| {
-            foo == 7;
-            drop(foo);
-        });
-    });
-
-    let mut b1_rec = pool1_contents.begin();
-    b1_rec.record_secondary(b.as_mut().unwrap());
-    let mut b1 = b1_rec.end();
-    drop(pool1_contents);
-    b1.submit();
-    pool.reset();
-
-    let mut poolset = PoolSet;
-    // let mut cmds = vec![];
-    // [&Object, &Object]
-    //     .into_par_iter()
-    //     .map_init(
-    //         || poolset.get_pool(),
-    //         |pool, i| {
-    //             let mut rec = pool.begin();
-    //             rec.record_thing(i);
-    //             rec.end()
-    //         },
-    //     )
-    //     .collect_into_vec(&mut cmds);
-    // cmds[0].submit();
-    poolset.reset();
-}
-
-struct Scope<'s>(std::marker::PhantomData<&'s mut &'s ()>);
-
-impl<'s> Scope<'s> {
-    fn run_mut(&mut self, _: &'s mut ()) {}
-    fn run(&mut self, _: &'s ()) {}
-}
-
-fn loop_scope<F, T>(vs: &mut [T], mut f: F)
-where
-    F: for<'a> FnMut(&mut Scope<'a>, &'a mut T),
-{
-    loop {
-        for v in vs.iter_mut() {
-            let mut s = Scope(std::marker::PhantomData);
-            f(&mut s, v)
-        }
-    }
-}
-
-fn test_the_scope() {
-    let mut vs = [(), ()];
-    let v1 = ();
-    loop_scope(&mut vs, |s, v| {
-        s.run_mut(v);
-    });
-}
 
 #[doc = crate::man_link!(vkEnumerateInstanceExtensionProperties)]
 pub fn instance_extension_properties() -> Vec<ExtensionProperties> {
@@ -240,7 +119,7 @@ pub mod vk {
         SecondaryCommandBuffer, SecondaryCommandRecording,
     };
     pub use crate::descriptor_set::{
-        update::DescriptorBufferInfo, update::DescriptorSetUpdate,
+        update::DescriptorBufferInfo1, update::DescriptorSetUpdate,
         update::DescriptorSetUpdateBuilder, update::DescriptorSetUpdates,
         DescriptorPool, DescriptorSet, DescriptorSetLayout,
         DescriptorSetLayoutBinding,
@@ -259,6 +138,7 @@ pub mod vk {
     pub use crate::instance::Instance;
     pub use crate::instance_extension_properties;
     pub use crate::memory::{DeviceMemory, MappedMemory};
+    pub use crate::physical_device::make_api_version;
     pub use crate::physical_device::PhysicalDevice;
     pub use crate::pipeline::{
         GraphicsPipelineCreateInfo, Pipeline, PipelineLayout,

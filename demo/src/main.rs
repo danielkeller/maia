@@ -503,7 +503,7 @@ async fn main_loop() {
             },
         ],
     );
-    let mut descriptor_pool = vk::DescriptorPool::new(
+    let descriptor_pool = vk::DescriptorPool::new(
         &device,
         1,
         &[
@@ -518,7 +518,7 @@ async fn main_loop() {
         ],
     );
     let mut desc_set =
-        vk::DescriptorSet::new(&mut descriptor_pool, &descriptor_set_layout);
+        vk::DescriptorSet::new(&descriptor_pool, &descriptor_set_layout);
 
     let mut update = vk::DescriptorSetUpdateBuilder::new(&device);
     update
@@ -527,7 +527,7 @@ async fn main_loop() {
         .uniform_buffers(
             0,
             0,
-            &[vk::DescriptorBufferInfo {
+            &[vk::DescriptorBufferInfo1 {
                 buffer: &uniform_buffer,
                 offset: 0,
                 range: None,

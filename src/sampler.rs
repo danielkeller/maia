@@ -17,7 +17,7 @@ struct SamplerInner {
 
 /// A
 #[doc = crate::spec_link!("sampler", "13", "samplers")]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Sampler {
     inner: Arc<SamplerInner>,
 }
@@ -74,9 +74,5 @@ impl Sampler {
     /// Returns the associated device.
     pub fn device(&self) -> &Device {
         &self.inner.device
-    }
-
-    pub(crate) fn clone(&self) -> Self {
-        Self { inner: self.inner.clone() }
     }
 }

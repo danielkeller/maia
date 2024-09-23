@@ -47,6 +47,16 @@ impl<T> Owner<T> {
     pub fn downgrade(&self) -> Arc<Subobject<T>> {
         self.0.clone()
     }
+    // Returns true if there are no subobjects
+    pub fn is_unique(&mut self) -> bool {
+        Arc::strong_count(&self.0) == 1
+    }
+}
+
+impl<T> From<T> for Owner<T> {
+    fn from(value: T) -> Self {
+        Self::new(value)
+    }
 }
 
 // Safety: Only Owner can access the data

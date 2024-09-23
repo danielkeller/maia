@@ -1397,6 +1397,34 @@ pub struct VkCopyDescriptorSet<'a, Next = Null> {
 structure_type!(CopyDescriptorSetType, 35);
 
 #[repr(C)]
+#[derive(Debug, Default)]
+#[doc = crate::man_link!(DescriptorUpdateTemplateCreateInfo)]
+pub struct DescriptorUpdateTemplateCreateInfo<'a, Next = Null> {
+    pub stype: DescriptorUpdateTemplateCreateInfoType,
+    pub next: Next,
+    pub flags: DescriptorUpdateTemplateCreateFlags,
+    pub descriptor_update_entries: Slice_<'a, DescriptorUpdateTemplateEntry>,
+    pub template_type: DescriptorUpdateTemplateType,
+    pub descriptor_set_layout: Option<Ref<'a, VkDescriptorSetLayout>>,
+    pub pipeline_bind_point: PipelineBindPoint,
+    pub pipeline_layout: Option<Ref<'a, VkPipelineLayout>>,
+    pub set: u32,
+}
+structure_type!(DescriptorUpdateTemplateCreateInfoType, 1000085000);
+
+#[repr(C)]
+#[derive(Debug, Default)]
+#[doc = crate::man_link!(VkDescriptorUpdateTemplateEntry)]
+pub struct DescriptorUpdateTemplateEntry {
+    pub dst_binding: u32,
+    pub dst_array_element: u32,
+    pub descriptor_count: u32,
+    pub descriptor_type: DescriptorType,
+    pub offset: usize,
+    pub stride: usize,
+}
+
+#[repr(C)]
 #[derive(Debug)]
 #[doc = crate::man_link!(VkFramebufferCreateInfo)]
 pub struct VkFramebufferCreateInfo<'a, Next = Null> {

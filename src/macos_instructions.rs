@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+// TODO: I heard somewhere that dylibs aren't allowed in .app bundles.
+
 //! # MacOS-specific Instructions
 //! Bundling a Vulkan .app for MacOS requires a few extra steps. The .app bundle is really just a folder, with a structure like
 //!

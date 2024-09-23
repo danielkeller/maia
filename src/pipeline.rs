@@ -34,6 +34,10 @@ pub struct PipelineLayout {
 
 impl PipelineLayout {
     /// Panics if the pipeline layout exceeds the limits in `device.limits()`.
+    /// Note that pipeline layouts are only considered
+    #[doc = crate::spec_link!("compatible", "14", "descriptorsets-compatibility")]
+    /// for descriptor set `i` if they have the *same* set layouts (not just
+    /// identically defined ones).
     #[doc = crate::man_link!(vkCreatePipelineLayout)]
     pub fn new(
         device: &Device, flags: PipelineLayoutCreateFlags,
